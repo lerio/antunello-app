@@ -27,6 +27,11 @@ export default function ProtectedPage() {
     }
   }
 
+  const handleTransactionDeleted = () => {
+    setNotificationMessage('Transaction deleted successfully!')
+    setShowNotification(true)
+  }
+
   useEffect(() => {
     fetchTransactions()
   }, [])
@@ -58,6 +63,7 @@ export default function ProtectedPage() {
       <Suspense fallback={<div>Loading transactions...</div>}>
         <TransactionsTable 
           initialTransactions={transactions}
+          onDelete={handleTransactionDeleted}
         />
       </Suspense>
 

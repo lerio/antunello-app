@@ -8,9 +8,10 @@ import { formatDateTime } from '@/utils/date'
 
 type TransactionsTableProps = {
   initialTransactions: Transaction[]
+  onDelete?: () => void
 }
 
-export default function TransactionsTable({ initialTransactions }: TransactionsTableProps) {
+export default function TransactionsTable({ initialTransactions, onDelete }: TransactionsTableProps) {
   const [transactions, setTransactions] = useState(initialTransactions)
   const router = useRouter()
 
@@ -29,6 +30,7 @@ export default function TransactionsTable({ initialTransactions }: TransactionsT
 
       if (!error) {
       setTransactions(transactions.filter(t => t.id !== id))
+      onDelete?.()
     }
   }
 
