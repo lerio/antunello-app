@@ -12,6 +12,12 @@ export default async function AuthButton() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const displayNames: Record<string, string> = {
+    "valerio.donati@gmail.com": "Lerio",
+    "luci.milella@gmail.com": "Luci",
+  }
+  const displayName = user?.email ? displayNames[user.email] || user.email : null;
+
   if (!hasEnvVars) {
     return (
       <>
@@ -41,7 +47,7 @@ export default async function AuthButton() {
   }
   return user ? (
     <div className="flex items-center gap-4">
-      Hey, {user.email}!
+      <Link href={"/protected/reset-password"} className="font-bold hover:underline">{displayName}</Link>
       <form action={signOutAction}>
         <Button type="submit" variant={"outline"}>
           Sign out

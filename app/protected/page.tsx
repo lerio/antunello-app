@@ -1,36 +1,45 @@
-import { createClient } from "@/utils/supabase/server";
-import { InfoIcon } from "lucide-react";
-import { redirect } from "next/navigation";
+'use client'
 
-export default async function ProtectedPage() {
-  const supabase = await createClient();
+import { useEffect, useState } from 'react'
+import TransactionForm from '@/components/TransactionForm'
+import TransactionsTable from '@/components/TransactionsTable'
+import { Transaction } from '@/types/database'
+import { supabase } from '@/utils/supabase'
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function ProtectedPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  
+  const fetchTransactions = async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('date', { ascending: false })
 
-  if (!user) {
-    return redirect("/sign-in");
+    if (data) {
+      setTransactions(data)
+    }
   }
 
+  useEffect(() => {
+    fetchTransactions()
+  }, [])
+
   return (
-    <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
-          <InfoIcon size="16" strokeWidth={2} />
-          This is a protected page that you can only see as an authenticated
-          user
-        </div>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-4">Add New Transaction</h1>
+        <TransactionForm onSuccess={fetchTransactions} />
       </div>
-      <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
-          {JSON.stringify(user, null, 2)}
-        </pre>
-      </div>
+      
       <div>
-        <h2 className="font-bold text-2xl mb-4">Lorem ipsum dolor sit amet</h2>
+        <h2 className="text-2xl font-bold mb-4">Recent Transactions</h2>
+        <TransactionsTable 
+          initialTransactions={transactions}
+          onEdit={(transaction) => {
+            console.log('Edit transaction:', transaction)
+          }}
+        />
       </div>
     </div>
-  );
+  )
 }
