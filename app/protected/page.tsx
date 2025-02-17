@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { PlusIcon } from 'lucide-react'
 import TransactionsTable from '@/components/TransactionsTable'
@@ -54,15 +55,19 @@ export default function ProtectedPage() {
         </Link>
       </div>
       
-      <TransactionsTable 
-        initialTransactions={transactions}
-      />
+      <Suspense fallback={<div>Loading transactions...</div>}>
+        <TransactionsTable 
+          initialTransactions={transactions}
+        />
+      </Suspense>
 
       {showNotification && (
-        <Notification
-          message={notificationMessage}
-          onClose={() => setShowNotification(false)}
-        />
+        <Suspense fallback={null}>
+          <Notification
+            message={notificationMessage}
+            onClose={() => setShowNotification(false)}
+          />
+        </Suspense>
       )}
     </div>
   )
