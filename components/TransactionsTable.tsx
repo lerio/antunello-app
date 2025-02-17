@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
+import { formatDateTime } from '@/utils/date'
 
 type TransactionsTableProps = {
   initialTransactions: Transaction[]
-  onEdit: (transaction: Transaction) => void
 }
 
-export default function TransactionsTable({ initialTransactions, onEdit }: TransactionsTableProps) {
+export default function TransactionsTable({ initialTransactions }: TransactionsTableProps) {
   const [transactions, setTransactions] = useState(initialTransactions)
+  const router = useRouter()
 
   useEffect(() => {
     setTransactions(initialTransactions)
@@ -46,7 +48,7 @@ export default function TransactionsTable({ initialTransactions, onEdit }: Trans
           {transactions.map((transaction) => (
             <tr key={transaction.id}>
               <td className="px-6 py-4 whitespace-nowrap">
-                {new Date(transaction.date).toLocaleDateString()}
+                {formatDateTime(transaction.date)}
               </td>
               <td className="px-6 py-4">{transaction.title}</td>
               <td className="px-6 py-4">
@@ -61,7 +63,7 @@ export default function TransactionsTable({ initialTransactions, onEdit }: Trans
               </td>
               <td className="px-6 py-4 space-x-2">
                 <button
-                  onClick={() => onEdit(transaction)}
+                  onClick={() => router.push(`/protected/edit/${transaction.id}`)}
                   className="text-blue-600 hover:text-blue-900"
                 >
                   Edit

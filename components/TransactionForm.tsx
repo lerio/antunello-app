@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
+import { formatDateTimeLocal, parseDateTime } from '@/utils/date'
 
 type TransactionFormProps = {
   onSuccess: () => void
@@ -28,7 +29,7 @@ export default function TransactionForm({ onSuccess, initialData }: TransactionF
       main_category: formData.get('main_category'),
       sub_category: formData.get('sub_category'),
       title: formData.get('title'),
-      date: new Date(formData.get('date') as string).toISOString(),
+      date: parseDateTime(formData.get('date') as string),
     }
 
     if (initialData) {
@@ -122,7 +123,7 @@ export default function TransactionForm({ onSuccess, initialData }: TransactionF
             type="datetime-local"
             name="date"
             required
-            defaultValue={initialData?.date ? new Date(initialData.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
+            defaultValue={initialData?.date ? formatDateTimeLocal(initialData.date) : formatDateTimeLocal(new Date().toISOString())}
             className="w-full p-2 border rounded"
           />
         </div>
@@ -144,7 +145,7 @@ export default function TransactionForm({ onSuccess, initialData }: TransactionF
         disabled={isLoading}
         className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-50"
       >
-        {isLoading ? 'Saving...' : initialData ? 'Update Transaction' : 'Add Transaction'}
+        {isLoading ? 'Saving...' : initialData ? 'Save Changes' : 'Add Transaction'}
       </button>
     </form>
   )
