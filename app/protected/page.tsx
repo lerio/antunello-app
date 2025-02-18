@@ -27,11 +27,6 @@ export default function ProtectedPage() {
     }
   }
 
-  const handleTransactionDeleted = () => {
-    setNotificationMessage('Transaction deleted successfully!')
-    setShowNotification(true)
-  }
-
   useEffect(() => {
     fetchTransactions()
   }, [])
@@ -43,6 +38,9 @@ export default function ProtectedPage() {
       setShowNotification(true)
     } else if (successType === 'updated') {
       setNotificationMessage('Transaction updated successfully!')
+      setShowNotification(true)
+    } else if (successType === 'deleted') {
+      setNotificationMessage('Transaction deleted successfully!')
       setShowNotification(true)
     }
   }, [searchParams])
@@ -63,7 +61,6 @@ export default function ProtectedPage() {
       <Suspense fallback={<div>Loading transactions...</div>}>
         <TransactionsTable 
           initialTransactions={transactions}
-          onDelete={handleTransactionDeleted}
         />
       </Suspense>
 

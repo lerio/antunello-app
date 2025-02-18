@@ -37,6 +37,20 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
     router.push('/protected?success=updated')
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) return
+    
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', resolvedParams.id)
+
+    if (!error) {
+      router.push('/protected?success=deleted')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -54,6 +68,14 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
         initialData={transaction}
         onSuccess={handleSuccess}
       />
+      <div className="mt-2 pt-2">
+        <button
+          onClick={handleDelete}
+          className="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700"
+        >
+          Delete Transaction
+        </button>
+      </div>
     </div>
   )
 } 
