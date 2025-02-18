@@ -1,23 +1,32 @@
 // Format date for datetime-local input (local timezone)
-export function formatDateTimeLocal(isoString: string): string {
-  const date = new Date(isoString)
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-  return localDate.toISOString().slice(0, 16)
+export function formatDateTimeLocal(date: string): string {
+  return new Date(date).toISOString().slice(0, 16)
 }
 
-// Format date for display in the table (local timezone)
-export function formatDateTime(isoString: string): string {
-  return new Date(isoString).toLocaleString(undefined, {
-    year: 'numeric',
-    month: '2-digit',
+// Format date only (DD/MM/YYYY)
+export function formatDate(isoString: string): string {
+  const date = new Date(isoString)
+  return date.toLocaleDateString('it-IT', {
     day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+// Format full date and time (DD/MM/YYYY, HH:mm)
+export function formatDateTimeTooltip(isoString: string): string {
+  const date = new Date(isoString)
+  return date.toLocaleString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
   })
 }
 
 // Parse datetime-local input and return ISO string
-export function parseDateTime(localDateTime: string): string {
-  return new Date(localDateTime).toISOString()
+export function parseDateTime(date: string): string {
+  return new Date(date).toISOString()
 } 

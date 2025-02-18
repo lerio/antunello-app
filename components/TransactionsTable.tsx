@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
-import { formatDateTime } from '@/utils/date'
+import { formatDate, formatDateTimeTooltip } from '@/utils/date'
+import { formatCurrency } from '@/utils/currency'
+import { Pencil, Trash2 } from 'lucide-react'
 
 type TransactionsTableProps = {
   initialTransactions: Transaction[]
@@ -49,14 +51,17 @@ export default function TransactionsTable({ initialTransactions, onDelete }: Tra
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
           {transactions.map((transaction) => (
             <tr key={transaction.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-300">
-                {formatDateTime(transaction.date)}
+              <td 
+                className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-300 cursor-help"
+                title={formatDateTimeTooltip(transaction.date)}
+              >
+                {formatDate(transaction.date)}
               </td>
-              <td className="px-6 py-4 text-gray-900 dark:text-gray-300">{transaction.title}</td>
+              <td className="px-6 py-4 text-gray-900 dark:text-gray-300 capitalize">{transaction.title.toLowerCase()}</td>
               <td className="px-6 py-4">
                 <span className={transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'}>
                   {transaction.type === 'expense' ? '-' : '+'}
-                  {transaction.amount} {transaction.currency}
+                  {formatCurrency(transaction.amount, transaction.currency)}
                 </span>
               </td>
               <td className="px-6 py-4 text-gray-900 dark:text-gray-300">
@@ -66,15 +71,17 @@ export default function TransactionsTable({ initialTransactions, onDelete }: Tra
               <td className="px-6 py-4 space-x-2">
                 <button
                   onClick={() => router.push(`/protected/edit/${transaction.id}`)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                  title="Edit transaction"
                 >
-                  Edit
+                  <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(transaction.id)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                  className="p-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                  title="Delete transaction"
                 >
-                  Delete
+                  <Trash2 size={16} />
                 </button>
               </td>
             </tr>
