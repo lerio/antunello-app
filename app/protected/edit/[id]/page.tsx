@@ -5,6 +5,7 @@ import { useEffect, useState, use } from 'react'
 import TransactionForm from '@/components/TransactionForm'
 import { Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
+import { ArrowLeft } from 'lucide-react'
 
 export default function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -63,6 +64,14 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      <button 
+        onClick={() => router.push('/protected')}
+        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6"
+      >
+        <ArrowLeft size={20} className="mr-1" />
+        Back
+      </button>
+      
       <h1 className="text-2xl font-bold mb-6">Edit Transaction</h1>
       <TransactionForm 
         initialData={transaction}
