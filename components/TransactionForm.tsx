@@ -4,8 +4,8 @@ import { createClient } from '@/utils/supabase/client'
 import { formatDateTimeLocal, parseDateTime } from '@/utils/date'
 
 type TransactionFormProps = {
-  onSuccess: () => void
   initialData?: Transaction
+  onSuccess: (transaction: Transaction) => void
 }
 
 export default function TransactionForm({ onSuccess, initialData }: TransactionFormProps) {
@@ -33,18 +33,22 @@ export default function TransactionForm({ onSuccess, initialData }: TransactionF
     }
 
     if (initialData) {
-      const { error } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('transactions')
         .update(data)
         .eq('id', initialData.id)
+        .select()
+        .single()
       
-      if (!error) onSuccess()
+      if (!error && updatedData) onSuccess(updatedData)
     } else {
-      const { error } = await supabase
+      const { data: newData, error } = await supabase
         .from('transactions')
         .insert([data])
+        .select()
+        .single()
       
-      if (!error) onSuccess()
+      if (!error && newData) onSuccess(newData)
     }
     
     setIsLoading(false)

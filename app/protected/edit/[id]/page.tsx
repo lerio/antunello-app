@@ -6,6 +6,7 @@ import TransactionForm from '@/components/TransactionForm'
 import { Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft } from 'lucide-react'
+import { updateCachedTransaction, deleteFromCachedTransactions, getCachedTransactions } from '@/utils/transactionsCache'
 
 export default function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -15,6 +16,22 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     const fetchTransaction = async () => {
+      // Try to find transaction in cache first
+      const allMonths = Object.keys(localStorage)
+        .filter(key => key.startsWith('transactions_'))
+        .map(key => getCachedTransactions(key.replace('transactions_', '')))
+        .filter((cached): cached is Transaction[] => cached !== null)
+        .flat()
+      
+      const cachedTransaction = allMonths.find(t => t.id === resolvedParams.id)
+      
+      if (cachedTransaction) {
+        setTransaction(cachedTransaction)
+        setIsLoading(false)
+        return
+      }
+
+      // Fallback to DB if not found in cache
       const supabase = createClient()
       const { data } = await supabase
         .from('transactions')
@@ -34,12 +51,15 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
     fetchTransaction()
   }, [resolvedParams.id, router])
 
-  const handleSuccess = () => {
+  const handleSuccess = (transaction: Transaction) => {
+    updateCachedTransaction(transaction)
     router.push('/protected?success=updated')
   }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) return
+    
+    if (!transaction) return
     
     const supabase = createClient()
     const { error } = await supabase
@@ -48,6 +68,7 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
       .eq('id', resolvedParams.id)
 
     if (!error) {
+      deleteFromCachedTransactions(transaction)
       router.push('/protected?success=deleted')
     }
   }

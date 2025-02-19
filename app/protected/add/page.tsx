@@ -3,11 +3,14 @@
 import { useRouter } from 'next/navigation'
 import TransactionForm from '@/components/TransactionForm'
 import { ArrowLeft } from 'lucide-react'
+import { addToCachedTransactions } from '@/utils/transactionsCache'
+import { Transaction } from '@/types/database'
 
 export default function AddTransactionPage() {
   const router = useRouter()
 
-  const handleSuccess = () => {
+  const handleSuccess = (transaction: Transaction) => {
+    addToCachedTransactions(transaction)
     router.push('/protected?success=added')
   }
 

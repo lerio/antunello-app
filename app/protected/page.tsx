@@ -9,6 +9,7 @@ import TransactionsTable from '@/components/TransactionsTable'
 import Notification from '@/components/Notification'
 import { Transaction } from '@/types/database'
 import { supabase } from '@/utils/supabase'
+import { getCachedTransactions, setCachedTransactions } from '@/utils/transactionsCache'
 
 export default function ProtectedPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -18,6 +19,16 @@ export default function ProtectedPage() {
   const searchParams = useSearchParams()
 
   const fetchTransactions = async () => {
+    // Format: YYYY-MM
+    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+
+    // Try to get from cache first
+    const cached = getCachedTransactions(monthKey)
+    if (cached) {
+      setTransactions(cached)
+      return
+    }
+
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59)
 
@@ -30,6 +41,8 @@ export default function ProtectedPage() {
 
     if (data) {
       setTransactions(data)
+      // Store in cache
+      setCachedTransactions(monthKey, data)
     }
   }
 

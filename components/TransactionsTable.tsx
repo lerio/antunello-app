@@ -39,21 +39,33 @@ export default function TransactionsTable({ initialTransactions }: TransactionsT
     return groups
   }, {})
 
+  // Sort transactions within each group by date (most recent first)
+  Object.keys(groupedTransactions).forEach(date => {
+    groupedTransactions[date].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+  })
+
+  // Sort the dates themselves (most recent first)
+  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  )
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-          {Object.entries(groupedTransactions).map(([date, dateTransactions]) => (
+          {sortedDates.map(date => (
             <React.Fragment key={date}>
               <tr className="bg-gray-50 dark:bg-gray-800">
                 <td 
-                colSpan={4} 
+                  colSpan={4} 
                   className="px-6 py-2 text-sm font-medium text-gray-900 dark:text-gray-100"
                 >
                   {date}
                 </td>
               </tr>
-              {dateTransactions.map((transaction) => (
+              {groupedTransactions[date].map((transaction) => (
                 <tr 
                   key={transaction.id}
                   onClick={() => router.push(`/protected/edit/${transaction.id}`)}
