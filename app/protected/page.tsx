@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { PlusIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import TransactionsTable from '@/components/TransactionsTable'
 import Notification from '@/components/Notification'
+import MonthSummary from '@/components/MonthSummary'
 import { Transaction } from '@/types/database'
 import { supabase } from '@/utils/supabase'
 import { getCachedTransactions, setCachedTransactions } from '@/utils/transactionsCache'
@@ -113,6 +114,8 @@ export default function ProtectedPage() {
           <ChevronRight size={24} />
         </button>
       </div>
+      
+      <MonthSummary transactions={transactions} />
       
       <Suspense fallback={<div>Loading transactions...</div>}>
         <TransactionsTable 
