@@ -1,75 +1,45 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, use } from 'react'
+import { use } from 'react'
 import TransactionForm from '@/components/TransactionForm'
 import { Transaction } from '@/types/database'
-import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft } from 'lucide-react'
-import { updateCachedTransaction, deleteFromCachedTransactions, getCachedTransactions } from '@/utils/transactionsCache'
+import { useTransactionMutations } from '@/hooks/useTransactionMutations'
+import { useTransaction } from '@/hooks/useTransaction'
 
 export default function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const [transaction, setTransaction] = useState<Transaction | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const resolvedParams = use(params)
+  const { updateTransaction, deleteTransaction } = useTransactionMutations()
+  const { transaction, isLoading, error } = useTransaction(resolvedParams.id)
 
-  useEffect(() => {
-    const fetchTransaction = async () => {
-      // Try to find transaction in cache first
-      const allMonths = Object.keys(localStorage)
-        .filter(key => key.startsWith('transactions_'))
-        .map(key => getCachedTransactions(key.replace('transactions_', '')))
-        .filter((cached): cached is Transaction[] => cached !== null)
-        .flat()
-      
-      const cachedTransaction = allMonths.find(t => t.id === resolvedParams.id)
-      
-      if (cachedTransaction) {
-        setTransaction(cachedTransaction)
-        setIsLoading(false)
-        return
-      }
+  if (error) {
+    router.push('/protected')
+    return null
+  }
 
-      // Fallback to DB if not found in cache
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('id', resolvedParams.id)
-        .single()
-
-      if (data) {
-        setTransaction(data)
-      } else {
-        // If transaction not found, redirect to main page
-        router.push('/protected')
-      }
-      setIsLoading(false)
+  const handleSubmit = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!transaction) return
+    try {
+      await updateTransaction(transaction.id, data, transaction.date)
+      router.push('/protected?success=updated')
+    } catch (error) {
+      console.error('Failed to update transaction:', error)
+      // You might want to show an error notification here
     }
-
-    fetchTransaction()
-  }, [resolvedParams.id, router])
-
-  const handleSuccess = (transaction: Transaction) => {
-    updateCachedTransaction(transaction)
-    router.push('/protected?success=updated')
   }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) return
-    
     if (!transaction) return
-    
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', resolvedParams.id)
 
-    if (!error) {
-      deleteFromCachedTransactions(transaction)
+    try {
+      await deleteTransaction(transaction)
       router.push('/protected?success=deleted')
+    } catch (error) {
+      console.error('Failed to delete transaction:', error)
+      // You might want to show an error notification here
     }
   }
 
@@ -96,7 +66,7 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
       <h1 className="text-2xl font-bold mb-6">Edit Transaction</h1>
       <TransactionForm 
         initialData={transaction}
-        onSuccess={handleSuccess}
+        onSubmit={handleSubmit}
       />
       <div className="mt-2 pt-2">
         <button

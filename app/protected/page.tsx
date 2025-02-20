@@ -8,44 +8,18 @@ import { PlusIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import TransactionsTable from '@/components/TransactionsTable'
 import Notification from '@/components/Notification'
 import MonthSummary from '@/components/MonthSummary'
-import { Transaction } from '@/types/database'
-import { supabase } from '@/utils/supabase'
-import { getCachedTransactions, setCachedTransactions } from '@/utils/transactionsCache'
+import { useTransactions } from '@/hooks/useTransactions'
 
 export default function ProtectedPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
   const [currentDate, setCurrentDate] = useState(new Date())
   const searchParams = useSearchParams()
 
-  const fetchTransactions = async () => {
-    // Format: YYYY-MM
-    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-
-    // Try to get from cache first
-    const cached = getCachedTransactions(monthKey)
-    if (cached) {
-      setTransactions(cached)
-      return
-    }
-
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59)
-
-    const { data } = await supabase
-      .from('transactions')
-      .select('*')
-      .gte('date', startOfMonth.toISOString())
-      .lte('date', endOfMonth.toISOString())
-      .order('date', { ascending: false })
-
-    if (data) {
-      setTransactions(data)
-      // Store in cache
-      setCachedTransactions(monthKey, data)
-    }
-  }
+  const { transactions, isLoading } = useTransactions(
+    currentDate.getFullYear(),
+    currentDate.getMonth() + 1
+  )
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prevDate => {
@@ -65,10 +39,6 @@ export default function ProtectedPage() {
       year: 'numeric'
     })
   }
-
-  useEffect(() => {
-    fetchTransactions()
-  }, [currentDate])
 
   useEffect(() => {
     const successType = searchParams.get('success')
@@ -117,11 +87,13 @@ export default function ProtectedPage() {
       
       <MonthSummary transactions={transactions} />
       
-      <Suspense fallback={<div>Loading transactions...</div>}>
+      {isLoading ? (
+        <div>Loading transactions...</div>
+      ) : (
         <TransactionsTable 
-          initialTransactions={transactions}
+          transactions={transactions}
         />
-      </Suspense>
+      )}
 
       {showNotification && (
         <Suspense fallback={null}>

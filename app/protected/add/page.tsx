@@ -3,15 +3,21 @@
 import { useRouter } from 'next/navigation'
 import TransactionForm from '@/components/TransactionForm'
 import { ArrowLeft } from 'lucide-react'
-import { addToCachedTransactions } from '@/utils/transactionsCache'
+import { useTransactionMutations } from '@/hooks/useTransactionMutations'
 import { Transaction } from '@/types/database'
 
 export default function AddTransactionPage() {
   const router = useRouter()
+  const { addTransaction } = useTransactionMutations()
 
-  const handleSuccess = (transaction: Transaction) => {
-    addToCachedTransactions(transaction)
-    router.push('/protected?success=added')
+  const handleSubmit = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      await addTransaction(data)
+      router.push('/protected?success=added')
+    } catch (error) {
+      console.error('Failed to add transaction:', error)
+      // You might want to show an error notification here
+    }
   }
 
   return (
@@ -25,7 +31,7 @@ export default function AddTransactionPage() {
       </button>
 
       <h1 className="text-2xl font-bold mb-6">Add New Transaction</h1>
-      <TransactionForm onSuccess={handleSuccess} />
+      <TransactionForm onSubmit={handleSubmit} />
     </div>
   )
 } 

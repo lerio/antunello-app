@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { Transaction } from '@/types/database'
 import { formatDate } from '@/utils/date'
@@ -10,20 +10,15 @@ import { CATEGORY_ICONS } from '@/utils/categories'
 import NoTransactions from './NoTransactions'
 
 type TransactionsTableProps = {
-  initialTransactions: Transaction[]
+  transactions: Transaction[]
 }
 
 type GroupedTransactions = {
   [date: string]: Transaction[]
 }
 
-export default function TransactionsTable({ initialTransactions }: TransactionsTableProps) {
-  const [transactions, setTransactions] = useState(initialTransactions)
+export default function TransactionsTable({ transactions }: TransactionsTableProps) {
   const router = useRouter()
-
-  useEffect(() => {
-    setTransactions(initialTransactions)
-  }, [initialTransactions])
 
   if (transactions.length === 0) {
     return <NoTransactions />
@@ -39,23 +34,11 @@ export default function TransactionsTable({ initialTransactions }: TransactionsT
     return groups
   }, {})
 
-  // Sort transactions within each group by date (most recent first)
-  Object.keys(groupedTransactions).forEach(date => {
-    groupedTransactions[date].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    )
-  })
-
-  // Sort the dates themselves (most recent first)
-  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => 
-    new Date(b).getTime() - new Date(a).getTime()
-  )
-
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-          {sortedDates.map(date => (
+        {Object.entries(groupedTransactions).map(([date, dateTransactions]) => (
             <React.Fragment key={date}>
               <tr className="bg-gray-50 dark:bg-gray-800">
                 <td 
@@ -65,7 +48,7 @@ export default function TransactionsTable({ initialTransactions }: TransactionsT
                   {date}
                 </td>
               </tr>
-              {groupedTransactions[date].map((transaction) => (
+              {dateTransactions.map((transaction) => (
                 <tr 
                   key={transaction.id}
                   onClick={() => router.push(`/protected/edit/${transaction.id}`)}

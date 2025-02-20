@@ -4,11 +4,11 @@ import { createClient } from '@/utils/supabase/client'
 import { formatDateTimeLocal, parseDateTime } from '@/utils/date'
 
 type TransactionFormProps = {
+  onSubmit: (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
   initialData?: Transaction
-  onSuccess: (transaction: Transaction) => void
 }
 
-export default function TransactionForm({ onSuccess, initialData }: TransactionFormProps) {
+export default function TransactionForm({ onSubmit, initialData }: TransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || MAIN_CATEGORIES[0])
   
@@ -20,35 +20,23 @@ export default function TransactionForm({ onSuccess, initialData }: TransactionF
     const supabase = createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.id) throw new Error('User not authenticated')
     
     const data = {
-      user_id: user?.id,
+      user_id: user.id,
       amount: Number(formData.get('amount')),
-      currency: formData.get('currency'),
-      type: formData.get('type'),
-      main_category: formData.get('main_category'),
-      sub_category: formData.get('sub_category'),
-      title: formData.get('title'),
+      currency: formData.get('currency') as string,
+      type: formData.get('type') as 'expense' | 'income',
+      main_category: formData.get('main_category') as string,
+      sub_category: formData.get('sub_category') as string,
+      title: formData.get('title') as string,
       date: parseDateTime(formData.get('date') as string),
     }
 
-    if (initialData) {
-      const { data: updatedData, error } = await supabase
-        .from('transactions')
-        .update(data)
-        .eq('id', initialData.id)
-        .select()
-        .single()
-      
-      if (!error && updatedData) onSuccess(updatedData)
-    } else {
-      const { data: newData, error } = await supabase
-        .from('transactions')
-        .insert([data])
-        .select()
-        .single()
-      
-      if (!error && newData) onSuccess(newData)
+    try {
+      await onSubmit(data)
+    } catch (error) {
+      console.error('Form submission failed:', error)
     }
     
     setIsLoading(false)
