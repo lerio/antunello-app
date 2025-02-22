@@ -6,15 +6,11 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { PlusIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import TransactionsTable from '@/components/TransactionsTable'
-import Notification from '@/components/Notification'
 import MonthSummary from '@/components/MonthSummary'
 import { useTransactions } from '@/hooks/useTransactions'
 
 export default function ProtectedPage() {
-  const [showNotification, setShowNotification] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState('')
   const [currentDate, setCurrentDate] = useState(new Date())
-  const searchParams = useSearchParams()
 
   const { transactions, isLoading } = useTransactions(
     currentDate.getFullYear(),
@@ -39,20 +35,6 @@ export default function ProtectedPage() {
       year: 'numeric'
     })
   }
-
-  useEffect(() => {
-    const successType = searchParams.get('success')
-    if (successType === 'added') {
-      setNotificationMessage('Transaction added successfully!')
-      setShowNotification(true)
-    } else if (successType === 'updated') {
-      setNotificationMessage('Transaction updated successfully!')
-      setShowNotification(true)
-    } else if (successType === 'deleted') {
-      setNotificationMessage('Transaction deleted successfully!')
-      setShowNotification(true)
-    }
-  }, [searchParams])
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -93,15 +75,6 @@ export default function ProtectedPage() {
         <TransactionsTable 
           transactions={transactions}
         />
-      )}
-
-      {showNotification && (
-        <Suspense fallback={null}>
-          <Notification
-            message={notificationMessage}
-            onClose={() => setShowNotification(false)}
-          />
-        </Suspense>
       )}
     </div>
   )

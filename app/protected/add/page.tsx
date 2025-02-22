@@ -5,19 +5,25 @@ import TransactionForm from '@/components/TransactionForm'
 import { ArrowLeft } from 'lucide-react'
 import { useTransactionMutations } from '@/hooks/useTransactionMutations'
 import { Transaction } from '@/types/database'
+import toast from 'react-hot-toast'
 
 export default function AddTransactionPage() {
   const router = useRouter()
   const { addTransaction } = useTransactionMutations()
 
   const handleSubmit = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      await addTransaction(data)
-      router.push('/protected?success=added')
-    } catch (error) {
-      console.error('Failed to add transaction:', error)
-      // You might want to show an error notification here
-    }
+    const toastPromise = addTransaction(data)
+    
+    toast.promise(toastPromise, {
+      loading: 'Adding transaction...',
+      success: () => {
+        router.push('/protected')
+        return 'Transaction added successfully!'
+      },
+      error: (err) => {
+        return `Failed to add transaction: ${err.message}`
+      },
+    })
   }
 
   return (
