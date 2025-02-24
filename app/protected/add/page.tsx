@@ -26,11 +26,15 @@ export default function AddTransactionPage() {
     })
   }
 
+  const handleBack = () => {
+    router.back()
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <button 
-        onClick={() => router.push('/protected')}
-        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6"
+        onClick={handleBack}
+        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6 cursor-pointer"
       >
         <ArrowLeft size={20} className="mr-1" />
         Back
