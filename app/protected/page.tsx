@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { PlusIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import TransactionsTable from '@/components/TransactionsTable'
 import MonthSummary from '@/components/MonthSummary'
@@ -10,18 +10,55 @@ import { Button } from '@/components/ui/button'
 
 export default function ProtectedPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const [isNavigating, setIsNavigating] = useState(false)
-  const [currentDate, setCurrentDate] = useState(new Date())
+  
+  // Initialize currentDate based on URL or current date
+  const [currentDate, setCurrentDate] = useState(() => {
+    // If we're at /protected, use current date
+    if (pathname === '/protected') {
+      return new Date()
+    }
+    
+    // Extract year and month from URL like /protected/2024/03
+    const match = pathname.match(/\/protected\/(\d{4})\/(\d{2})/)
+    if (match) {
+      const [_, year, month] = match
+      const date = new Date(parseInt(year), parseInt(month) - 1)
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        return new Date() // Return current date if invalid
+      }
+      return date
+    }
+    
+    return new Date()
+  })
 
   const { transactions, isLoading } = useTransactions(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   )
 
-  // Prefetch the add transaction page
+  // Prefetch the add transaction page and adjacent months
   useEffect(() => {
     router.prefetch('/protected/add')
-  }, [router])
+    
+    // Prefetch next and previous month URLs
+    const nextDate = new Date(currentDate)
+    nextDate.setMonth(currentDate.getMonth() + 1)
+    const prevDate = new Date(currentDate)
+    prevDate.setMonth(currentDate.getMonth() - 1)
+    
+    const nextYear = nextDate.getFullYear()
+    const nextMonth = (nextDate.getMonth() + 1).toString().padStart(2, '0')
+    const prevYear = prevDate.getFullYear()
+    const prevMonth = (prevDate.getMonth() + 1).toString().padStart(2, '0')
+    
+    router.prefetch(`/protected/${nextYear}/${nextMonth}`)
+    router.prefetch(`/protected/${prevYear}/${prevMonth}`)
+  }, [router, currentDate])
 
   const handleAddTransaction = () => {
     setIsNavigating(true)
@@ -29,15 +66,25 @@ export default function ProtectedPage() {
   }
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prevDate => {
-      const newDate = new Date(prevDate)
-      if (direction === 'prev') {
-        newDate.setMonth(prevDate.getMonth() - 1)
-      } else {
-        newDate.setMonth(prevDate.getMonth() + 1)
-      }
-      return newDate
-    })
+    const newDate = new Date(currentDate)
+    if (direction === 'prev') {
+      newDate.setMonth(currentDate.getMonth() - 1)
+    } else {
+      newDate.setMonth(currentDate.getMonth() + 1)
+    }
+    
+    // If it's current month, use the base URL
+    const now = new Date()
+    if (newDate.getMonth() === now.getMonth() && newDate.getFullYear() === now.getFullYear()) {
+      router.push('/protected')
+    } else {
+      // Otherwise, use the year/month URL
+      const year = newDate.getFullYear()
+      const month = (newDate.getMonth() + 1).toString().padStart(2, '0')
+      router.push(`/protected/${year}/${month}`)
+    }
+    
+    setCurrentDate(newDate)
   }
 
   const formatMonthYear = (date: Date) => {
@@ -64,7 +111,7 @@ export default function ProtectedPage() {
       <div className="flex justify-center items-center gap-4 mb-8">
         <button
           onClick={() => navigateMonth('prev')}
-          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer"
         >
           <ChevronLeft size={24} />
         </button>
@@ -73,7 +120,7 @@ export default function ProtectedPage() {
         </h2>
         <button
           onClick={() => navigateMonth('next')}
-          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer"
         >
           <ChevronRight size={24} />
         </button>
