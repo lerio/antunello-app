@@ -1,8 +1,10 @@
 import { signInAction } from "@/app/actions";
-import { FormMessage, Message } from "@/components/FormMessage";
-import { SubmitButton } from "@/components/submit-button";
+import { FormMessage } from "@/components/ui/form-message"; // Updated import path
+import { SubmitButton } from "@/components/ui/submit-button"; // Updated import path
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+import type { Message } from "@/components/ui/form-message"; // Import the Message type
 
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
@@ -33,7 +35,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
         <SubmitButton pendingText="Signing In..." formAction={signInAction}>
           Sign in
         </SubmitButton>
-        <FormMessage message={searchParams} />
+        <FormMessage message={searchParams as Message} />
       </div>
     </form>
   );
