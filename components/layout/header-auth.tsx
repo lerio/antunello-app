@@ -1,8 +1,8 @@
 import { signOutAction } from "@/app/actions";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function AuthButton() {
@@ -15,8 +15,10 @@ export default async function AuthButton() {
   const displayNames: Record<string, string> = {
     "valerio.donati@gmail.com": "Lerio",
     "luci.milella@gmail.com": "Luci",
-  }
-  const displayName = user?.email ? displayNames[user.email] || user.email : null;
+  };
+  const displayName = user?.email
+    ? displayNames[user.email] || user.email
+    : null;
 
   if (!hasEnvVars) {
     return (
@@ -47,7 +49,12 @@ export default async function AuthButton() {
   }
   return user ? (
     <div className="flex items-center gap-4">
-      <Link href={"/protected/reset-password"} className="font-bold hover:underline">{displayName}</Link>
+      <Link
+        href={"/protected/reset-password"}
+        className="font-bold hover:underline"
+      >
+        {displayName}
+      </Link>
       <form action={signOutAction}>
         <Button type="submit" variant={"outline"}>
           Sign out

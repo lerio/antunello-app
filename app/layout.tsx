@@ -1,13 +1,12 @@
-import { EnvVarWarning } from "@/components/env-var-warning";
-import HeaderAuth from "@/components/header-auth";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { EnvVarWarning } from "@/components/layout/env-var-warning";
+import HeaderAuth from "@/components/layout/header-auth";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
-import { Suspense } from 'react'
-import { Toaster } from 'react-hot-toast'
+import { Suspense } from "react";
+import { Toaster } from "react-hot-toast";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -66,7 +65,6 @@ export default function RootLayout({
                       Lerio
                     </a>
                   </p>
-                  <ThemeSwitcher />
                 </footer>
               </div>
             </main>
