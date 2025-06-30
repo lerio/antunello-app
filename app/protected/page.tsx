@@ -98,35 +98,29 @@ export default function ProtectedPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Transactions</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h1 className="text-3xl font-bold tracking-tight text-center sm:text-left">Transactions</h1>
         <Button
           onClick={handleAddTransaction}
           disabled={isNavigating}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer min-w-[160px] justify-center"
+          className="w-full sm:w-auto"
         >
-          <PlusIcon size={16} />
+          <PlusIcon size={16} className="mr-2" />
           {isNavigating ? "Loading..." : "Add Transaction"}
         </Button>
       </div>
 
-      <div className="flex justify-center items-center gap-4 mb-8">
-        <button
-          onClick={() => navigateMonth("prev")}
-          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer"
-        >
+      <div className="flex justify-center items-center gap-4 mb-6">
+        <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
           <ChevronLeft size={24} />
-        </button>
+        </Button>
         <h2 className="text-xl font-medium capitalize">
           {formatMonthYear(currentDate)}
         </h2>
-        <button
-          onClick={() => navigateMonth("next")}
-          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 cursor-pointer"
-        >
+        <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
           <ChevronRight size={24} />
-        </button>
+        </Button>
       </div>
 
       <MonthSummary transactions={transactions} />
