@@ -16,9 +16,10 @@ type CategoryTotals = {
 
 type MonthSummaryProps = {
   transactions: Transaction[]
+  isLoading?: boolean
 }
 
-export default function MonthSummary({ transactions }: MonthSummaryProps) {
+export default function MonthSummary({ transactions, isLoading = false }: MonthSummaryProps) {
   const expenseTotals: CurrencyTotals = {}
   const incomeTotals: CurrencyTotals = {}
   const categoryTotals: CategoryTotals = {}
@@ -50,79 +51,158 @@ export default function MonthSummary({ transactions }: MonthSummaryProps) {
     balanceTotals[currency] = (incomeTotals[currency] || 0) - (expenseTotals[currency] || 0)
   })
 
+  const LoadingSkeleton = () => (
+    <div className="space-y-6 w-full">
+      {/* Loading skeleton for summary cards */}
+      <div className="summary-cards-grid">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="h-32 flex flex-col">
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
+              <div className="space-y-2">
+                <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Loading skeleton for category breakdown */}
+      <Card className="category-breakdown">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">Category Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent className="w-full">
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="h-5 w-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  if (isLoading) {
+    return <LoadingSkeleton />
+  }
+
   return (
-    <div className="mb-8">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <Card className="col-span-2 md:col-span-1">
-          <CardHeader>
+    <div className="space-y-6 w-full">
+      {/* Fixed-height summary cards with proper grid */}
+      <div className="summary-cards-grid">
+        <Card className="h-32 flex flex-col">
+          <CardHeader className="pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium text-red-800 dark:text-red-200">Total Expenses</CardTitle>
           </CardHeader>
-          <CardContent>
-            {Object.entries(expenseTotals).map(([currency, amount]) => (
-              <div key={currency} className="text-red-600 dark:text-red-400 text-2xl font-bold">
-                {formatCurrency(amount, currency)}
-              </div>
-            ))}
+          <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
+            <div className="space-y-1 overflow-hidden">
+              {Object.entries(expenseTotals).length > 0 ? (
+                Object.entries(expenseTotals).map(([currency, amount]) => (
+                  <div key={currency} className="text-red-600 dark:text-red-400 text-lg font-bold truncate">
+                    {formatCurrency(amount, currency)}
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted-foreground text-lg">-</div>
+              )}
+            </div>
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 md:col-span-1">
-          <CardHeader>
+        <Card className="h-32 flex flex-col">
+          <CardHeader className="pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">Total Income</CardTitle>
           </CardHeader>
-          <CardContent>
-            {Object.entries(incomeTotals).map(([currency, amount]) => (
-              <div key={currency} className="text-green-600 dark:text-green-400 text-2xl font-bold">
-                {formatCurrency(amount, currency)}
-              </div>
-            ))}
+          <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
+            <div className="space-y-1 overflow-hidden">
+              {Object.entries(incomeTotals).length > 0 ? (
+                Object.entries(incomeTotals).map(([currency, amount]) => (
+                  <div key={currency} className="text-green-600 dark:text-green-400 text-lg font-bold truncate">
+                    {formatCurrency(amount, currency)}
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted-foreground text-lg">-</div>
+              )}
+            </div>
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 md:col-span-1">
-          <CardHeader>
+        <Card className="h-32 flex flex-col">
+          <CardHeader className="pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">Balance</CardTitle>
           </CardHeader>
-          <CardContent>
-            {Object.entries(balanceTotals).map(([currency, amount]) => (
-              <div 
-                key={currency} 
-                className={`text-2xl font-bold ${amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {formatCurrency(Math.abs(amount), currency)}
-                <span className="text-sm font-medium">{amount >= 0 ? ' gain' : ' loss'}</span>
-              </div>
-            ))}
+          <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
+            <div className="space-y-1 overflow-hidden">
+              {Object.entries(balanceTotals).length > 0 ? (
+                Object.entries(balanceTotals).map(([currency, amount]) => (
+                  <div key={currency} className="flex flex-col">
+                    <div className={`text-lg font-bold truncate ${amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {formatCurrency(Math.abs(amount), currency)}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {amount >= 0 ? 'gain' : 'loss'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted-foreground text-lg">-</div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      {/* Category breakdown with consistent layout */}
+      <Card className="category-breakdown">
         <CardHeader>
           <CardTitle className="text-lg font-medium">Category Breakdown</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(categoryTotals)
-            .filter(([_, amounts]) => Object.values(amounts).some(amount => amount !== 0))
-            .map(([category, amounts]) => {
-              const Icon = CATEGORY_ICONS[category]
-              return (
-                <div key={category} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Icon {...{ size: 20, className: "text-gray-500 dark:text-gray-400" } as LucideProps} />
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{category}</span>
-                  </div>
-                  <div className="text-right">
-                    {Object.entries(amounts).map(([currency, amount]) => (
-                      <div 
-                        key={currency}
-                        className={`font-semibold ${amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                        {formatCurrency(Math.abs(amount), currency)}
+        <CardContent className="w-full">
+          {Object.entries(categoryTotals).filter(([_, amounts]) => Object.values(amounts).some(amount => amount !== 0)).length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(categoryTotals)
+                .filter(([_, amounts]) => Object.values(amounts).some(amount => amount !== 0))
+                .map(([category, amounts]) => {
+                  const Icon = CATEGORY_ICONS[category]
+                  return (
+                    <div key={category} className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Icon {...{ size: 20, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
+                        <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{category}</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+                      <div className="text-right flex-shrink-0 ml-4">
+                        {Object.entries(amounts).map(([currency, amount]) => (
+                          <div 
+                            key={currency}
+                            className={`font-semibold text-sm ${amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                            {formatCurrency(Math.abs(amount), currency)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No transactions this month
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

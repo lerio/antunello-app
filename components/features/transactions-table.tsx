@@ -39,22 +39,22 @@ export default function TransactionsTable({
   );
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Transactions</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="hidden md:block">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+      <CardContent className="w-full">
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '50%' }}>
                   Transaction
                 </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
+                <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '20%' }}>
                   Type
                 </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
+                <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '30%' }}>
                   Amount
                 </th>
               </tr>
@@ -63,7 +63,7 @@ export default function TransactionsTable({
               {Object.entries(groupedTransactions).map(([date, dateTransactions]) => (
                 <React.Fragment key={date}>
                   <tr className="bg-gray-50 dark:bg-gray-800/50">
-                    <td colSpan={3} className="px-6 py-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <td colSpan={3} className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                       {date}
                     </td>
                   </tr>
@@ -73,27 +73,27 @@ export default function TransactionsTable({
                       onClick={() => router.push(`/protected/edit/${transaction.id}`)}
                       className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                            {React.createElement(CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"], { size: 20 } as LucideProps)}
+                      <td className="px-4 py-4 whitespace-nowrap overflow-hidden">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                            {React.createElement(CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"], { size: 16 } as LucideProps)}
                           </div>
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">{transaction.title}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{transaction.sub_category}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{transaction.title}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{transaction.sub_category}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <Badge variant={transaction.type === "expense" ? "destructive" : "default"} className="capitalize">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <Badge variant={transaction.type === "expense" ? "destructive" : "default"} className="capitalize text-xs">
                           {transaction.type}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right font-medium">
-                        <span className={transaction.type === "expense" ? "text-red-600" : "text-green-600"}>
+                      <td className="px-4 py-4 whitespace-nowrap text-right font-medium overflow-hidden">
+                        <div className={`truncate ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}>
                           {transaction.type === "expense" ? "-" : "+"}
                           {formatCurrency(transaction.amount, transaction.currency)}
-                        </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -116,22 +116,22 @@ export default function TransactionsTable({
                     onClick={() => router.push(`/protected/edit/${transaction.id}`)}
                     className="px-4 py-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                          {React.createElement(CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"], { size: 20 } as LucideProps)}
+                    <div className="flex items-center justify-between min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                          {React.createElement(CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"], { size: 16 } as LucideProps)}
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{transaction.title}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{transaction.sub_category}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{transaction.title}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{transaction.sub_category}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-medium ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}>
+                      <div className="text-right flex-shrink-0 ml-4 min-w-0">
+                        <div className={`font-medium text-sm truncate ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}>
                           {transaction.type === "expense" ? "-" : "+"}
                           {formatCurrency(transaction.amount, transaction.currency)}
                         </div>
-                        <Badge variant={transaction.type === "expense" ? "destructive" : "default"} className="capitalize mt-1">
+                        <Badge variant={transaction.type === "expense" ? "destructive" : "default"} className="capitalize mt-1 text-xs">
                           {transaction.type}
                         </Badge>
                       </div>

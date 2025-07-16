@@ -98,38 +98,66 @@ export default function ProtectedPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-center sm:text-left">Transactions</h1>
-        <Button
-          onClick={handleAddTransaction}
-          disabled={isNavigating}
-          className="w-full sm:w-auto"
-        >
-          <PlusIcon size={16} className="mr-2" />
-          {isNavigating ? "Loading..." : "Add Transaction"}
-        </Button>
+    <div className="min-h-screen bg-background">
+      {/* Fixed width container */}
+      <div className="fixed-width-container py-6">
+        {/* Fixed header section */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-6 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-3xl font-bold tracking-tight text-left">Transactions</h1>
+            <Button
+              onClick={handleAddTransaction}
+              disabled={isNavigating}
+              className="w-full sm:w-auto flex-shrink-0"
+            >
+              <PlusIcon size={16} className="mr-2" />
+              {isNavigating ? "Loading..." : "Add Transaction"}
+            </Button>
+          </div>
+
+          {/* Fixed-width month selector */}
+          <div className="flex justify-center items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => navigateMonth("prev")}
+              className="flex-shrink-0 w-10 h-10"
+            >
+              <ChevronLeft size={20} />
+            </Button>
+            <div className="w-48 text-center">
+              <h2 className="text-xl font-medium capitalize truncate">
+                {formatMonthYear(currentDate)}
+              </h2>
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => navigateMonth("next")}
+              className="flex-shrink-0 w-10 h-10"
+            >
+              <ChevronRight size={20} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content section with consistent layout */}
+        <div className="transactions-layout">
+          <MonthSummary transactions={transactions} isLoading={isLoading} />
+
+          {isLoading ? (
+            <div className="transactions-table">
+              <div className="flex justify-center items-center py-12">
+                <div className="text-muted-foreground">Loading transactions...</div>
+              </div>
+            </div>
+          ) : (
+            <div className="transactions-table">
+              <TransactionsTable transactions={transactions} />
+            </div>
+          )}
+        </div>
       </div>
-
-      <div className="flex justify-center items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
-          <ChevronLeft size={24} />
-        </Button>
-        <h2 className="text-xl font-medium capitalize">
-          {formatMonthYear(currentDate)}
-        </h2>
-        <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
-          <ChevronRight size={24} />
-        </Button>
-      </div>
-
-      <MonthSummary transactions={transactions} />
-
-      {isLoading ? (
-        <div>Loading transactions...</div>
-      ) : (
-        <TransactionsTable transactions={transactions} />
-      )}
     </div>
   );
 }

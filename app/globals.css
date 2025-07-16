@@ -149,3 +149,58 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fixed width container to prevent layout shifts */
+.fixed-width-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 2rem auto 0 auto; /* Add top margin here */
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .fixed-width-container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .fixed-width-container {
+    padding: 0 2rem; /* Match nav padding: px-8 = 2rem */
+  }
+}
+
+/* Ensure consistent layout grid */
+.transactions-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  min-height: 200px; /* Minimum height to prevent collapse */
+}
+
+/* Summary cards grid */
+.summary-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .summary-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Category breakdown consistent width */
+.category-breakdown {
+  width: 100%;
+  min-height: 300px;
+}
+
+/* Transaction table consistent width */
+.transactions-table {
+  width: 100%;
+  min-height: 200px;
+}
