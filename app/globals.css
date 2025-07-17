@@ -157,6 +157,7 @@
   margin: 1rem auto 0 auto;
   padding: 0 0.75rem; /* Match nav padding on mobile */
   overflow-x: hidden; /* Prevent horizontal scroll */
+  min-width: 0; /* Allow content to shrink below its intrinsic width */
 }
 
 @media (min-width: 640px) {
