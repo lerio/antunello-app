@@ -103,8 +103,8 @@ export default function ProtectedPage() {
       <div className="fixed-width-container py-6">
         {/* Fixed header section */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-6 mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-3xl font-bold tracking-tight text-left">Transactions</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-left">Transactions</h1>
             <Button
               onClick={handleAddTransaction}
               disabled={isNavigating}

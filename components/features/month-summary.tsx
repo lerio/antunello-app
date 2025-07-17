@@ -80,13 +80,13 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
         <CardContent className="w-full">
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="h-5 w-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+              <div key={i} className="flex items-center justify-between py-2 gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="h-4 w-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
                 </div>
-                <div className="text-right flex-shrink-0 ml-4">
-                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+                <div className="text-right flex-shrink-0">
+                  <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-14"></div>
                 </div>
               </div>
             ))}
@@ -180,12 +180,12 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
                 .map(([category, amounts]) => {
                   const Icon = CATEGORY_ICONS[category]
                   return (
-                    <div key={category} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Icon {...{ size: 20, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
-                        <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{category}</span>
+                    <div key={category} className="flex items-center justify-between py-2 gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Icon {...{ size: 16, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
+                        <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">{category}</span>
                       </div>
-                      <div className="text-right flex-shrink-0 ml-4">
+                      <div className="text-right flex-shrink-0">
                         {Object.entries(amounts).map(([currency, amount]) => (
                           <div 
                             key={currency}

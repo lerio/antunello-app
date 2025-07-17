@@ -154,19 +154,22 @@
 .fixed-width-container {
   width: 100%;
   max-width: 1280px;
-  margin: 2rem auto 0 auto; /* Add top margin here */
-  padding: 0 1rem;
+  margin: 1rem auto 0 auto;
+  padding: 0 0.75rem; /* Match nav padding on mobile */
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 @media (min-width: 640px) {
   .fixed-width-container {
-    padding: 0 1.5rem;
+    margin: 1.5rem auto 0 auto;
+    padding: 0 1.5rem; /* Match nav padding on tablet */
   }
 }
 
 @media (min-width: 1024px) {
   .fixed-width-container {
-    padding: 0 2rem; /* Match nav padding: px-8 = 2rem */
+    margin: 2rem auto 0 auto;
+    padding: 0 2rem; /* Match nav padding on desktop */
   }
 }
 
@@ -182,7 +185,7 @@
 /* Summary cards grid */
 .summary-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   width: 100%;
 }
