@@ -42,7 +42,7 @@ export default function RootLayout({
               <Toaster position="top-right" />
               <div className="flex-1 w-full flex flex-col items-center">
                 <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-                  <div className="w-full max-w-[1280px] flex justify-between items-center p-3 px-3 sm:px-6 lg:px-8 text-sm">
+                  <div className="w-full max-w-[800px] flex justify-between items-center p-3 px-3 sm:px-6 lg:px-8 text-sm">
                     <div className="flex gap-5 items-center font-semibold">
                       <Link href={"/"}>Antunello App</Link>
                     </div>
