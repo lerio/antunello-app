@@ -1,4 +1,5 @@
-import { Transaction } from '@/types/database';
+import { Transaction, getCategoryType } from '@/types/database';
+import { convertToEUR, batchConvertToEUR } from '@/utils/currency-conversion';
 
 export interface CSVTransaction {
   account: string;
@@ -60,12 +61,11 @@ function parseCSVLine(line: string): string[] {
   return values;
 }
 
-export function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: string): Omit<Transaction, 'id' | 'created_at' | 'updated_at'> {
-  // Convert amount to positive number and determine type
+export async function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: string): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>> {
+  // Convert amount to positive number
   const amountValue = Math.abs(parseFloat(csvTransaction.amount));
-  const isIncome = csvTransaction.income === 'true' || parseFloat(csvTransaction.amount) > 0;
   
-  // Map category names to match our schema
+  // Map category names to match our new schema
   const categoryMapping: Record<string, string> = {
     'Dining': 'Dining',
     'Groceries': 'Groceries',
@@ -75,29 +75,47 @@ export function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: stri
     'Health': 'Health',
     'Services': 'Services',
     'Travel': 'Travel',
-    'Work': 'Work',
     'Fitness': 'Fitness',
     'Education': 'Education',
-    'Bills': 'Bills',
-    'Gifts': 'Gifts',
-    'Investment': 'Investment',
-    'Bank Movements': 'Bank Movements'
+    'Gifts and Donations': 'Gifts and Donations',
+    'Investment': 'Primary Income',
+    'Primary Income': 'Primary Income',
+    'Bank Movements': 'Bank Movements',
+    'Personal Care': 'Personal Care',
+    'Housing': 'Housing',
+    'Insurance': 'Insurance',
+    'Taxes and Fines': 'Taxes and Fines',
+    'Government Benefits': 'Government Benefits',
+    'Other Income': 'Other Income'
   };
 
   const mappedCategory = categoryMapping[csvTransaction['category name']] || 'Services';
   
-  // Format date to ISO string
-  const date = new Date(csvTransaction.date).toISOString();
+  // Respect the CSV income field first - this is the source of truth
+  const csvIsIncome = csvTransaction.income === 'true';
+  const finalType: 'income' | 'expense' = csvIsIncome ? 'income' : 'expense';
+  
+  // Format date to ISO string and extract date part for currency conversion
+  const transactionDate = new Date(csvTransaction.date);
+  const dateISO = transactionDate.toISOString();
+  const dateOnly = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  // Convert to EUR if not already in EUR
+  const conversionResult = await convertToEUR(amountValue, csvTransaction.currency, dateOnly);
   
   return {
     user_id: userId,
     amount: amountValue,
     currency: csvTransaction.currency,
-    type: isIncome ? 'income' : 'expense',
+    type: finalType,
     main_category: mappedCategory,
     sub_category: csvTransaction['subcategory name'] || undefined,
     title: csvTransaction.title,
-    date: date
+    date: dateISO,
+    // Currency conversion fields
+    eur_amount: conversionResult?.eurAmount || undefined,
+    exchange_rate: conversionResult?.exchangeRate || undefined,
+    rate_date: conversionResult?.rateDate || undefined
   };
 }
 
@@ -106,6 +124,99 @@ export interface ImportResult {
   imported: number;
   errors: string[];
   skipped: number;
+}
+
+/**
+ * Batch process CSV transactions with rate limiting for currency conversion
+ */
+export async function batchMapCSVToTransactions(
+  csvTransactions: CSVTransaction[], 
+  userId: string,
+  progressCallback?: (processed: number, total: number) => void
+): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[]> {
+  const results: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[] = [];
+  
+  // First, prepare basic transaction data without currency conversion
+  const basicTransactions = csvTransactions.map((csvTransaction, index) => {
+    const amountValue = Math.abs(parseFloat(csvTransaction.amount));
+    const categoryMapping: Record<string, string> = {
+      'Dining': 'Dining',
+      'Groceries': 'Groceries',
+      'Shopping': 'Shopping',
+      'Transportation': 'Transportation',
+      'Entertainment': 'Entertainment',
+      'Health': 'Health',
+      'Services': 'Services',
+      'Travel': 'Travel',
+      'Fitness': 'Fitness',
+      'Education': 'Education',
+      'Gifts and Donations': 'Gifts and Donations',
+      'Investment': 'Primary Income',
+      'Primary Income': 'Primary Income',
+      'Bank Movements': 'Bank Movements',
+      'Personal Care': 'Personal Care',
+      'Housing': 'Housing',
+      'Insurance': 'Insurance',
+      'Taxes and Fines': 'Taxes and Fines',
+      'Government Benefits': 'Government Benefits',
+      'Other Income': 'Other Income'
+    };
+
+    const mappedCategory = categoryMapping[csvTransaction['category name']] || 'Services';
+    const csvIsIncome = csvTransaction.income === 'true';
+    const finalType: 'income' | 'expense' = csvIsIncome ? 'income' : 'expense';
+
+    const transactionDate = new Date(csvTransaction.date);
+    const dateISO = transactionDate.toISOString();
+    const dateOnly = transactionDate.toISOString().split('T')[0];
+
+    return {
+      basic: {
+        user_id: userId,
+        amount: amountValue,
+        currency: csvTransaction.currency,
+        type: finalType,
+        main_category: mappedCategory,
+        sub_category: csvTransaction['subcategory name'] || undefined,
+        title: csvTransaction.title,
+        date: dateISO,
+      },
+      conversion: {
+        amount: amountValue,
+        currency: csvTransaction.currency,
+        date: dateOnly
+      },
+      index
+    };
+  });
+
+  // Batch convert currencies
+  console.log('Starting currency conversion for', basicTransactions.length, 'transactions');
+  const conversionInputs = basicTransactions.map(t => t.conversion);
+  const conversionResults = await batchConvertToEUR(conversionInputs, 5, 1000); // Smaller batches, longer delays
+  console.log('Currency conversion complete, results:', conversionResults.length);
+  
+  // Combine basic data with conversion results
+  for (let i = 0; i < basicTransactions.length; i++) {
+    const basic = basicTransactions[i].basic;
+    const conversion = conversionResults[i];
+    
+    const finalTransaction = {
+      ...basic,
+      eur_amount: conversion?.eurAmount || undefined,
+      exchange_rate: conversion?.exchangeRate || undefined,
+      rate_date: conversion?.rateDate || undefined
+    };
+    
+    results.push(finalTransaction);
+    
+    // Call progress callback if provided
+    if (progressCallback) {
+      progressCallback(i + 1, basicTransactions.length);
+    }
+  }
+
+  return results;
 }
 
 export function validateTransactionData(transaction: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>): string[] {

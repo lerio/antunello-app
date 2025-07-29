@@ -4,13 +4,16 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { deleteAllUserTransactions, getUserTransactionCount, importTransactions } from '@/utils/supabase/database-utils';
-import { parseCSV, mapCSVToTransaction, ImportResult } from '@/utils/csv-import';
+import { parseCSV, batchMapCSVToTransactions, ImportResult } from '@/utils/csv-import';
+import { retryMissingExchangeRates } from '@/utils/currency-conversion';
 
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [transactionCount, setTransactionCount] = useState<number | null>(null);
   const [message, setMessage] = useState<string>('');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [exchangeRateResult, setExchangeRateResult] = useState<{success: number; failed: number; total: number} | null>(null);
+  const [importProgress, setImportProgress] = useState<{current: number; total: number} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGetCount = async () => {
@@ -55,19 +58,41 @@ export default function AdminPage() {
 
     try {
       setIsLoading(true);
+      setImportResult(null);
+      setImportProgress(null);
       setMessage('Reading CSV file...');
       
       const csvContent = await file.text();
       const csvTransactions = parseCSV(csvContent);
       
-      setMessage(`Parsed ${csvTransactions.length} transactions. Processing...`);
+      setMessage(`Parsed ${csvTransactions.length} transactions. Converting currencies...`);
+      setImportProgress({ current: 0, total: csvTransactions.length });
       
-      // Get current user ID (this will be handled by the import function)
-      const dbTransactions = csvTransactions.map(csvTx => 
-        mapCSVToTransaction(csvTx, 'placeholder-user-id') // user_id will be set correctly in importTransactions
+      // Use batched processing with progress updates
+      const dbTransactions = await batchMapCSVToTransactions(
+        csvTransactions, 
+        'placeholder-user-id', // user_id will be set correctly in importTransactions
+        (processed, total) => {
+          setImportProgress({ current: processed, total });
+          setMessage(`Converting currencies... ${processed}/${total} transactions processed`);
+        }
       );
       
-      const result = await importTransactions(dbTransactions);
+      setMessage(`Currency conversion complete. Importing ${dbTransactions.length} transactions to database...`);
+      setImportProgress(null);
+      
+      console.log('About to import transactions:', dbTransactions.length);
+      console.log('First transaction sample:', dbTransactions[0]);
+      
+      // Add a timeout to prevent infinite hanging
+      const importPromise = importTransactions(dbTransactions);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Import timeout after 2 minutes')), 120000)
+      );
+      
+      const result = await Promise.race([importPromise, timeoutPromise]) as ImportResult;
+      console.log('Import result:', result);
+      
       setImportResult(result);
       
       if (result.success) {
@@ -77,6 +102,7 @@ export default function AdminPage() {
         setTransactionCount(newCount);
       } else {
         setMessage(`❌ Import failed. Check errors below.`);
+        console.error('Import failed with errors:', result.errors);
       }
       
     } catch (error) {
@@ -87,6 +113,45 @@ export default function AdminPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleRetryExchangeRates = async () => {
+    try {
+      setIsLoading(true);
+      setMessage('Fetching missing exchange rates...');
+      
+      // Try for the most common currencies in your data
+      const currencies = ['JPY', 'USD'];
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      let totalTotal = 0;
+      
+      for (const currency of currencies) {
+        const result = await retryMissingExchangeRates(currency);
+        totalSuccess += result.success;
+        totalFailed += result.failed;
+        totalTotal += result.total;
+      }
+      
+      setExchangeRateResult({
+        success: totalSuccess,
+        failed: totalFailed,
+        total: totalTotal
+      });
+      
+      if (totalSuccess > 0) {
+        setMessage(`✅ Successfully fetched ${totalSuccess} missing exchange rates!`);
+      } else if (totalTotal === 0) {
+        setMessage(`✅ No missing exchange rates found`);
+      } else {
+        setMessage(`❌ Failed to fetch ${totalFailed} exchange rates`);
+      }
+      
+    } catch (error) {
+      setMessage(`❌ Error fetching exchange rates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -112,6 +177,23 @@ export default function AdminPage() {
                 Select a CSV file exported from your finance app (Cashew format supported)
               </p>
             </div>
+
+            {importProgress && (
+              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-sm">
+                <div className="font-medium text-blue-800 dark:text-blue-200">Processing...</div>
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs mt-1 text-blue-700 dark:text-blue-300">
+                    {importProgress.current} of {importProgress.total} transactions
+                  </p>
+                </div>
+              </div>
+            )}
 
             {importResult && (
               <div className="space-y-2">
@@ -168,6 +250,40 @@ export default function AdminPage() {
             {message && (
               <div className="p-3 rounded-md bg-muted text-sm">
                 {message}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Exchange Rates Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-purple-600">💱 Currency Exchange Rates</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Button
+                onClick={handleRetryExchangeRates}
+                disabled={isLoading}
+                variant="outline"
+                className="w-full"
+              >
+                {isLoading ? 'Fetching...' : 'Fetch Missing Exchange Rates'}
+              </Button>
+              
+              <p className="text-xs text-muted-foreground">
+                Retry fetching exchange rates for dates that previously failed
+              </p>
+            </div>
+
+            {exchangeRateResult && (
+              <div className="p-3 rounded-md bg-muted text-sm">
+                <div className="font-medium">Exchange Rate Results:</div>
+                <ul className="mt-1 space-y-1">
+                  <li>✅ Fetched: {exchangeRateResult.success} rates</li>
+                  <li>❌ Failed: {exchangeRateResult.failed} rates</li>
+                  <li>📊 Total missing: {exchangeRateResult.total} rates</li>
+                </ul>
               </div>
             )}
           </CardContent>

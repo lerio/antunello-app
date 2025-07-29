@@ -107,9 +107,15 @@ export default function TransactionsTable({
                             className={`truncate ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}
                           >
                             {transaction.type === "expense" ? "-" : "+"}
-                            {formatCurrency(
-                              transaction.amount,
-                              transaction.currency
+                            {transaction.eur_amount && transaction.currency !== 'EUR' ? (
+                              <span>
+                                {formatCurrency(transaction.eur_amount, 'EUR')}
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  ({formatCurrency(transaction.amount, transaction.currency)})
+                                </span>
+                              </span>
+                            ) : (
+                              formatCurrency(transaction.amount, transaction.currency)
                             )}
                           </div>
                         </td>
@@ -161,9 +167,15 @@ export default function TransactionsTable({
                                 className={`font-semibold text-sm ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}
                               >
                                 {transaction.type === "expense" ? "-" : "+"}
-                                {formatCurrency(
-                                  transaction.amount,
-                                  transaction.currency
+                                {transaction.eur_amount && transaction.currency !== 'EUR' ? (
+                                  <div className="flex flex-col">
+                                    <span>{formatCurrency(transaction.eur_amount, 'EUR')}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({formatCurrency(transaction.amount, transaction.currency)})
+                                    </span>
+                                  </div>
+                                ) : (
+                                  formatCurrency(transaction.amount, transaction.currency)
                                 )}
                               </div>
                             </div>

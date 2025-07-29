@@ -20,36 +20,38 @@ type MonthSummaryProps = {
 }
 
 export default function MonthSummary({ transactions, isLoading = false }: MonthSummaryProps) {
-  const expenseTotals: CurrencyTotals = {}
-  const incomeTotals: CurrencyTotals = {}
-  const categoryTotals: CategoryTotals = {}
+  // Use EUR as the unified currency for all calculations
+  let expenseTotal = 0
+  let incomeTotal = 0
+  const categoryTotals: Record<string, number> = {}
 
-  // Calculate totals
+  // Calculate totals using EUR amounts
   transactions.forEach(transaction => {
-    const amount = transaction.amount
-    const currency = transaction.currency
+    // Use EUR amount if available, otherwise fall back to original amount (assuming EUR)
+    const eurAmount = transaction.eur_amount || (transaction.currency === 'EUR' ? transaction.amount : 0)
+    
+    // Skip transactions without EUR conversion (to avoid incorrect totals)
+    if (eurAmount === 0 && transaction.currency !== 'EUR') {
+      return
+    }
 
     // Update expense/income totals
     if (transaction.type === 'expense') {
-      expenseTotals[currency] = (expenseTotals[currency] || 0) + amount
+      expenseTotal += eurAmount
     } else {
-      incomeTotals[currency] = (incomeTotals[currency] || 0) + amount
+      incomeTotal += eurAmount
     }
 
     // Update category totals
     if (!categoryTotals[transaction.main_category]) {
-      categoryTotals[transaction.main_category] = {}
+      categoryTotals[transaction.main_category] = 0
     }
-    categoryTotals[transaction.main_category][currency] = 
-      (categoryTotals[transaction.main_category][currency] || 0) + 
-      (transaction.type === 'expense' ? amount : -amount)
+    categoryTotals[transaction.main_category] += 
+      transaction.type === 'expense' ? eurAmount : -eurAmount
   })
 
   // Calculate balance
-  const balanceTotals: CurrencyTotals = {}
-  Object.keys(incomeTotals).forEach(currency => {
-    balanceTotals[currency] = (incomeTotals[currency] || 0) - (expenseTotals[currency] || 0)
-  })
+  const balanceTotal = incomeTotal - expenseTotal
 
   const LoadingSkeleton = () => (
     <div className="space-y-6 w-full">
@@ -110,12 +112,10 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
             <div className="space-y-1 overflow-hidden">
-              {Object.entries(expenseTotals).length > 0 ? (
-                Object.entries(expenseTotals).map(([currency, amount]) => (
-                  <div key={currency} className="text-red-600 dark:text-red-400 text-lg font-bold truncate">
-                    {formatCurrency(amount, currency)}
-                  </div>
-                ))
+              {expenseTotal > 0 ? (
+                <div className="text-red-600 dark:text-red-400 text-lg font-bold truncate">
+                  {formatCurrency(expenseTotal, 'EUR')}
+                </div>
               ) : (
                 <div className="text-muted-foreground text-lg">-</div>
               )}
@@ -129,12 +129,10 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
             <div className="space-y-1 overflow-hidden">
-              {Object.entries(incomeTotals).length > 0 ? (
-                Object.entries(incomeTotals).map(([currency, amount]) => (
-                  <div key={currency} className="text-green-600 dark:text-green-400 text-lg font-bold truncate">
-                    {formatCurrency(amount, currency)}
-                  </div>
-                ))
+              {incomeTotal > 0 ? (
+                <div className="text-green-600 dark:text-green-400 text-lg font-bold truncate">
+                  {formatCurrency(incomeTotal, 'EUR')}
+                </div>
               ) : (
                 <div className="text-muted-foreground text-lg">-</div>
               )}
@@ -148,17 +146,15 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-center px-4 pb-4 pt-0">
             <div className="space-y-1 overflow-hidden">
-              {Object.entries(balanceTotals).length > 0 ? (
-                Object.entries(balanceTotals).map(([currency, amount]) => (
-                  <div key={currency} className="flex flex-col">
-                    <div className={`text-lg font-bold truncate ${amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {formatCurrency(Math.abs(amount), currency)}
-                      <span className="text-xs text-muted-foreground ml-1">
-                        {amount >= 0 ? 'gain' : 'loss'}
-                      </span>
-                    </div>
+              {(incomeTotal > 0 || expenseTotal > 0) ? (
+                <div className="flex flex-col">
+                  <div className={`text-lg font-bold truncate ${balanceTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(Math.abs(balanceTotal), 'EUR')}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {balanceTotal >= 0 ? 'gain' : 'loss'}
+                    </span>
                   </div>
-                ))
+                </div>
               ) : (
                 <div className="text-muted-foreground text-lg">-</div>
               )}
@@ -173,11 +169,11 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
           <CardTitle className="text-lg font-medium">Category Breakdown</CardTitle>
         </CardHeader>
         <CardContent className="w-full">
-          {Object.entries(categoryTotals).filter(([_, amounts]) => Object.values(amounts).some(amount => amount !== 0)).length > 0 ? (
+          {Object.entries(categoryTotals).filter(([_, amount]) => amount !== 0).length > 0 ? (
             <div className="space-y-3">
               {Object.entries(categoryTotals)
-                .filter(([_, amounts]) => Object.values(amounts).some(amount => amount !== 0))
-                .map(([category, amounts]) => {
+                .filter(([_, amount]) => amount !== 0)
+                .map(([category, amount]) => {
                   const Icon = CATEGORY_ICONS[category]
                   return (
                     <div key={category} className="flex items-center justify-between py-2 gap-3">
@@ -186,13 +182,9 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
                         <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">{category}</span>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        {Object.entries(amounts).map(([currency, amount]) => (
-                          <div 
-                            key={currency}
-                            className={`font-semibold text-sm ${amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                            {formatCurrency(Math.abs(amount), currency)}
-                          </div>
-                        ))}
+                        <div className={`font-semibold text-sm ${amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {formatCurrency(Math.abs(amount), 'EUR')}
+                        </div>
                       </div>
                     </div>
                   )
