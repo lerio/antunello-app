@@ -1,4 +1,4 @@
-import { Transaction } from '@/types/database'
+import { Transaction, getCategoryType } from '@/types/database'
 import { formatCurrency } from '@/utils/currency'
 import { CATEGORY_ICONS } from '@/utils/categories'
 import { LucideProps } from 'lucide-react'
@@ -23,7 +23,8 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
   // Use EUR as the unified currency for all calculations
   let expenseTotal = 0
   let incomeTotal = 0
-  const categoryTotals: Record<string, number> = {}
+  const incomeCategoryTotals: Record<string, number> = {}
+  const expenseCategoryTotals: Record<string, number> = {}
 
   // Calculate totals using EUR amounts
   transactions.forEach(transaction => {
@@ -38,16 +39,19 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
     // Update expense/income totals
     if (transaction.type === 'expense') {
       expenseTotal += eurAmount
+      // Update expense category totals
+      if (!expenseCategoryTotals[transaction.main_category]) {
+        expenseCategoryTotals[transaction.main_category] = 0
+      }
+      expenseCategoryTotals[transaction.main_category] += eurAmount
     } else {
       incomeTotal += eurAmount
+      // Update income category totals
+      if (!incomeCategoryTotals[transaction.main_category]) {
+        incomeCategoryTotals[transaction.main_category] = 0
+      }
+      incomeCategoryTotals[transaction.main_category] += eurAmount
     }
-
-    // Update category totals
-    if (!categoryTotals[transaction.main_category]) {
-      categoryTotals[transaction.main_category] = 0
-    }
-    categoryTotals[transaction.main_category] += 
-      transaction.type === 'expense' ? eurAmount : -eurAmount
   })
 
   // Calculate balance
@@ -169,26 +173,61 @@ export default function MonthSummary({ transactions, isLoading = false }: MonthS
           <CardTitle className="text-lg font-medium">Category Breakdown</CardTitle>
         </CardHeader>
         <CardContent className="w-full">
-          {Object.entries(categoryTotals).filter(([_, amount]) => amount !== 0).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(categoryTotals)
-                .filter(([_, amount]) => amount !== 0)
-                .map(([category, amount]) => {
-                  const Icon = CATEGORY_ICONS[category]
-                  return (
-                    <div key={category} className="flex items-center justify-between py-2 gap-3">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Icon {...{ size: 16, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
-                        <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">{category}</span>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className={`font-semibold text-sm ${amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                          {formatCurrency(Math.abs(amount), 'EUR')}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+          {(Object.keys(incomeCategoryTotals).length > 0 || Object.keys(expenseCategoryTotals).length > 0) ? (
+            <div className="space-y-6">
+              {/* Income Categories */}
+              {Object.keys(incomeCategoryTotals).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-3">Income</h4>
+                  <div className="space-y-3">
+                    {Object.entries(incomeCategoryTotals)
+                      .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
+                      .map(([category, amount]) => {
+                        const Icon = CATEGORY_ICONS[category]
+                        return (
+                          <div key={category} className="flex items-center justify-between py-2 gap-3">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Icon {...{ size: 16, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
+                              <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">{category}</span>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-semibold text-sm text-green-600 dark:text-green-400">
+                                {formatCurrency(amount, 'EUR')}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* Expense Categories */}
+              {Object.keys(expenseCategoryTotals).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-red-700 dark:text-red-300 mb-3">Expenses</h4>
+                  <div className="space-y-3">
+                    {Object.entries(expenseCategoryTotals)
+                      .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
+                      .map(([category, amount]) => {
+                        const Icon = CATEGORY_ICONS[category]
+                        return (
+                          <div key={category} className="flex items-center justify-between py-2 gap-3">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Icon {...{ size: 16, className: "text-gray-500 dark:text-gray-400 flex-shrink-0" } as LucideProps} />
+                              <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">{category}</span>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-semibold text-sm text-red-600 dark:text-red-400">
+                                {formatCurrency(amount, 'EUR')}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
