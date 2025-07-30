@@ -103,18 +103,6 @@ export default function ProtectedPage() {
       <div className="fixed-width-container py-6">
         {/* Fixed header section */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-0 mb-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-left">Transactions</h1>
-            <Button
-              onClick={handleAddTransaction}
-              disabled={isNavigating}
-              className="w-full sm:w-auto flex-shrink-0"
-            >
-              <PlusIcon size={16} className="mr-2" />
-              {isNavigating ? "Loading..." : "Add Transaction"}
-            </Button>
-          </div>
-
           {/* Fixed-width month selector */}
           <div className="flex justify-center items-center gap-4">
             <Button 
@@ -157,6 +145,16 @@ export default function ProtectedPage() {
             </div>
           )}
         </div>
+
+        {/* Floating Add Transaction Button */}
+        <Button
+          onClick={handleAddTransaction}
+          disabled={isNavigating}
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-xl shadow-lg hover:shadow-xl transition-shadow p-0"
+          size="icon"
+        >
+          <PlusIcon size={24} />
+        </Button>
       </div>
     </div>
   );

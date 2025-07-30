@@ -169,12 +169,12 @@
 
 @media (min-width: 1024px) {
   .fixed-width-container {
-    margin: 2rem auto 0 auto;
+    margin: 1rem auto 0 auto;
     padding: 0 2rem; /* Match nav padding on desktop */
   }
 }
 
-/* Ensure consistent layout grid */
+/* Layout utilities */
 .transactions-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -183,14 +183,11 @@
   min-height: 200px; /* Minimum height to prevent collapse */
 }
 
-
-/* Category breakdown consistent width */
-.category-breakdown {
+.category-breakdown,
+.transactions-table {
   width: 100%;
 }
 
-/* Transaction table consistent width */
 .transactions-table {
-  width: 100%;
   min-height: 200px;
 }
