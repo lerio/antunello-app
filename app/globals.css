@@ -187,7 +187,6 @@
 /* Category breakdown consistent width */
 .category-breakdown {
   width: 100%;
-  min-height: 300px;
 }
 
 /* Transaction table consistent width */

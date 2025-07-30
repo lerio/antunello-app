@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Transaction, getCategoryType } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type CurrencyTotals = {
@@ -23,6 +24,10 @@ export default function MonthSummary({
   transactions,
   isLoading = false,
 }: MonthSummaryProps) {
+  // State for collapsible sections (default collapsed)
+  const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
+  const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
+
   // Use EUR as the unified currency for all calculations
   let expenseTotal = 0;
   let incomeTotal = 0;
@@ -96,12 +101,12 @@ export default function MonthSummary({
     <div className="w-full">
       {/* Category breakdown with consistent layout */}
       <Card className="category-breakdown">
-        <CardContent className="w-full pt-4">
+        <CardContent className="w-full pt-2 pb-2">
           {Object.keys(incomeCategoryTotals).length > 0 ||
           Object.keys(expenseCategoryTotals).length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-2">
               {/* Balance Row */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mt-1">
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Balance
                 </h4>
@@ -113,90 +118,114 @@ export default function MonthSummary({
               {/* Income Categories */}
               {Object.keys(incomeCategoryTotals).length > 0 && (
                 <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-semibold text-green-700 dark:text-green-300">
-                      Income
-                    </h4>
+                  <div 
+                    className="flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-2 py-1 rounded"
+                    onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isIncomeExpanded ? (
+                        <ChevronDown size={16} className="text-green-700 dark:text-green-300" />
+                      ) : (
+                        <ChevronRight size={16} className="text-green-700 dark:text-green-300" />
+                      )}
+                      <h4 className="text-sm font-semibold text-green-700 dark:text-green-300">
+                        Income
+                      </h4>
+                    </div>
                     <span className="text-sm font-semibold text-green-600 dark:text-green-400">
                       {formatCurrency(incomeTotal, "EUR")}
                     </span>
                   </div>
-                  <div className="space-y-3">
-                    {Object.entries(incomeCategoryTotals)
-                      .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
-                      .map(([category, amount]) => {
-                        const Icon = CATEGORY_ICONS[category];
-                        return (
-                          <div
-                            key={category}
-                            className="flex items-center justify-between py-2 gap-3"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Icon
-                                {...({
-                                  size: 16,
-                                  className:
-                                    "text-gray-500 dark:text-gray-400 flex-shrink-0",
-                                } as LucideProps)}
-                              />
-                              <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">
-                                {category}
-                              </span>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="font-normal text-sm text-green-600 dark:text-green-400">
-                                {formatCurrency(amount, "EUR")}
+                  {isIncomeExpanded && (
+                    <div className="space-y-1">
+                      {Object.entries(incomeCategoryTotals)
+                        .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
+                        .map(([category, amount]) => {
+                          const Icon = CATEGORY_ICONS[category];
+                          return (
+                            <div
+                              key={category}
+                              className="flex items-center justify-between py-2 gap-3"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Icon
+                                  {...({
+                                    size: 16,
+                                    className:
+                                      "text-gray-500 dark:text-gray-400 flex-shrink-0",
+                                  } as LucideProps)}
+                                />
+                                <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">
+                                  {category}
+                                </span>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-normal text-sm text-green-600 dark:text-green-400">
+                                  {formatCurrency(amount, "EUR")}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Expense Categories */}
               {Object.keys(expenseCategoryTotals).length > 0 && (
                 <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">
-                      Expenses
-                    </h4>
+                  <div 
+                    className="flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-2 py-1 rounded"
+                    onClick={() => setIsExpensesExpanded(!isExpensesExpanded)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isExpensesExpanded ? (
+                        <ChevronDown size={16} className="text-red-700 dark:text-red-300" />
+                      ) : (
+                        <ChevronRight size={16} className="text-red-700 dark:text-red-300" />
+                      )}
+                      <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">
+                        Expenses
+                      </h4>
+                    </div>
                     <span className="text-sm font-semibold text-red-600 dark:text-red-400">
                       {formatCurrency(expenseTotal, "EUR")}
                     </span>
                   </div>
-                  <div className="space-y-3">
-                    {Object.entries(expenseCategoryTotals)
-                      .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
-                      .map(([category, amount]) => {
-                        const Icon = CATEGORY_ICONS[category];
-                        return (
-                          <div
-                            key={category}
-                            className="flex items-center justify-between py-2 gap-3"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Icon
-                                {...({
-                                  size: 16,
-                                  className:
-                                    "text-gray-500 dark:text-gray-400 flex-shrink-0",
-                                } as LucideProps)}
-                              />
-                              <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">
-                                {category}
-                              </span>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="font-normal text-sm text-red-600 dark:text-red-400">
-                                {formatCurrency(amount, "EUR")}
+                  {isExpensesExpanded && (
+                    <div className="space-y-1">
+                      {Object.entries(expenseCategoryTotals)
+                        .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
+                        .map(([category, amount]) => {
+                          const Icon = CATEGORY_ICONS[category];
+                          return (
+                            <div
+                              key={category}
+                              className="flex items-center justify-between py-2 gap-3"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Icon
+                                  {...({
+                                    size: 16,
+                                    className:
+                                      "text-gray-500 dark:text-gray-400 flex-shrink-0",
+                                  } as LucideProps)}
+                                />
+                                <span className="font-medium text-gray-700 dark:text-gray-300 text-sm truncate">
+                                  {category}
+                                </span>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-normal text-sm text-red-600 dark:text-red-400">
+                                  {formatCurrency(amount, "EUR")}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
