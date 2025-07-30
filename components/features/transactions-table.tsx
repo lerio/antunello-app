@@ -127,10 +127,10 @@ export default function TransactionsTable({
                           >
                             {transaction.eur_amount && transaction.currency !== 'EUR' ? (
                               <span>
-                                {formatCurrency(transaction.eur_amount, 'EUR')}
-                                <span className="text-xs text-muted-foreground ml-1">
+                                <span className="text-xs text-muted-foreground mr-1">
                                   ({formatCurrency(transaction.amount, transaction.currency)})
                                 </span>
+                                {formatCurrency(transaction.eur_amount, 'EUR')}
                               </span>
                             ) : (
                               formatCurrency(transaction.amount, transaction.currency)
@@ -192,10 +192,10 @@ export default function TransactionsTable({
                               >
                                 {transaction.eur_amount && transaction.currency !== 'EUR' ? (
                                   <div className="flex flex-col">
-                                    <span>{formatCurrency(transaction.eur_amount, 'EUR')}</span>
                                     <span className="text-xs text-muted-foreground">
                                       ({formatCurrency(transaction.amount, transaction.currency)})
                                     </span>
+                                    <span>{formatCurrency(transaction.eur_amount, 'EUR')}</span>
                                   </div>
                                 ) : (
                                   formatCurrency(transaction.amount, transaction.currency)
