@@ -183,19 +183,6 @@
   min-height: 200px; /* Minimum height to prevent collapse */
 }
 
-/* Summary cards grid */
-.summary-cards-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  width: 100%;
-}
-
-@media (min-width: 768px) {
-  .summary-cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 
 /* Category breakdown consistent width */
 .category-breakdown {

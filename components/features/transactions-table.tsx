@@ -54,9 +54,6 @@ export default function TransactionsTable({
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Transactions</CardTitle>
-      </CardHeader>
       <CardContent className="w-full">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">

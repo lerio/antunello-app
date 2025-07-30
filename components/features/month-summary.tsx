@@ -63,33 +63,10 @@ export default function MonthSummary({
   const balanceTotal = incomeTotal - expenseTotal;
 
   const LoadingSkeleton = () => (
-    <div className="space-y-6 w-full">
-      {/* Loading skeleton for summary cards */}
-      <div className="summary-cards-grid">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="h-18 flex flex-col">
-            <CardHeader className="pb-0 px-3 pt-1">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-center px-3 pb-0 pt-0">
-              <div>
-                <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+    <div className="w-full">
       {/* Loading skeleton for category breakdown */}
       <Card className="category-breakdown">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium">
-            Category Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="w-full">
+        <CardContent className="w-full pt-4">
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div
@@ -116,91 +93,34 @@ export default function MonthSummary({
   }
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Fixed-height summary cards with proper grid */}
-      <div className="summary-cards-grid">
-        <Card className="h-18 flex flex-col">
-          <CardHeader className="pb-0 px-3 pt-1">
-            <CardTitle className="text-sm font-medium text-red-800 dark:text-red-200">
-              Total Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-center px-3 pb-0 pt-0">
-            <div className="overflow-hidden">
-              {expenseTotal > 0 ? (
-                <div className="text-red-600 dark:text-red-400 text-lg font-bold truncate">
-                  {formatCurrency(expenseTotal, "EUR")}
-                </div>
-              ) : (
-                <div className="text-muted-foreground text-lg">-</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="h-18 flex flex-col">
-          <CardHeader className="pb-0 px-3 pt-1">
-            <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">
-              Total Income
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-center px-3 pb-0 pt-0">
-            <div className="overflow-hidden">
-              {incomeTotal > 0 ? (
-                <div className="text-green-600 dark:text-green-400 text-lg font-bold truncate">
-                  {formatCurrency(incomeTotal, "EUR")}
-                </div>
-              ) : (
-                <div className="text-muted-foreground text-lg">-</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="h-18 flex flex-col">
-          <CardHeader className="pb-0 px-3 pt-1">
-            <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-center px-3 pb-0 pt-0">
-            <div className="overflow-hidden">
-              {incomeTotal > 0 || expenseTotal > 0 ? (
-                <div className="flex flex-col">
-                  <div
-                    className={`text-lg font-bold truncate ${balanceTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
-                  >
-                    {formatCurrency(Math.abs(balanceTotal), "EUR")}
-                    <span className="text-xs text-muted-foreground ml-1">
-                      {balanceTotal >= 0 ? "gain" : "loss"}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-muted-foreground text-lg">-</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="w-full">
       {/* Category breakdown with consistent layout */}
       <Card className="category-breakdown">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium">
-            Category Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="w-full">
+        <CardContent className="w-full pt-4">
           {Object.keys(incomeCategoryTotals).length > 0 ||
           Object.keys(expenseCategoryTotals).length > 0 ? (
             <div className="space-y-6">
+              {/* Balance Row */}
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Balance
+                </h4>
+                <span className={`text-sm font-semibold ${balanceTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatCurrency(Math.abs(balanceTotal), "EUR")}
+                </span>
+              </div>
+
               {/* Income Categories */}
               {Object.keys(incomeCategoryTotals).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-3">
-                    Income
-                  </h4>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-semibold text-green-700 dark:text-green-300">
+                      Income
+                    </h4>
+                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                      {formatCurrency(incomeTotal, "EUR")}
+                    </span>
+                  </div>
                   <div className="space-y-3">
                     {Object.entries(incomeCategoryTotals)
                       .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
@@ -224,7 +144,7 @@ export default function MonthSummary({
                               </span>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <div className="font-semibold text-sm text-green-600 dark:text-green-400">
+                              <div className="font-normal text-sm text-green-600 dark:text-green-400">
                                 {formatCurrency(amount, "EUR")}
                               </div>
                             </div>
@@ -238,9 +158,14 @@ export default function MonthSummary({
               {/* Expense Categories */}
               {Object.keys(expenseCategoryTotals).length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-red-700 dark:text-red-300 mb-3">
-                    Expenses
-                  </h4>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">
+                      Expenses
+                    </h4>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {formatCurrency(expenseTotal, "EUR")}
+                    </span>
+                  </div>
                   <div className="space-y-3">
                     {Object.entries(expenseCategoryTotals)
                       .sort(([, a], [, b]) => b - a) // Sort by amount (highest to lowest)
@@ -264,7 +189,7 @@ export default function MonthSummary({
                               </span>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <div className="font-semibold text-sm text-red-600 dark:text-red-400">
+                              <div className="font-normal text-sm text-red-600 dark:text-red-400">
                                 {formatCurrency(amount, "EUR")}
                               </div>
                             </div>
