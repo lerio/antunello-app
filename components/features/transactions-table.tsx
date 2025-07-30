@@ -37,6 +37,21 @@ export default function TransactionsTable({
     {}
   );
 
+  // Calculate daily totals using EUR amounts
+  const calculateDailyTotal = (dateTransactions: Transaction[]): number => {
+    return dateTransactions.reduce((total, transaction) => {
+      // Use EUR amount if available, otherwise fall back to original amount (assuming EUR)
+      const eurAmount = transaction.eur_amount || (transaction.currency === 'EUR' ? transaction.amount : 0);
+      
+      // Skip transactions without EUR conversion (to avoid incorrect totals)
+      if (eurAmount === 0 && transaction.currency !== 'EUR') {
+        return total;
+      }
+
+      return total + (transaction.type === 'expense' ? -eurAmount : eurAmount);
+    }, 0);
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -65,16 +80,20 @@ export default function TransactionsTable({
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {Object.entries(groupedTransactions).map(
-                ([date, dateTransactions]) => (
-                  <React.Fragment key={date}>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td
-                        colSpan={2}
-                        className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400"
-                      >
-                        {date}
-                      </td>
-                    </tr>
+                ([date, dateTransactions]) => {
+                  const dailyTotal = calculateDailyTotal(dateTransactions);
+                  return (
+                    <React.Fragment key={date}>
+                      <tr className="bg-gray-50 dark:bg-gray-800/50">
+                        <td className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {date}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm font-medium">
+                          <span className={dailyTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {formatCurrency(Math.abs(dailyTotal), 'EUR')}
+                          </span>
+                        </td>
+                      </tr>
                     {dateTransactions.map((transaction) => (
                       <tr
                         key={transaction.id}
@@ -121,7 +140,8 @@ export default function TransactionsTable({
                       </tr>
                     ))}
                   </React.Fragment>
-                )
+                  );
+                }
               )}
             </tbody>
           </table>
@@ -129,11 +149,16 @@ export default function TransactionsTable({
 
         <div className="block md:hidden">
           {Object.entries(groupedTransactions).map(
-            ([date, dateTransactions]) => (
-              <div key={date} className="mb-4">
-                <h3 className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-t-lg">
-                  {date}
-                </h3>
+            ([date, dateTransactions]) => {
+              const dailyTotal = calculateDailyTotal(dateTransactions);
+              return (
+                <div key={date} className="mb-4">
+                  <div className="px-3 py-2 text-sm font-medium bg-gray-50 dark:bg-gray-800/50 rounded-t-lg flex justify-between items-center">
+                    <span className="text-gray-500 dark:text-gray-400">{date}</span>
+                    <span className={dailyTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                      {formatCurrency(Math.abs(dailyTotal), 'EUR')}
+                    </span>
+                  </div>
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900 rounded-b-lg overflow-hidden">
                   {dateTransactions.map((transaction) => (
                     <li
@@ -184,7 +209,8 @@ export default function TransactionsTable({
                   ))}
                 </ul>
               </div>
-            )
+              );
+            }
           )}
         </div>
       </CardContent>
