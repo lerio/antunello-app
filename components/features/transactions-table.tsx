@@ -106,7 +106,6 @@ export default function TransactionsTable({
                           <div
                             className={`truncate ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}
                           >
-                            {transaction.type === "expense" ? "-" : "+"}
                             {transaction.eur_amount && transaction.currency !== 'EUR' ? (
                               <span>
                                 {formatCurrency(transaction.eur_amount, 'EUR')}
@@ -166,7 +165,6 @@ export default function TransactionsTable({
                               <div
                                 className={`font-semibold text-sm ${transaction.type === "expense" ? "text-red-600" : "text-green-600"}`}
                               >
-                                {transaction.type === "expense" ? "-" : "+"}
                                 {transaction.eur_amount && transaction.currency !== 'EUR' ? (
                                   <div className="flex flex-col">
                                     <span>{formatCurrency(transaction.eur_amount, 'EUR')}</span>
