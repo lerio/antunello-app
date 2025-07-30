@@ -57,24 +57,6 @@ export default function TransactionsTable({
       <CardContent className="w-full">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  style={{ width: "70%" }}
-                >
-                  Transaction
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  style={{ width: "30%" }}
-                >
-                  Amount
-                </th>
-              </tr>
-            </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {Object.entries(groupedTransactions).map(
                 ([date, dateTransactions]) => {

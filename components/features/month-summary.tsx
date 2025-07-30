@@ -115,6 +115,9 @@ export default function MonthSummary({
                 </span>
               </div>
 
+              {/* Separator line */}
+              <hr className="border-gray-200 dark:border-gray-700" />
+
               {/* Income Categories */}
               {Object.keys(incomeCategoryTotals).length > 0 && (
                 <div>
