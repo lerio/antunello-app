@@ -99,11 +99,9 @@ export default function ProtectedPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed width container */}
-      <div className="fixed-width-container py-6">
-        {/* Fixed header section */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-0 mb-4">
-          {/* Fixed-width month selector */}
+      {/* Sticky month selector */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40 py-4">
+        <div className="fixed-width-container">
           <div className="flex justify-center items-center gap-4">
             <Button 
               variant="outline" 
@@ -128,6 +126,10 @@ export default function ProtectedPage() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Content container */}
+      <div className="fixed-width-container pt-6 pb-6">
 
         {/* Content section with consistent layout */}
         <div className="transactions-layout">
