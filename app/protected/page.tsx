@@ -1,145 +1,141 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { PlusIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import TransactionsTable from "@/components/features/transactions-table";
-import MonthSummary from "@/components/features/month-summary";
-import { useTransactions } from "@/hooks/useTransactions";
+import dynamic from "next/dynamic";
+import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { Button } from "@/components/ui/button";
+
+// Lazy load components for better performance
+const TransactionsTable = dynamic(() => import("@/components/features/transactions-table-optimized"), {
+  loading: () => <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
+});
+
+const MonthSummary = dynamic(() => import("@/components/features/month-summary"), {
+  loading: () => <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />
+});
 
 export default function ProtectedPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Initialize currentDate based on URL or current date
-  const [currentDate, setCurrentDate] = useState(() => {
-    // If we're at /protected, use current date
+  // Optimized date parsing from URL
+  const currentDate = useMemo(() => {
     if (pathname === "/protected") {
       return new Date();
     }
 
-    // Extract year and month from URL like /protected/2024/03
     const match = pathname.match(/\/protected\/(\d{4})\/(\d{2})/);
     if (match) {
-      const [_, year, month] = match;
+      const [, year, month] = match;
       const date = new Date(parseInt(year), parseInt(month) - 1);
-
-      // Validate the date
-      if (isNaN(date.getTime())) {
-        return new Date(); // Return current date if invalid
-      }
-      return date;
+      return isNaN(date.getTime()) ? new Date() : date;
     }
 
     return new Date();
-  });
+  }, [pathname]);
 
-  const { transactions, isLoading } = useTransactions(
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const { transactions, summary, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
-  // Prefetch the add transaction page and adjacent months
-  useEffect(() => {
-    router.prefetch("/protected/add");
-
-    // Prefetch next and previous month URLs
-    const nextDate = new Date(currentDate);
-    nextDate.setMonth(currentDate.getMonth() + 1);
-    const prevDate = new Date(currentDate);
-    prevDate.setMonth(currentDate.getMonth() - 1);
-
-    const nextYear = nextDate.getFullYear();
-    const nextMonth = (nextDate.getMonth() + 1).toString().padStart(2, "0");
-    const prevYear = prevDate.getFullYear();
-    const prevMonth = (prevDate.getMonth() + 1).toString().padStart(2, "0");
-
-    router.prefetch(`/protected/${nextYear}/${nextMonth}`);
-    router.prefetch(`/protected/${prevYear}/${prevMonth}`);
-  }, [router, currentDate]);
-
-  const handleAddTransaction = () => {
+  const handleAddTransaction = useCallback(() => {
     setIsNavigating(true);
     router.push("/protected/add");
-  };
+  }, [router]);
 
-  const navigateMonth = (direction: "prev" | "next") => {
+  const navigateMonth = useCallback((direction: "prev" | "next") => {
     const newDate = new Date(currentDate);
-    if (direction === "prev") {
-      newDate.setMonth(currentDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(currentDate.getMonth() + 1);
-    }
+    newDate.setMonth(currentDate.getMonth() + (direction === "prev" ? -1 : 1));
 
-    // If it's current month, use the base URL
     const now = new Date();
-    if (
-      newDate.getMonth() === now.getMonth() &&
-      newDate.getFullYear() === now.getFullYear()
-    ) {
+    const isCurrentMonth = 
+      newDate.getMonth() === now.getMonth() && 
+      newDate.getFullYear() === now.getFullYear();
+
+    if (isCurrentMonth) {
       router.push("/protected");
     } else {
-      // Otherwise, use the year/month URL
       const year = newDate.getFullYear();
       const month = (newDate.getMonth() + 1).toString().padStart(2, "0");
       router.push(`/protected/${year}/${month}`);
     }
+  }, [currentDate, router]);
 
-    setCurrentDate(newDate);
-  };
-
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  const monthYearString = useMemo(() => {
+    return currentDate.toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
-  };
+  }, [currentDate]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Transactions</h2>
+          <p className="text-gray-600">{error.message}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky month selector */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40 py-4">
-        <div className="fixed-width-container">
+      {/* Sticky Navigation Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex justify-center items-center gap-4">
             <Button 
               variant="outline" 
               size="icon" 
               onClick={() => navigateMonth("prev")}
-              className="flex-shrink-0 w-10 h-10"
+              className="flex-shrink-0"
+              aria-label="Previous month"
             >
               <ChevronLeft size={20} />
             </Button>
-            <div className="w-48 text-center">
-              <h2 className="text-xl font-medium capitalize truncate">
-                {formatMonthYear(currentDate)}
-              </h2>
-            </div>
+            
+            <h1 className="text-xl font-medium capitalize min-w-[200px] text-center">
+              {monthYearString}
+            </h1>
+            
             <Button 
               variant="outline" 
               size="icon" 
               onClick={() => navigateMonth("next")}
-              className="flex-shrink-0 w-10 h-10"
+              className="flex-shrink-0"
+              aria-label="Next month"
             >
               <ChevronRight size={20} />
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Content container */}
-      <div className="fixed-width-container pt-6 pb-6">
-
-        {/* Content section with consistent layout */}
-        <div className="transactions-layout">
-          <MonthSummary transactions={transactions} isLoading={isLoading} />
+      {/* Main Content - Removed overflow hidden to allow sticky headers */}
+      <main className="container mx-auto px-4 py-4 max-w-[800px]">
+        <div className="space-y-6">
+          <MonthSummary 
+            transactions={transactions} 
+            isLoading={isLoading} 
+          />
 
           {isLoading ? (
-            <div className="transactions-table">
-              <div className="flex justify-center items-center py-12">
-                <div className="text-muted-foreground">Loading transactions...</div>
-              </div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                  <div className="h-32 bg-gray-100 rounded-lg"></div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="transactions-table">
@@ -147,17 +143,18 @@ export default function ProtectedPage() {
             </div>
           )}
         </div>
+      </main>
 
-        {/* Floating Add Transaction Button */}
-        <Button
-          onClick={handleAddTransaction}
-          disabled={isNavigating}
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-xl shadow-lg hover:shadow-xl transition-shadow p-0"
-          size="icon"
-        >
-          <PlusIcon size={24} />
-        </Button>
-      </div>
+      {/* Floating Action Button */}
+      <Button
+        onClick={handleAddTransaction}
+        disabled={isNavigating}
+        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-0"
+        size="icon"
+        aria-label="Add transaction"
+      >
+        <PlusIcon size={24} />
+      </Button>
     </div>
   );
 }

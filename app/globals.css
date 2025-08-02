@@ -190,14 +190,21 @@
 .transactions-table {
   width: 100%;
   min-height: 200px;
+  overflow: visible; /* Ensure sticky headers can work */
 }
 
 /* Sticky date headers */
 .sticky-date-header {
   position: -webkit-sticky;
   position: sticky;
-  top: 72px;
+  top: 73px; /* Match the header height exactly */
   z-index: 40;
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
+  backdrop-filter: blur(8px);
+  background: rgb(249 250 251 / 0.95); /* Light mode with transparency */
+}
+
+.dark .sticky-date-header {
+  background: rgb(17 24 39 / 0.95); /* Dark mode with transparency */
 }

@@ -100,7 +100,7 @@ export default function MonthSummary({
   return (
     <div className="w-full">
       {/* Category breakdown with consistent layout */}
-      <Card className="category-breakdown">
+      <Card className="category-breakdown rounded-none">
         <CardContent className="w-full pt-2 pb-2">
           {Object.keys(incomeCategoryTotals).length > 0 ||
           Object.keys(expenseCategoryTotals).length > 0 ? (
