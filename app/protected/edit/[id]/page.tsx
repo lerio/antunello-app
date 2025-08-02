@@ -1,29 +1,45 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { use } from "react";
+import { use, useState } from "react";
 import dynamic from "next/dynamic";
-
-// Lazy load the form for better initial page load
-const TransactionForm = dynamic(() => import("@/components/features/transaction-form-optimized"), {
-  loading: () => (
-    <div className="animate-pulse space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="h-16 bg-gray-200 rounded"></div>
-        <div className="h-16 bg-gray-200 rounded"></div>
-        <div className="h-16 bg-gray-200 rounded"></div>
-        <div className="h-16 bg-gray-200 rounded"></div>
-      </div>
-      <div className="h-16 bg-gray-200 rounded"></div>
-      <div className="h-10 bg-blue-200 rounded"></div>
-    </div>
-  )
-});
 import { Transaction } from "@/types/database";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Edit3, Trash2, AlertTriangle } from "lucide-react";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useTransaction } from "@/hooks/useTransaction";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+
+// Lazy load the HTML-design form
+const TransactionForm = dynamic(() => import("@/components/features/transaction-form-html-design"), {
+  loading: () => (
+    <div className="w-full max-w-2xl mx-auto animate-pulse space-y-6">
+      {/* Type Toggle Skeleton */}
+      <div className="h-16 bg-gray-200 rounded-xl"></div>
+      
+      {/* Amount and Currency Row Skeleton */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 h-16 bg-gray-200 rounded-xl"></div>
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+      </div>
+      
+      {/* Title Skeleton */}
+      <div className="h-16 bg-gray-200 rounded-xl"></div>
+      
+      {/* Categories Row Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+      </div>
+      
+      {/* Date Skeleton */}
+      <div className="h-16 bg-gray-200 rounded-xl"></div>
+      
+      {/* Button Skeleton */}
+      <div className="h-14 bg-blue-200 rounded-xl"></div>
+    </div>
+  )
+});
 
 export default function EditTransactionPage({
   params,
@@ -34,6 +50,7 @@ export default function EditTransactionPage({
   const resolvedParams = use(params);
   const { updateTransaction, deleteTransaction } = useTransactionMutations();
   const { transaction, isLoading, error } = useTransaction(resolvedParams.id);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (error) {
     toast.error("Failed to load transaction");
@@ -65,12 +82,6 @@ export default function EditTransactionPage({
   };
 
   const handleDelete = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this transaction? This action cannot be undone."
-      )
-    )
-      return;
     if (!transaction) return;
 
     const toastPromise = deleteTransaction(transaction);
@@ -85,6 +96,8 @@ export default function EditTransactionPage({
         return `Failed to delete transaction: ${err.message}`;
       },
     });
+    
+    setShowDeleteConfirm(false);
   };
 
   const handleBack = () => {
@@ -93,22 +106,31 @@ export default function EditTransactionPage({
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="flex items-center mb-6">
-            <div className="h-5 w-5 bg-gray-300 rounded mr-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-12"></div>
-          </div>
-          <div className="h-8 bg-gray-300 rounded w-48 mb-6"></div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="h-16 bg-gray-200 rounded"></div>
-              <div className="h-16 bg-gray-200 rounded"></div>
-              <div className="h-16 bg-gray-200 rounded"></div>
-              <div className="h-16 bg-gray-200 rounded"></div>
+      <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#f7fafc' }}>
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12 animate-pulse">
+            {/* Header Skeleton */}
+            <div className="flex items-center mb-10">
+              <div className="flex items-center">
+                <div className="w-5 h-5 bg-gray-300 rounded mr-2"></div>
+                <div className="w-12 h-4 bg-gray-300 rounded"></div>
+              </div>
             </div>
-            <div className="h-16 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-blue-200 rounded"></div>
+            
+            <div className="w-48 h-10 bg-gray-300 rounded mb-2"></div>
+            <div className="w-96 h-4 bg-gray-200 rounded mb-12"></div>
+            
+            {/* Form Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="h-16 bg-gray-200 rounded-lg"></div>
+              <div className="h-16 bg-gray-200 rounded-lg"></div>
+              <div className="h-16 bg-gray-200 rounded-lg"></div>
+              <div className="h-16 bg-gray-200 rounded-lg"></div>
+              <div className="md:col-span-2 h-12 bg-gray-200 rounded-lg"></div>
+              <div className="h-12 bg-gray-200 rounded-lg"></div>
+            </div>
+            
+            <div className="mt-12 h-14 bg-indigo-200 rounded-lg"></div>
           </div>
         </div>
       </div>
@@ -118,24 +140,54 @@ export default function EditTransactionPage({
   if (!transaction) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <button
-        onClick={handleBack}
-        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6 cursor-pointer"
-      >
-        <ArrowLeft size={20} className="mr-1" />
-        Back
-      </button>
-
-      <h1 className="text-2xl font-bold mb-6">Edit Transaction</h1>
-      <TransactionForm initialData={transaction} onSubmit={handleSubmit} />
-      <div className="mt-2 pt-2">
-        <button
-          onClick={handleDelete}
-          className="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700"
-        >
-          Delete Transaction
-        </button>
+    <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#f7fafc' }}>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="w-full space-y-6">
+          <TransactionForm initialData={transaction} onSubmit={handleSubmit} onBack={handleBack} />
+          
+          {/* Delete Section */}
+          <div className="max-w-4xl mx-auto bg-red-50 rounded-2xl p-6 border border-red-200">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-red-100 text-red-600 rounded-xl">
+                <AlertTriangle size={20} />
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 mb-2">Danger Zone</h3>
+                <p className="text-sm text-red-800 mb-4">
+                  Once you delete this transaction, it cannot be recovered. This action is permanent.
+                </p>
+                
+                {!showDeleteConfirm ? (
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="outline"
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    Delete Transaction
+                  </Button>
+                ) : (
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Confirm Delete
+                    </Button>
+                    <Button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      variant="outline"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
