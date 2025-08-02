@@ -1,14 +1,16 @@
 import useSWR from 'swr'
-import { supabase } from '@/utils/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 
 const fetchTransaction = async (id: string) => {
-  const { data } = await supabase
+  const supabase = createClient()
+  const { data, error } = await supabase
     .from('transactions')
     .select('*')
     .eq('id', id)
     .single()
 
+  if (error) throw error
   if (!data) throw new Error('Transaction not found')
   return data
 }
@@ -19,7 +21,10 @@ export function useTransaction(id: string) {
     () => fetchTransaction(id),
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false
+      revalidateOnReconnect: false,
+      // Try to use cached data immediately if available
+      fallbackData: undefined,
+      dedupingInterval: 60000, // 1 minute
     }
   )
 

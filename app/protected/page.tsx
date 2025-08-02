@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { PlusIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -46,6 +46,11 @@ export default function ProtectedPage() {
   const handleAddTransaction = useCallback(() => {
     setIsNavigating(true);
     router.push("/protected/add");
+  }, [router]);
+
+  // Prefetch add transaction page for faster navigation
+  useEffect(() => {
+    router.prefetch("/protected/add");
   }, [router]);
 
   const navigateMonth = useCallback((direction: "prev" | "next") => {

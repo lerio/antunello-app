@@ -2,7 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { use } from "react";
-import TransactionForm from "@/components/features/transaction-form";
+import dynamic from "next/dynamic";
+
+// Lazy load the form for better initial page load
+const TransactionForm = dynamic(() => import("@/components/features/transaction-form-optimized"), {
+  loading: () => (
+    <div className="animate-pulse space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-16 bg-gray-200 rounded"></div>
+        <div className="h-16 bg-gray-200 rounded"></div>
+        <div className="h-16 bg-gray-200 rounded"></div>
+        <div className="h-16 bg-gray-200 rounded"></div>
+      </div>
+      <div className="h-16 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-blue-200 rounded"></div>
+    </div>
+  )
+});
 import { Transaction } from "@/types/database";
 import { ArrowLeft } from "lucide-react";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
@@ -78,7 +94,23 @@ export default function EditTransactionPage({
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <p>Loading...</p>
+        <div className="animate-pulse">
+          <div className="flex items-center mb-6">
+            <div className="h-5 w-5 bg-gray-300 rounded mr-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-12"></div>
+          </div>
+          <div className="h-8 bg-gray-300 rounded w-48 mb-6"></div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-16 bg-gray-200 rounded"></div>
+              <div className="h-16 bg-gray-200 rounded"></div>
+              <div className="h-16 bg-gray-200 rounded"></div>
+              <div className="h-16 bg-gray-200 rounded"></div>
+            </div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-blue-200 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
