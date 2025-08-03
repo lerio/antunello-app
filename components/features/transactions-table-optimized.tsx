@@ -9,12 +9,13 @@ import { Card, CardContent } from "@/components/ui/card"
 
 type TransactionsTableProps = {
   transactions: Transaction[]
+  onTransactionClick?: (transaction: Transaction) => void
 }
 
 // Optimized transaction row component
 const TransactionRow = React.memo(({ transaction, onClick }: { 
   transaction: Transaction
-  onClick: (id: string) => void 
+  onClick: (transaction: Transaction) => void 
 }) => {
   const Icon = CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"]
   const amount = transaction.eur_amount || transaction.amount
@@ -22,7 +23,7 @@ const TransactionRow = React.memo(({ transaction, onClick }: {
 
   return (
     <div
-      onClick={() => onClick(transaction.id)}
+      onClick={() => onClick(transaction)}
       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors px-4 py-3 flex items-center justify-between"
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -67,7 +68,7 @@ const DateGroup = React.memo(({
   date: string
   transactions: Transaction[]
   dailyTotal: number
-  onTransactionClick: (id: string) => void
+  onTransactionClick: (transaction: Transaction) => void
 }) => (
   <div className="mb-2">
     {/* Sticky Date Header */}
@@ -99,9 +100,7 @@ const DateGroup = React.memo(({
 
 DateGroup.displayName = "DateGroup"
 
-export default function TransactionsTable({ transactions }: TransactionsTableProps) {
-  const router = useRouter()
-
+export default function TransactionsTable({ transactions, onTransactionClick }: TransactionsTableProps) {
   const groupedData = useMemo(() => {
     if (!transactions.length) return {}
 
@@ -115,9 +114,11 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
     }, {} as Record<string, Transaction[]>)
   }, [transactions])
 
-  const handleTransactionClick = React.useCallback((id: string) => {
-    router.push(`/protected/edit/${id}`)
-  }, [router])
+  const handleTransactionClick = React.useCallback((transaction: Transaction) => {
+    if (onTransactionClick) {
+      onTransactionClick(transaction)
+    }
+  }, [onTransactionClick])
 
   if (transactions.length === 0) {
     return <NoTransactions />

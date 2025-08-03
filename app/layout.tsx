@@ -1,7 +1,7 @@
 import { EnvVarWarning } from "@/components/layout/env-var-warning";
 import HeaderAuth from "@/components/layout/header-auth";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
-import { Geist } from "next/font/google";
+import { Geist, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
@@ -25,13 +25,19 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geistSans.className} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.className} ${inter.variable}`} suppressHydrationWarning>
       <body className="bg-background text-foreground">
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider

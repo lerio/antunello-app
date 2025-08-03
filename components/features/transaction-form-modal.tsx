@@ -2,12 +2,11 @@ import { useState, useCallback, useMemo } from 'react'
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from '@/types/database'
 import { createClient } from '@/utils/supabase/client'
 import { formatDateTimeLocal, parseDateTime } from '@/utils/date'
-import { ArrowLeft, DollarSign, Calendar, MinusCircle, PlusCircle } from 'lucide-react'
+import { Calendar, MinusCircle, PlusCircle } from 'lucide-react'
 
-type TransactionFormProps = {
+type TransactionFormModalProps = {
   onSubmit: (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
   initialData?: Transaction
-  onBack?: () => void
 }
 
 const CURRENCY_OPTIONS = [
@@ -16,7 +15,7 @@ const CURRENCY_OPTIONS = [
   { value: 'JPY', label: 'JPY', symbol: '¥' },
 ]
 
-export default function TransactionFormHtmlDesign({ onSubmit, initialData, onBack }: TransactionFormProps) {
+export default function TransactionFormModal({ onSubmit, initialData }: TransactionFormModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || MAIN_CATEGORIES[0])
   const [transactionType, setTransactionType] = useState<'expense' | 'income'>(initialData?.type || 'expense')
@@ -73,21 +72,7 @@ export default function TransactionFormHtmlDesign({ onSubmit, initialData, onBac
   }, [])
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12">
-      {/* Header */}
-      {onBack && (
-        <div className="flex items-center mb-10">
-          <button 
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-            type="button"
-          >
-            <ArrowLeft size={20} />
-            <span className="ml-2 text-lg font-medium">Back</span>
-          </button>
-        </div>
-      )}
-      
+    <div className="w-full bg-white p-6 md:p-8 lg:p-12 font-inter">
       <h1 className="text-4xl font-bold text-gray-800 mb-12">
         {initialData ? 'Edit Transaction' : 'Add Transaction'}
       </h1>

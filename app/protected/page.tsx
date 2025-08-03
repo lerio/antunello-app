@@ -5,7 +5,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { PlusIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
+import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { Transaction } from "@/types/database";
+import toast from "react-hot-toast";
 
 // Lazy load components for better performance
 const TransactionsTable = dynamic(() => import("@/components/features/transactions-table-optimized"), {
@@ -14,6 +18,14 @@ const TransactionsTable = dynamic(() => import("@/components/features/transactio
 
 const MonthSummary = dynamic(() => import("@/components/features/month-summary"), {
   loading: () => <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />
+});
+
+const TransactionFormModal = dynamic(() => import("@/components/features/transaction-form-modal"), {
+  loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
+});
+
+const TransactionEditModal = dynamic(() => import("@/components/features/transaction-edit-modal"), {
+  loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
 });
 
 export default function ProtectedPage() {
@@ -36,22 +48,70 @@ export default function ProtectedPage() {
     return new Date();
   }, [pathname]);
 
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const { transactions, summary, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
-  const handleAddTransaction = useCallback(() => {
-    setIsNavigating(true);
-    router.push("/protected/add");
-  }, [router]);
+  const { addTransaction, updateTransaction, deleteTransaction } = useTransactionMutations();
 
-  // Prefetch add transaction page for faster navigation
-  useEffect(() => {
-    router.prefetch("/protected/add");
-  }, [router]);
+  const handleAddTransaction = useCallback(() => {
+    setShowAddModal(true);
+  }, []);
+
+  const handleEditTransaction = useCallback((transaction: Transaction) => {
+    setEditingTransaction(transaction);
+  }, []);
+
+  const handleAddSubmit = useCallback(async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
+    const toastPromise = addTransaction(data);
+    
+    toast.promise(toastPromise, {
+      loading: "Adding transaction...",
+      success: () => {
+        setShowAddModal(false);
+        return "Transaction added successfully!";
+      },
+      error: (err) => {
+        return `Failed to add transaction: ${err.message}`;
+      },
+    });
+  }, [addTransaction]);
+
+  const handleEditSubmit = useCallback(async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!editingTransaction) return;
+    
+    const toastPromise = updateTransaction(editingTransaction.id, data, editingTransaction.date);
+    
+    toast.promise(toastPromise, {
+      loading: "Updating transaction...",
+      success: () => {
+        setEditingTransaction(null);
+        return "Transaction updated successfully!";
+      },
+      error: (err) => {
+        return `Failed to update transaction: ${err.message}`;
+      },
+    });
+  }, [updateTransaction, editingTransaction]);
+
+  const handleDeleteTransaction = useCallback(async (transaction: Transaction) => {
+    const toastPromise = deleteTransaction(transaction);
+    
+    toast.promise(toastPromise, {
+      loading: "Deleting transaction...",
+      success: () => {
+        setEditingTransaction(null);
+        return "Transaction deleted successfully!";
+      },
+      error: (err) => {
+        return `Failed to delete transaction: ${err.message}`;
+      },
+    });
+  }, [deleteTransaction]);
 
   const navigateMonth = useCallback((direction: "prev" | "next") => {
     const newDate = new Date(currentDate);
@@ -144,7 +204,10 @@ export default function ProtectedPage() {
             </div>
           ) : (
             <div className="transactions-table">
-              <TransactionsTable transactions={transactions} />
+              <TransactionsTable 
+                transactions={transactions} 
+                onTransactionClick={handleEditTransaction}
+              />
             </div>
           )}
         </div>
@@ -153,13 +216,28 @@ export default function ProtectedPage() {
       {/* Floating Action Button */}
       <Button
         onClick={handleAddTransaction}
-        disabled={isNavigating}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-0"
+        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-0"
         size="icon"
         aria-label="Add transaction"
       >
         <PlusIcon size={24} />
       </Button>
+
+      {/* Add Transaction Modal */}
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
+        <TransactionFormModal onSubmit={handleAddSubmit} />
+      </Modal>
+
+      {/* Edit Transaction Modal */}
+      <Modal isOpen={!!editingTransaction} onClose={() => setEditingTransaction(null)}>
+        {editingTransaction && (
+          <TransactionEditModal 
+            transaction={editingTransaction} 
+            onSubmit={handleEditSubmit}
+            onDelete={handleDeleteTransaction}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
