@@ -11,35 +11,38 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 
 // Lazy load the modern form
-const TransactionForm = dynamic(() => import("@/components/features/transaction-form-modern"), {
-  loading: () => (
-    <div className="w-full max-w-2xl mx-auto animate-pulse space-y-6">
-      {/* Type Toggle Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Amount and Currency Row Skeleton */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 h-16 bg-gray-200 rounded-xl"></div>
+const TransactionForm = dynamic(
+  () => import("@/components/features/transaction-form-modern"),
+  {
+    loading: () => (
+      <div className="w-full max-w-2xl mx-auto animate-pulse space-y-6">
+        {/* Type Toggle Skeleton */}
         <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Amount and Currency Row Skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 h-16 bg-gray-200 rounded-xl"></div>
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Title Skeleton */}
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Categories Row Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Date Skeleton */}
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Button Skeleton */}
+        <div className="h-14 bg-blue-200 rounded-xl"></div>
       </div>
-      
-      {/* Title Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Categories Row Skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="h-16 bg-gray-200 rounded-xl"></div>
-        <div className="h-16 bg-gray-200 rounded-xl"></div>
-      </div>
-      
-      {/* Date Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Button Skeleton */}
-      <div className="h-14 bg-blue-200 rounded-xl"></div>
-    </div>
-  )
-});
+    ),
+  }
+);
 
 export default function EditTransactionPageModern({
   params,
@@ -96,7 +99,7 @@ export default function EditTransactionPageModern({
         return `Failed to delete transaction: ${err.message}`;
       },
     });
-    
+
     setShowDeleteConfirm(false);
   };
 
@@ -153,22 +156,26 @@ export default function EditTransactionPageModern({
       <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={handleBack} 
+              onClick={handleBack}
               className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <ArrowLeft size={20} />
             </Button>
-            
+
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500 text-white rounded-xl">
                 <Edit3 size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Edit Transaction</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Update your transaction details</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Edit Entry
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Update your transaction details
+                </p>
               </div>
             </div>
           </div>
@@ -180,20 +187,23 @@ export default function EditTransactionPageModern({
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8">
           <TransactionForm initialData={transaction} onSubmit={handleSubmit} />
         </div>
-        
+
         {/* Delete Section */}
         <div className="mt-6 bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 border border-red-200/50 dark:border-red-800/50">
           <div className="flex items-start gap-4">
             <div className="p-2 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl">
               <AlertTriangle size={20} />
             </div>
-            
+
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Danger Zone</h3>
+              <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">
+                Danger Zone
+              </h3>
               <p className="text-sm text-red-800 dark:text-red-200 mb-4">
-                Once you delete this transaction, it cannot be recovered. This action is permanent.
+                Once you delete this transaction, it cannot be recovered. This
+                action is permanent.
               </p>
-              
+
               {!showDeleteConfirm ? (
                 <Button
                   onClick={() => setShowDeleteConfirm(true)}

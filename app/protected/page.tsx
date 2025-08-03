@@ -12,21 +12,41 @@ import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
 // Lazy load components for better performance
-const TransactionsTable = dynamic(() => import("@/components/features/transactions-table-optimized"), {
-  loading: () => <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
-});
+const TransactionsTable = dynamic(
+  () => import("@/components/features/transactions-table-optimized"),
+  {
+    loading: () => (
+      <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
+    ),
+  }
+);
 
-const MonthSummary = dynamic(() => import("@/components/features/month-summary"), {
-  loading: () => <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />
-});
+const MonthSummary = dynamic(
+  () => import("@/components/features/month-summary"),
+  {
+    loading: () => (
+      <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />
+    ),
+  }
+);
 
-const TransactionFormModal = dynamic(() => import("@/components/features/transaction-form-modal"), {
-  loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
-});
+const TransactionFormModal = dynamic(
+  () => import("@/components/features/transaction-form-modal"),
+  {
+    loading: () => (
+      <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
+    ),
+  }
+);
 
-const TransactionEditModal = dynamic(() => import("@/components/features/transaction-edit-modal"), {
-  loading: () => <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
-});
+const TransactionEditModal = dynamic(
+  () => import("@/components/features/transaction-edit-modal"),
+  {
+    loading: () => (
+      <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
+    ),
+  }
+);
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -49,14 +69,16 @@ export default function ProtectedPage() {
   }, [pathname]);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
   const { transactions, summary, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
-  const { addTransaction, updateTransaction, deleteTransaction } = useTransactionMutations();
+  const { addTransaction, updateTransaction, deleteTransaction } =
+    useTransactionMutations();
 
   const handleAddTransaction = useCallback(() => {
     setShowAddModal(true);
@@ -66,70 +88,88 @@ export default function ProtectedPage() {
     setEditingTransaction(transaction);
   }, []);
 
-  const handleAddSubmit = useCallback(async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
-    const toastPromise = addTransaction(data);
-    
-    toast.promise(toastPromise, {
-      loading: "Adding transaction...",
-      success: () => {
-        setShowAddModal(false);
-        return "Transaction added successfully!";
-      },
-      error: (err) => {
-        return `Failed to add transaction: ${err.message}`;
-      },
-    });
-  }, [addTransaction]);
+  const handleAddSubmit = useCallback(
+    async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
+      const toastPromise = addTransaction(data);
 
-  const handleEditSubmit = useCallback(async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
-    if (!editingTransaction) return;
-    
-    const toastPromise = updateTransaction(editingTransaction.id, data, editingTransaction.date);
-    
-    toast.promise(toastPromise, {
-      loading: "Updating transaction...",
-      success: () => {
-        setEditingTransaction(null);
-        return "Transaction updated successfully!";
-      },
-      error: (err) => {
-        return `Failed to update transaction: ${err.message}`;
-      },
-    });
-  }, [updateTransaction, editingTransaction]);
+      toast.promise(toastPromise, {
+        loading: "Adding transaction...",
+        success: () => {
+          setShowAddModal(false);
+          return "Transaction added successfully!";
+        },
+        error: (err) => {
+          return `Failed to add transaction: ${err.message}`;
+        },
+      });
+    },
+    [addTransaction]
+  );
 
-  const handleDeleteTransaction = useCallback(async (transaction: Transaction) => {
-    const toastPromise = deleteTransaction(transaction);
-    
-    toast.promise(toastPromise, {
-      loading: "Deleting transaction...",
-      success: () => {
-        setEditingTransaction(null);
-        return "Transaction deleted successfully!";
-      },
-      error: (err) => {
-        return `Failed to delete transaction: ${err.message}`;
-      },
-    });
-  }, [deleteTransaction]);
+  const handleEditSubmit = useCallback(
+    async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
+      if (!editingTransaction) return;
 
-  const navigateMonth = useCallback((direction: "prev" | "next") => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(currentDate.getMonth() + (direction === "prev" ? -1 : 1));
+      const toastPromise = updateTransaction(
+        editingTransaction.id,
+        data,
+        editingTransaction.date
+      );
 
-    const now = new Date();
-    const isCurrentMonth = 
-      newDate.getMonth() === now.getMonth() && 
-      newDate.getFullYear() === now.getFullYear();
+      toast.promise(toastPromise, {
+        loading: "Updating transaction...",
+        success: () => {
+          setEditingTransaction(null);
+          return "Transaction updated successfully!";
+        },
+        error: (err) => {
+          return `Failed to update transaction: ${err.message}`;
+        },
+      });
+    },
+    [updateTransaction, editingTransaction]
+  );
 
-    if (isCurrentMonth) {
-      router.push("/protected");
-    } else {
-      const year = newDate.getFullYear();
-      const month = (newDate.getMonth() + 1).toString().padStart(2, "0");
-      router.push(`/protected/${year}/${month}`);
-    }
-  }, [currentDate, router]);
+  const handleDeleteTransaction = useCallback(
+    async (transaction: Transaction) => {
+      const toastPromise = deleteTransaction(transaction);
+
+      toast.promise(toastPromise, {
+        loading: "Deleting transaction...",
+        success: () => {
+          setEditingTransaction(null);
+          return "Transaction deleted successfully!";
+        },
+        error: (err) => {
+          return `Failed to delete transaction: ${err.message}`;
+        },
+      });
+    },
+    [deleteTransaction]
+  );
+
+  const navigateMonth = useCallback(
+    (direction: "prev" | "next") => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(
+        currentDate.getMonth() + (direction === "prev" ? -1 : 1)
+      );
+
+      const now = new Date();
+      const isCurrentMonth =
+        newDate.getMonth() === now.getMonth() &&
+        newDate.getFullYear() === now.getFullYear();
+
+      if (isCurrentMonth) {
+        router.push("/protected");
+      } else {
+        const year = newDate.getFullYear();
+        const month = (newDate.getMonth() + 1).toString().padStart(2, "0");
+        router.push(`/protected/${year}/${month}`);
+      }
+    },
+    [currentDate, router]
+  );
 
   const monthYearString = useMemo(() => {
     return currentDate.toLocaleDateString("en-US", {
@@ -142,7 +182,9 @@ export default function ProtectedPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Transactions</h2>
+          <h2 className="text-xl font-semibold text-red-600 mb-2">
+            Error Loading Transactions
+          </h2>
           <p className="text-gray-600">{error.message}</p>
           <Button onClick={() => window.location.reload()} className="mt-4">
             Retry
@@ -158,23 +200,23 @@ export default function ProtectedPage() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-center items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => navigateMonth("prev")}
               className="flex-shrink-0"
               aria-label="Previous month"
             >
               <ChevronLeft size={20} />
             </Button>
-            
+
             <h1 className="text-xl font-medium capitalize min-w-[200px] text-center">
               {monthYearString}
             </h1>
-            
-            <Button 
-              variant="outline" 
-              size="icon" 
+
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => navigateMonth("next")}
               className="flex-shrink-0"
               aria-label="Next month"
@@ -188,10 +230,7 @@ export default function ProtectedPage() {
       {/* Main Content - Removed overflow hidden to allow sticky headers */}
       <main className="container mx-auto px-4 py-4 max-w-[800px]">
         <div className="space-y-6">
-          <MonthSummary 
-            transactions={transactions} 
-            isLoading={isLoading} 
-          />
+          <MonthSummary transactions={transactions} isLoading={isLoading} />
 
           {isLoading ? (
             <div className="space-y-4">
@@ -204,8 +243,8 @@ export default function ProtectedPage() {
             </div>
           ) : (
             <div className="transactions-table">
-              <TransactionsTable 
-                transactions={transactions} 
+              <TransactionsTable
+                transactions={transactions}
                 onTransactionClick={handleEditTransaction}
               />
             </div>
@@ -223,16 +262,19 @@ export default function ProtectedPage() {
         <PlusIcon size={24} />
       </Button>
 
-      {/* Add Transaction Modal */}
+      {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
         <TransactionFormModal onSubmit={handleAddSubmit} />
       </Modal>
 
-      {/* Edit Transaction Modal */}
-      <Modal isOpen={!!editingTransaction} onClose={() => setEditingTransaction(null)}>
+      {/* Edit Entry Modal */}
+      <Modal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+      >
         {editingTransaction && (
-          <TransactionEditModal 
-            transaction={editingTransaction} 
+          <TransactionEditModal
+            transaction={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
           />
