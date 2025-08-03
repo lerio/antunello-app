@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
 
 interface ModalProps {
   isOpen: boolean
@@ -7,100 +6,110 @@ interface ModalProps {
   children: React.ReactNode
 }
 
+const ANIMATION_DURATION = 300
+
 export function Modal({ isOpen, onClose, children }: ModalProps) {
   const [isAnimating, setIsAnimating] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
 
-  // Handle modal opening/closing with proper animations
+  const handleSwipeDown = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    const startY = touch.clientY
+    
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      const currentTouch = moveEvent.touches[0]
+      const deltaY = currentTouch.clientY - startY
+      
+      if (deltaY > 50) {
+        onClose()
+        cleanup()
+      }
+    }
+    
+    const cleanup = () => {
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', cleanup)
+    }
+    
+    document.addEventListener('touchmove', handleTouchMove, { passive: true })
+    document.addEventListener('touchend', cleanup, { passive: true })
+  }, [onClose])
+
+  // Handle all modal state changes in a single effect
   useEffect(() => {
     if (isOpen) {
+      // Opening modal
       setShouldRender(true)
-      setIsAnimating(false) // Start with closed state
-      // Small delay to ensure the element is rendered before animation
+      document.body.style.overflow = 'hidden'
+      setIsAnimating(false)
+      
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsAnimating(true) // Trigger opening animation
-        })
+        requestAnimationFrame(() => setIsAnimating(true))
       })
     } else if (shouldRender) {
-      // Start closing animation
+      // Closing modal
       setIsAnimating(false)
-      // Wait for animation to complete before unmounting
       const timer = setTimeout(() => {
         setShouldRender(false)
-      }, 300)
+        document.body.style.overflow = 'unset'
+      }, ANIMATION_DURATION)
+      
       return () => clearTimeout(timer)
-    }
-  }, [isOpen, shouldRender])
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (shouldRender) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
     }
 
     // Cleanup on unmount
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [shouldRender])
+  }, [isOpen, shouldRender])
 
-  // Close modal on Escape key
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
+      if (e.key === 'Escape') onClose()
     }
 
     if (shouldRender) {
       document.addEventListener('keydown', handleEscape)
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
     }
   }, [shouldRender, onClose])
 
   if (!shouldRender) return null
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/50 transition-opacity duration-300 ease-out ${
-          isAnimating ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={onClose}
-      />
-      
-      {/* Modal Container */}
-      <div className="fixed inset-0 flex items-end justify-center">
-        <div 
-          className={`
-            relative w-full max-w-4xl mx-4 mb-4 bg-white rounded-t-2xl shadow-2xl
-            transform transition-all duration-300 ease-out
-            ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-          `}
-          style={{
-            maxHeight: 'calc(100vh - 2rem)',
-          }}
-        >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            aria-label="Close modal"
-          >
-            <X size={20} className="text-gray-600" />
-          </button>
+  const maxHeightStyle = 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)'
 
-          {/* Scrollable Content */}
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
-            {children}
-          </div>
+  return (
+    <div 
+      className={`fixed inset-0 z-50 overflow-hidden bg-black/50 flex items-end justify-center transition-opacity duration-300 ease-out ${
+        isAnimating ? 'opacity-100' : 'opacity-0'
+      }`}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      onClick={onClose}
+    >
+      <div 
+        className={`relative w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
+          isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+        }`}
+        style={{ maxHeight: maxHeightStyle }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Interactive Handle Bar */}
+        <div 
+          className="flex items-center justify-center py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer select-none active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+          onClick={onClose}
+          onTouchStart={handleSwipeDown}
+          aria-label="Close modal - tap or swipe down"
+        >
+          <div className="w-12 h-1 bg-gray-400 dark:bg-gray-500 rounded-full" />
+        </div>
+
+        {/* Scrollable Content */}
+        <div 
+          className="overflow-y-auto overflow-x-hidden" 
+          style={{ maxHeight: maxHeightStyle }}
+        >
+          {children}
         </div>
       </div>
     </div>
