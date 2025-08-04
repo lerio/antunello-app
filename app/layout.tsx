@@ -20,6 +20,13 @@ export const metadata = {
   description: "...dei conti se ne occupa lui",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 const geistSans = Geist({
   display: "swap",
   subsets: ["latin"],

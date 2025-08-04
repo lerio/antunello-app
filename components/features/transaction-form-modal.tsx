@@ -1,8 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
-import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
-import { MinusCircle, PlusCircle } from "lucide-react";
+import { parseDateTime } from "@/utils/date";
+import { MinusCircle, PlusCircle, Calendar } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
@@ -17,17 +19,17 @@ const CURRENCY_OPTIONS = [
 
 export default function TransactionFormModal({ onSubmit, initialData }: TransactionFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [mainCategory, setMainCategory] = useState(initialData?.main_category || MAIN_CATEGORIES[0]);
+  const [mainCategory, setMainCategory] = useState(initialData?.main_category || "");
   const [transactionType, setTransactionType] = useState<"expense" | "income">(initialData?.type || "expense");
   const [selectedCurrency, setSelectedCurrency] = useState(initialData?.currency || "EUR");
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    initialData?.date ? new Date(initialData.date) : new Date()
+  );
 
-  const { subCategories, defaultDate, currencySymbol } = useMemo(() => ({
+  const { subCategories, currencySymbol } = useMemo(() => ({
     subCategories: SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [],
-    defaultDate: initialData?.date 
-      ? formatDateTimeLocal(initialData.date) 
-      : formatDateTimeLocal(new Date().toISOString()),
     currencySymbol: CURRENCY_OPTIONS.find(c => c.value === selectedCurrency)?.symbol || "€"
-  }), [mainCategory, initialData?.date, selectedCurrency]);
+  }), [mainCategory, selectedCurrency]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,14 +50,14 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
         main_category: formData.get("main_category") as string,
         sub_category: formData.get("sub_category") as string,
         title: formData.get("title") as string,
-        date: parseDateTime(formData.get("date") as string),
+        date: selectedDate.toISOString(),
       });
     } catch (error) {
       console.error("Form submission failed:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [onSubmit, transactionType, selectedCurrency]);
+  }, [onSubmit, transactionType, selectedCurrency, selectedDate]);
 
   const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setMainCategory(e.target.value);
@@ -66,9 +68,8 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
   }, []);
 
   // Reusable class strings
-  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2";
-  const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-sm h-12 px-4";
-  const selectClass = "form-select block w-full pl-3 pr-10 py-3 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm rounded-lg shadow-sm";
+  const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base h-12 px-4";
+  const selectClass = "form-select block w-full pl-3 pr-10 py-3 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 text-base rounded-lg shadow-sm";
   
   const getTypeButtonClass = (type: 'expense' | 'income', isSelected: boolean) => {
     const baseClass = "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all";
@@ -89,7 +90,6 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           {/* Amount with Currency */}
           <div>
-            <label className={labelClass} htmlFor="amount">Amount</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
                 {currencySymbol}
@@ -100,13 +100,14 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
                 name="amount"
                 type="number"
                 step="0.01"
+                placeholder="Amount"
                 required
                 defaultValue={initialData?.amount}
                 autoComplete="off"
               />
               <div className="absolute inset-y-0 right-0 flex items-center">
                 <select
-                  className="h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-sm rounded-md form-select"
+                  className="h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select"
                   id="currency"
                   name="currency"
                   value={selectedCurrency}
@@ -123,7 +124,6 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Transaction Type */}
           <div>
-            <div className={labelClass}>Type</div>
             <div className="flex space-x-4">
               <button
                 className={getTypeButtonClass('expense', transactionType === 'expense')}
@@ -146,7 +146,6 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Main Category */}
           <div>
-            <label className={labelClass} htmlFor="main-category">Main Category</label>
             <select
               className={selectClass}
               id="main-category"
@@ -154,6 +153,7 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
               value={mainCategory}
               onChange={handleCategoryChange}
             >
+              <option value="" disabled>Main Category</option>
               {MAIN_CATEGORIES.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -162,7 +162,6 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Sub Category */}
           <div>
-            <label className={labelClass} htmlFor="sub-category">Sub Category</label>
             <select
               className={selectClass}
               id="sub-category"
@@ -170,7 +169,7 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
               defaultValue={initialData?.sub_category}
               key={mainCategory}
             >
-              <option value="">Select sub category</option>
+              <option value="">Sub Category</option>
               {subCategories.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -179,12 +178,11 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Title */}
           <div className="md:col-span-2">
-            <label className={labelClass} htmlFor="title">Title</label>
             <input
               className={inputClass}
               id="title"
               name="title"
-              placeholder="e.g., Monthly groceries at the supermarket"
+              placeholder="Title"
               type="text"
               required
               defaultValue={initialData?.title}
@@ -194,15 +192,26 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Date */}
           <div>
-            <label className={labelClass} htmlFor="date">Date</label>
-            <input
-              className={inputClass}
-              id="date"
-              name="date"
-              type="datetime-local"
-              required
-              defaultValue={defaultDate}
-            />
+            <div className="relative">
+              <DatePicker
+                selected={selectedDate}
+                onChange={(date) => setSelectedDate(date || new Date())}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                dateFormat="dd/MM/yyyy HH:mm"
+                className={inputClass}
+                placeholderText="Date"
+                popperClassName="z-50"
+                calendarClassName="shadow-lg border border-gray-200 dark:border-gray-600 rounded-lg"
+                wrapperClassName="w-full"
+                id="date-picker"
+                name="date-picker"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <Calendar size={20} className="text-gray-400 dark:text-gray-500" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -231,7 +240,7 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
         </div>
       </form>
 
-      <style jsx>{`
+      <style jsx global>{`
         .form-select {
           background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
           background-repeat: no-repeat;
@@ -242,8 +251,70 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
           appearance: none;
         }
         
-        :global(.dark) .form-select {
+        .dark .form-select {
           background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        /* DatePicker Dark Mode Styles */
+        .dark .react-datepicker {
+          background-color: rgb(31 41 55) !important;
+          border-color: rgb(75 85 99) !important;
+          color: rgb(243 244 246) !important;
+        }
+        
+        .dark .react-datepicker__header {
+          background-color: rgb(17 24 39) !important;
+          border-bottom-color: rgb(75 85 99) !important;
+        }
+        
+        .dark .react-datepicker__current-month,
+        .dark .react-datepicker-time__header,
+        .dark .react-datepicker__day-name {
+          color: rgb(243 244 246) !important;
+        }
+        
+        .dark .react-datepicker__day {
+          color: rgb(243 244 246) !important;
+        }
+        
+        .dark .react-datepicker__day:hover {
+          background-color: rgb(55 65 81) !important;
+        }
+        
+        .dark .react-datepicker__day--selected,
+        .dark .react-datepicker__day--in-selecting-range,
+        .dark .react-datepicker__day--in-range {
+          background-color: rgb(99 102 241) !important;
+          color: white !important;
+        }
+        
+        .dark .react-datepicker__time-container {
+          border-left-color: rgb(75 85 99) !important;
+        }
+        
+        .dark .react-datepicker__time-list-item {
+          color: rgb(243 244 246) !important;
+        }
+        
+        .dark .react-datepicker__time-list-item:hover {
+          background-color: rgb(55 65 81) !important;
+        }
+        
+        .dark .react-datepicker__time-list-item--selected {
+          background-color: rgb(99 102 241) !important;
+          color: white !important;
+        }
+        
+        .dark .react-datepicker__navigation {
+          border-color: transparent !important;
+        }
+        
+        .dark .react-datepicker__navigation--previous {
+          border-right-color: rgb(156 163 175) !important;
+        }
+        
+        .dark .react-datepicker__navigation--next {
+          border-left-color: rgb(156 163 175) !important;
         }
       `}</style>
     </div>
