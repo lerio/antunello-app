@@ -243,14 +243,16 @@ export default function ProtectedPage() {
         )}
       </div>
 
-      {/* Floating Add Button */}
-      <button 
-        onClick={handleAddTransaction}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors z-60"
-        aria-label="Add transaction"
-      >
-        <Plus size={28} />
-      </button>
+      {/* Floating Add Button - Hidden when modals are open */}
+      {!showAddModal && !editingTransaction && (
+        <button 
+          onClick={handleAddTransaction}
+          className="fixed bottom-8 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors z-60"
+          aria-label="Add transaction"
+        >
+          <Plus size={28} />
+        </button>
+      )}
 
       {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
