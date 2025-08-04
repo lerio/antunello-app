@@ -1,18 +1,18 @@
 import React, { useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Transaction } from "@/types/database"
-import { formatDate } from "@/utils/date"
+import { formatDate, formatDateHeader } from "@/utils/date"
 import { formatCurrency } from "@/utils/currency"
 import { CATEGORY_ICONS } from "@/utils/categories"
 import NoTransactions from "@/components/features/no-transactions"
-import { Card, CardContent } from "@/components/ui/card"
+import { LucideProps } from "lucide-react"
 
 type TransactionsTableProps = {
   transactions: Transaction[]
   onTransactionClick?: (transaction: Transaction) => void
 }
 
-// Optimized transaction row component
+// Optimized transaction row component with new card design
 const TransactionRow = React.memo(({ transaction, onClick }: { 
   transaction: Transaction
   onClick: (transaction: Transaction) => void 
@@ -22,35 +22,30 @@ const TransactionRow = React.memo(({ transaction, onClick }: {
   const showOriginalCurrency = transaction.eur_amount && transaction.currency !== "EUR"
 
   return (
-    <div
+    <div 
       onClick={() => onClick(transaction)}
-      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors px-4 py-3 flex items-center justify-between"
+      className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer"
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-          <Icon {...({ size: 16 } as any)} />
+      <div className="flex items-center">
+        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <Icon {...({ size: 20, className: "text-gray-500 dark:text-gray-400" } as LucideProps)} />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-medium text-gray-900 dark:text-gray-100 truncate text-sm">
-            {transaction.title}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {transaction.sub_category}
-          </div>
+        <div className="ml-4">
+          <p className="font-medium text-gray-800 dark:text-gray-200">{transaction.title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.sub_category}</p>
         </div>
       </div>
-      
-      <div className="text-right font-medium ml-4 flex-shrink-0">
-        <div className={`text-sm ${
-          transaction.type === "expense" ? "text-red-600" : "text-green-600"
+      <div>
+        <p className={`font-medium text-right ${
+          transaction.type === "expense" ? "text-red-500" : "text-green-500"
         }`}>
-          {showOriginalCurrency && (
-            <div className="text-xs text-gray-500 mb-0.5">
-              ({formatCurrency(transaction.amount, transaction.currency)})
-            </div>
-          )}
           {formatCurrency(amount, showOriginalCurrency ? "EUR" : transaction.currency)}
-        </div>
+        </p>
+        {showOriginalCurrency && (
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
+            ({formatCurrency(transaction.amount, transaction.currency)})
+          </p>
+        )}
       </div>
     </div>
   )
@@ -70,31 +65,27 @@ const DateGroup = React.memo(({
   dailyTotal: number
   onTransactionClick: (transaction: Transaction) => void
 }) => (
-  <div className="mb-2">
+  <div className="mb-6">
     {/* Sticky Date Header */}
-    <div className="px-4 py-3 text-sm font-medium flex justify-between items-center sticky-date-header">
-      <span className="text-gray-500 dark:text-gray-400 font-medium">
-        {date}
-      </span>
+    <div className="sticky top-28 bg-gray-50 dark:bg-gray-900 z-40 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+      <h3 className="font-semibold text-gray-600 dark:text-gray-400">{formatDateHeader(transactions[0].date)}</h3>
       <span className={`font-semibold ${
-        dailyTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+        dailyTotal >= 0 ? "text-green-500" : "text-red-500"
       }`}>
         {formatCurrency(Math.abs(dailyTotal), "EUR")}
       </span>
     </div>
     
-    {/* Transactions Card */}
-    <Card className="rounded-none border-t-0">
-      <CardContent className="divide-y divide-gray-200 dark:divide-gray-700 p-0">
-        {transactions.map((transaction) => (
-          <TransactionRow
-            key={transaction.id}
-            transaction={transaction}
-            onClick={onTransactionClick}
-          />
-        ))}
-      </CardContent>
-    </Card>
+    {/* Transactions List */}
+    <div className="mt-4 space-y-4">
+      {transactions.map((transaction) => (
+        <TransactionRow
+          key={transaction.id}
+          transaction={transaction}
+          onClick={onTransactionClick}
+        />
+      ))}
+    </div>
   </div>
 ))
 
@@ -125,7 +116,7 @@ export default function TransactionsTable({ transactions, onTransactionClick }: 
   }
 
   return (
-    <div className="w-full" style={{ overflow: 'visible' }}>
+    <div className="space-y-6">
       {Object.entries(groupedData).map(([date, dateTransactions]) => {
         const dailyTotal = dateTransactions.reduce((total, t) => {
           const amount = t.eur_amount || (t.currency === "EUR" ? t.amount : 0)

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { PlusIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
@@ -195,72 +195,62 @@ export default function ProtectedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky Navigation Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-center items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
+    <div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sticky Month Selector */}
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4">
+          <div className="flex justify-center items-center mb-8">
+            <button 
               onClick={() => navigateMonth("prev")}
-              className="flex-shrink-0"
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               aria-label="Previous month"
             >
-              <ChevronLeft size={20} />
-            </Button>
-
-            <h1 className="text-xl font-medium capitalize min-w-[200px] text-center">
+              <ChevronLeft size={24} className="text-gray-600 dark:text-gray-400" />
+            </button>
+            <h2 className="text-2xl font-semibold mx-6 text-gray-900 dark:text-gray-100">
               {monthYearString}
-            </h1>
-
-            <Button
-              variant="outline"
-              size="icon"
+            </h2>
+            <button 
               onClick={() => navigateMonth("next")}
-              className="flex-shrink-0"
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               aria-label="Next month"
             >
-              <ChevronRight size={20} />
-            </Button>
+              <ChevronRight size={24} className="text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content - Removed overflow hidden to allow sticky headers */}
-      <main className="container mx-auto px-4 py-4 max-w-[800px]">
-        <div className="space-y-6">
-          <MonthSummary transactions={transactions} isLoading={isLoading} />
+        {/* Balance Summary Card */}
+        <MonthSummary transactions={transactions} isLoading={isLoading} />
 
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-                  <div className="h-32 bg-gray-100 rounded-lg"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="transactions-table">
-              <TransactionsTable
-                transactions={transactions}
-                onTransactionClick={handleEditTransaction}
-              />
-            </div>
-          )}
-        </div>
-      </main>
+        {/* Transactions List */}
+        {isLoading ? (
+          <div className="space-y-4 mt-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="transactions-list mt-8">
+            <TransactionsTable
+              transactions={transactions}
+              onTransactionClick={handleEditTransaction}
+            />
+          </div>
+        )}
+      </div>
 
-      {/* Floating Action Button */}
-      <Button
+      {/* Floating Add Button */}
+      <button 
         onClick={handleAddTransaction}
-        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-0"
-        size="icon"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors z-60"
         aria-label="Add transaction"
       >
-        <PlusIcon size={24} />
-      </Button>
+        <Plus size={28} />
+      </button>
 
       {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
