@@ -5,10 +5,12 @@ import { parseDateTime } from "@/utils/date";
 import { MinusCircle, PlusCircle, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
   initialData?: Transaction;
+  disabled?: boolean;
 }
 
 const CURRENCY_OPTIONS = [
@@ -17,7 +19,7 @@ const CURRENCY_OPTIONS = [
   { value: "JPY", label: "JPY", symbol: "¥" },
 ] as const;
 
-export default function TransactionFormModal({ onSubmit, initialData }: TransactionFormModalProps) {
+export default function TransactionFormModal({ onSubmit, initialData, disabled = false }: TransactionFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || "");
   const [transactionType, setTransactionType] = useState<"expense" | "income">(initialData?.type || "expense");
@@ -25,6 +27,14 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
   const [selectedDate, setSelectedDate] = useState<Date>(
     initialData?.date ? new Date(initialData.date) : new Date()
   );
+  
+  // Validation state for tooltips
+  const [validationErrors, setValidationErrors] = useState({
+    amount: "",
+    mainCategory: "",
+    subCategory: "",
+    title: ""
+  });
 
   const { subCategories, currencySymbol } = useMemo(() => ({
     subCategories: SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [],
@@ -33,10 +43,51 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Clear previous validation errors
+    setValidationErrors({ amount: "", mainCategory: "", subCategory: "", title: "" });
+    
+    // Validate all required fields
+    const formData = new FormData(e.currentTarget);
+    const amount = formData.get("amount") as string;
+    const subCategory = formData.get("sub_category") as string;
+    const title = formData.get("title") as string;
+    
+    let hasErrors = false;
+    const newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
+    
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      newErrors.amount = "Please enter a valid amount";
+      hasErrors = true;
+    }
+    
+    if (!mainCategory) {
+      newErrors.mainCategory = "Please select a main category";
+      hasErrors = true;
+    }
+    
+    if (!subCategory) {
+      newErrors.subCategory = "Please select a sub category";
+      hasErrors = true;
+    }
+    
+    if (!title?.trim()) {
+      newErrors.title = "Please enter a title";
+      hasErrors = true;
+    }
+    
+    if (hasErrors) {
+      setValidationErrors(newErrors);
+      // Auto-dismiss tooltips after 4 seconds
+      setTimeout(() => {
+        setValidationErrors({ amount: "", mainCategory: "", subCategory: "", title: "" });
+      }, 4000);
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget);
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -47,8 +98,8 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
         amount: Number(formData.get("amount")),
         currency: selectedCurrency,
         type: transactionType,
-        main_category: formData.get("main_category") as string,
-        sub_category: formData.get("sub_category") as string,
+        main_category: mainCategory,
+        sub_category: subCategory,
         title: formData.get("title") as string,
         date: selectedDate.toISOString(),
       });
@@ -57,7 +108,7 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
     } finally {
       setIsLoading(false);
     }
-  }, [onSubmit, transactionType, selectedCurrency, selectedDate]);
+  }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory]);
 
   const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setMainCategory(e.target.value);
@@ -86,57 +137,66 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
   return (
     <div className="w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-4 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter">
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           {/* Amount with Currency */}
           <div>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
-                {currencySymbol}
-              </span>
-              <input
-                className={inputClass.replace('px-4', 'pl-10 pr-20')}
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                required
-                defaultValue={initialData?.amount}
-                autoComplete="off"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center">
-                <select
-                  className="h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select"
-                  id="currency"
-                  name="currency"
-                  value={selectedCurrency}
-                  onChange={handleCurrencyChange}
-                  aria-label="Currency selection"
-                >
-                  {CURRENCY_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+            <ValidationTooltip
+              message={validationErrors.amount}
+              isVisible={!!validationErrors.amount}
+              onClose={() => setValidationErrors(prev => ({ ...prev, amount: "" }))}
+            >
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
+                  {currencySymbol}
+                </span>
+                <input
+                  className={`${inputClass.replace('px-4', 'pl-10 pr-20')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount"
+                  defaultValue={initialData?.amount}
+                  autoComplete="off"
+                  disabled={disabled}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center">
+                  <select
+                    className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    id="currency"
+                    name="currency"
+                    value={selectedCurrency}
+                    onChange={handleCurrencyChange}
+                    aria-label="Currency selection"
+                    disabled={disabled}
+                  >
+                    {CURRENCY_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+            </ValidationTooltip>
           </div>
 
           {/* Transaction Type */}
           <div>
             <div className="flex space-x-4">
               <button
-                className={getTypeButtonClass('expense', transactionType === 'expense')}
+                className={`${getTypeButtonClass('expense', transactionType === 'expense')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 type="button"
-                onClick={() => setTransactionType("expense")}
+                onClick={() => !disabled && setTransactionType("expense")}
+                disabled={disabled}
               >
                 <MinusCircle size={20} className="mr-2" />
                 Expense
               </button>
               <button
-                className={getTypeButtonClass('income', transactionType === 'income')}
+                className={`${getTypeButtonClass('income', transactionType === 'income')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 type="button"
-                onClick={() => setTransactionType("income")}
+                onClick={() => !disabled && setTransactionType("income")}
+                disabled={disabled}
               >
                 <PlusCircle size={20} className="mr-2" />
                 Income
@@ -146,48 +206,68 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
 
           {/* Main Category */}
           <div>
-            <select
-              className={selectClass}
-              id="main-category"
-              name="main_category"
-              value={mainCategory}
-              onChange={handleCategoryChange}
+            <ValidationTooltip
+              message={validationErrors.mainCategory}
+              isVisible={!!validationErrors.mainCategory}
+              onClose={() => setValidationErrors(prev => ({ ...prev, mainCategory: "" }))}
             >
-              <option value="" disabled>Main Category</option>
-              {MAIN_CATEGORIES.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+              <select
+                className={`${selectClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                id="main-category"
+                name="main_category"
+                value={mainCategory}
+                onChange={handleCategoryChange}
+                disabled={disabled}
+              >
+                <option value="" disabled>Main Category</option>
+                {MAIN_CATEGORIES.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </ValidationTooltip>
           </div>
 
           {/* Sub Category */}
           <div>
-            <select
-              className={selectClass}
-              id="sub-category"
-              name="sub_category"
-              defaultValue={initialData?.sub_category}
-              key={mainCategory}
+            <ValidationTooltip
+              message={validationErrors.subCategory}
+              isVisible={!!validationErrors.subCategory}
+              onClose={() => setValidationErrors(prev => ({ ...prev, subCategory: "" }))}
             >
-              <option value="">Sub Category</option>
-              {subCategories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+              <select
+                className={`${selectClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                id="sub-category"
+                name="sub_category"
+                defaultValue={initialData?.sub_category}
+                key={mainCategory}
+                disabled={disabled}
+              >
+                <option value="">Sub Category</option>
+                {subCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </ValidationTooltip>
           </div>
 
           {/* Title */}
           <div className="md:col-span-2">
-            <input
-              className={inputClass}
-              id="title"
-              name="title"
-              placeholder="Title"
-              type="text"
-              required
-              defaultValue={initialData?.title}
-              autoComplete="off"
-            />
+            <ValidationTooltip
+              message={validationErrors.title}
+              isVisible={!!validationErrors.title}
+              onClose={() => setValidationErrors(prev => ({ ...prev, title: "" }))}
+            >
+              <input
+                className={`${inputClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                id="title"
+                name="title"
+                placeholder="Title"
+                type="text"
+                defaultValue={initialData?.title}
+                autoComplete="off"
+                disabled={disabled}
+              />
+            </ValidationTooltip>
           </div>
 
           {/* Date */}
@@ -195,18 +275,19 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
             <div className="relative">
               <DatePicker
                 selected={selectedDate}
-                onChange={(date) => setSelectedDate(date || new Date())}
+                onChange={(date) => !disabled && setSelectedDate(date || new Date())}
                 showTimeSelect
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 dateFormat="dd/MM/yyyy HH:mm"
-                className={inputClass}
+                className={`${inputClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 placeholderText="Date"
                 popperClassName="z-50"
                 calendarClassName="shadow-lg border border-gray-200 dark:border-gray-600 rounded-lg"
                 wrapperClassName="w-full"
                 id="date-picker"
                 name="date-picker"
+                disabled={disabled}
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <Calendar size={20} className="text-gray-400 dark:text-gray-500" />
@@ -216,25 +297,19 @@ export default function TransactionFormModal({ onSubmit, initialData }: Transact
         </div>
 
         {/* Submit Button */}
-        <div className="mt-6 sm:mt-8 md:mt-12 pb-4">
+        <div className="mt-6 sm:mt-8 md:mt-12 pb-2">
           <button
-            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
-              transactionType === "expense"
-                ? "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
-                : "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 focus:ring-green-500 dark:focus:ring-green-400"
-            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 focus:ring-gray-500 dark:focus:ring-gray-400 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || disabled}
           >
             {isLoading ? (
               <div className="flex items-center">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                 {initialData ? "Saving Changes..." : "Adding Transaction..."}
               </div>
-            ) : initialData ? (
-              "Save Changes"
             ) : (
-              `Add ${transactionType === "expense" ? "Expense" : "Income"}`
+              initialData ? "Save Changes" : "Add Transaction"
             )}
           </button>
         </div>
