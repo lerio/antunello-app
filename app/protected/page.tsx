@@ -198,7 +198,7 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Sticky Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4 -mx-6 px-6">
           <div className="flex justify-center items-center mb-8">
             <button 
               onClick={() => navigateMonth("prev")}
