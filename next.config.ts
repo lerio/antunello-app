@@ -11,6 +11,26 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
   },
 
+  // Suppress Supabase Edge Runtime warnings
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    
+    config.ignoreWarnings = [
+      { module: /node_modules\/@supabase\/realtime-js/ },
+      { module: /node_modules\/@supabase\/supabase-js/ },
+      /Critical dependency: the request of a dependency is an expression/,
+    ];
+    
+    return config;
+  },
+
   // Performance optimizations
   images: {
     formats: ['image/webp', 'image/avif'],
