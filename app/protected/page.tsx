@@ -11,41 +11,19 @@ import { Modal } from "@/components/ui/modal";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
-// Lazy load components for better performance
-const TransactionsTable = dynamic(
-  () => import("@/components/features/transactions-table-optimized"),
-  {
-    loading: () => (
-      <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />
-    ),
-  }
-);
+// Import critical above-the-fold components directly for faster loading
+import TransactionsTable from "@/components/features/transactions-table-optimized";
+import MonthSummary from "@/components/features/month-summary";
 
-const MonthSummary = dynamic(
-  () => import("@/components/features/month-summary"),
-  {
-    loading: () => (
-      <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />
-    ),
-  }
-);
-
+// Lazy load only modal components since they're not immediately visible
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
-  {
-    loading: () => (
-      <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
-    ),
-  }
+  { ssr: false }
 );
 
 const TransactionEditModal = dynamic(
   () => import("@/components/features/transaction-edit-modal"),
-  {
-    loading: () => (
-      <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />
-    ),
-  }
+  { ssr: false }
 );
 
 export default function ProtectedPage() {
@@ -170,6 +148,38 @@ export default function ProtectedPage() {
     },
     [currentDate, router]
   );
+
+  // Prefetch adjacent month routes for faster navigation
+  useEffect(() => {
+    const prevDate = new Date(currentDate);
+    prevDate.setMonth(currentDate.getMonth() - 1);
+    const nextDate = new Date(currentDate);
+    nextDate.setMonth(currentDate.getMonth() + 1);
+
+    const now = new Date();
+    
+    // Prefetch previous month
+    const isPrevCurrent = prevDate.getMonth() === now.getMonth() && 
+                         prevDate.getFullYear() === now.getFullYear();
+    if (!isPrevCurrent) {
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = (prevDate.getMonth() + 1).toString().padStart(2, "0");
+      router.prefetch(`/protected/${prevYear}/${prevMonth}`);
+    } else {
+      router.prefetch("/protected");
+    }
+
+    // Prefetch next month
+    const isNextCurrent = nextDate.getMonth() === now.getMonth() && 
+                         nextDate.getFullYear() === now.getFullYear();
+    if (!isNextCurrent) {
+      const nextYear = nextDate.getFullYear();
+      const nextMonth = (nextDate.getMonth() + 1).toString().padStart(2, "0");
+      router.prefetch(`/protected/${nextYear}/${nextMonth}`);
+    } else {
+      router.prefetch("/protected");
+    }
+  }, [currentDate, router]);
 
   const monthYearString = useMemo(() => {
     return currentDate.toLocaleDateString("en-US", {

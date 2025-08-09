@@ -20,6 +20,7 @@ export function useTransactionsOptimized(year: number, month: number) {
       .gte('date', start.toISOString())
       .lte('date', end.toISOString())
       .order('date', { ascending: false })
+      .limit(1000) // Reasonable limit to prevent massive queries
 
     if (error) throw error
     return data || []
@@ -35,8 +36,10 @@ export function useTransactionsOptimized(year: number, month: number) {
   } = useSWR<Transaction[]>(monthKey, fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-    dedupingInterval: 30000, // 30 seconds
-    focusThrottleInterval: 60000, // 1 minute
+    dedupingInterval: 5000, // 5 seconds for more responsive updates
+    focusThrottleInterval: 15000, // 15 seconds
+    keepPreviousData: true, // Keep showing previous data while loading new
+    refreshInterval: 0, // Disable automatic refresh, rely on realtime
   })
 
   // Prefetch adjacent months efficiently
@@ -50,9 +53,17 @@ export function useTransactionsOptimized(year: number, month: number) {
     return `transactions-${nextDate.getFullYear()}-${nextDate.getMonth() + 1}`
   }, [year, month])
 
-  // Prefetch with low priority
-  useSWR(prevMonthKey, fetcher, { revalidateOnMount: false })
-  useSWR(nextMonthKey, fetcher, { revalidateOnMount: false })
+  // Aggressive prefetching for better performance
+  useSWR(prevMonthKey, fetcher, { 
+    revalidateOnMount: false,
+    revalidateOnFocus: false,
+    dedupingInterval: 60000, // Cache for 1 minute
+  })
+  useSWR(nextMonthKey, fetcher, { 
+    revalidateOnMount: false,
+    revalidateOnFocus: false,
+    dedupingInterval: 60000, // Cache for 1 minute
+  })
 
   // Real-time subscription with simplified logic
   useEffect(() => {
