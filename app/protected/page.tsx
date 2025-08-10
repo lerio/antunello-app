@@ -6,6 +6,7 @@ import { PlusIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
+import { usePrefetch } from "@/hooks/usePrefetch";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Transaction } from "@/types/database";
@@ -29,6 +30,7 @@ const TransactionEditModal = dynamic(
 export default function ProtectedPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { prefetchSpecificMonth } = usePrefetch();
 
   // Optimized date parsing from URL
   const currentDate = useMemo(() => {
@@ -149,7 +151,7 @@ export default function ProtectedPage() {
     [currentDate, router]
   );
 
-  // Prefetch adjacent month routes for faster navigation
+  // Prefetch adjacent month routes and data for faster navigation
   useEffect(() => {
     const prevDate = new Date(currentDate);
     prevDate.setMonth(currentDate.getMonth() - 1);
@@ -158,24 +160,26 @@ export default function ProtectedPage() {
 
     const now = new Date();
     
-    // Prefetch previous month
+    // Prefetch previous month route and data
     const isPrevCurrent = prevDate.getMonth() === now.getMonth() && 
                          prevDate.getFullYear() === now.getFullYear();
     if (!isPrevCurrent) {
       const prevYear = prevDate.getFullYear();
       const prevMonth = (prevDate.getMonth() + 1).toString().padStart(2, "0");
       router.prefetch(`/protected/${prevYear}/${prevMonth}`);
+      // Data prefetching is handled by useTransactionsOptimized hook
     } else {
       router.prefetch("/protected");
     }
 
-    // Prefetch next month
+    // Prefetch next month route and data
     const isNextCurrent = nextDate.getMonth() === now.getMonth() && 
                          nextDate.getFullYear() === now.getFullYear();
     if (!isNextCurrent) {
       const nextYear = nextDate.getFullYear();
       const nextMonth = (nextDate.getMonth() + 1).toString().padStart(2, "0");
       router.prefetch(`/protected/${nextYear}/${nextMonth}`);
+      // Data prefetching is handled by useTransactionsOptimized hook
     } else {
       router.prefetch("/protected");
     }

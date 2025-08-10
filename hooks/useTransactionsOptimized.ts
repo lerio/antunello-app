@@ -2,10 +2,12 @@ import useSWR, { mutate as globalMutate } from 'swr'
 import { useCallback, useEffect, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
+import { usePrefetch } from './usePrefetch'
 
 // Consolidated, optimized transactions hook
 export function useTransactionsOptimized(year: number, month: number) {
   const supabase = createClient()
+  const { prefetchAdjacentMonths, isInCache } = usePrefetch()
   
   // Single optimized fetcher with intelligent caching
   const fetcher = useCallback(async (key: string) => {
@@ -42,28 +44,13 @@ export function useTransactionsOptimized(year: number, month: number) {
     refreshInterval: 0, // Disable automatic refresh, rely on realtime
   })
 
-  // Prefetch adjacent months efficiently
-  const prevMonthKey = useMemo(() => {
-    const prevDate = new Date(year, month - 2, 1)
-    return `transactions-${prevDate.getFullYear()}-${prevDate.getMonth() + 1}`
-  }, [year, month])
-
-  const nextMonthKey = useMemo(() => {
-    const nextDate = new Date(year, month, 1)
-    return `transactions-${nextDate.getFullYear()}-${nextDate.getMonth() + 1}`
-  }, [year, month])
-
-  // Aggressive prefetching for better performance
-  useSWR(prevMonthKey, fetcher, { 
-    revalidateOnMount: false,
-    revalidateOnFocus: false,
-    dedupingInterval: 60000, // Cache for 1 minute
-  })
-  useSWR(nextMonthKey, fetcher, { 
-    revalidateOnMount: false,
-    revalidateOnFocus: false,
-    dedupingInterval: 60000, // Cache for 1 minute
-  })
+  // Intelligent prefetching of adjacent months
+  useEffect(() => {
+    // Only prefetch after the current month data has loaded
+    if (!isLoading && !error) {
+      prefetchAdjacentMonths(year, month)
+    }
+  }, [year, month, isLoading, error, prefetchAdjacentMonths])
 
   // Real-time subscription with simplified logic
   useEffect(() => {
@@ -148,7 +135,7 @@ export function useTransactionsOptimized(year: number, month: number) {
     return () => {
       if (channel) supabase.removeChannel(channel)
     }
-  }, [year, month, mutate, supabase, prevMonthKey, nextMonthKey])
+  }, [year, month, mutate, supabase])
 
   // Memoized summary calculations
   const summary = useMemo(() => {
