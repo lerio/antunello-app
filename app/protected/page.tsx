@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
@@ -13,11 +13,8 @@ import { Modal } from "@/components/ui/modal";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
-// Import critical above-the-fold components directly for faster loading
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import MonthSummary from "@/components/features/month-summary";
-
-// Lazy load only modal components since they're not immediately visible
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
   { ssr: false }
@@ -38,7 +35,6 @@ export default function ProtectedPage() {
   const [targetMonth, setTargetMonth] = useState<{ year: number; month: number } | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Initialize current date from URL params or default to current date
   const initialDate = useMemo(() => {
     const yearParam = searchParams.get('year');
     const monthParam = searchParams.get('month');
@@ -53,10 +49,8 @@ export default function ProtectedPage() {
     return new Date();
   }, [searchParams]);
 
-  // Use client-side state for current date to avoid RSC requests
   const [currentDate, setCurrentDate] = useState(initialDate);
 
-  // Update state when URL params change (e.g., browser back/forward)
   useEffect(() => {
     setCurrentDate(initialDate);
   }, [initialDate]);
@@ -160,14 +154,12 @@ export default function ProtectedPage() {
         newDate.getMonth() === now.getMonth() &&
         newDate.getFullYear() === now.getFullYear();
 
-      // Set target month for immediate display during animation
       setTargetMonth({
         year: newDate.getFullYear(),
-        month: newDate.getMonth() + 1 // 1-based for display
+        month: newDate.getMonth() + 1
       });
       setIsNavigating(true);
 
-      // Determine slide direction (opposite of navigation direction)
       const slideDir = direction === "prev" ? "right" : "left";
 
       // Update URL without triggering navigation (no RSC request)
@@ -177,21 +169,14 @@ export default function ProtectedPage() {
       
       window.history.pushState(null, '', newUrl);
 
-      // Start the slide animation immediately (no router.push needed)
-      startSlideAnimation(slideDir, () => {
-        // Animation callback - no navigation needed since we use history.pushState
-      });
+      startSlideAnimation(slideDir, () => {});
     },
     [currentDate, isAnimating, startSlideAnimation]
   );
 
-  // Data prefetching is handled by useTransactionsOptimized hook
-  // No route prefetching needed since we're using client-side state
 
-  // Clear target month and navigation state when animation completes and URL has changed
   useEffect(() => {
     if (!isAnimating && (targetMonth || isNavigating)) {
-      // Check if we've actually navigated to the target month
       const currentYear = currentDate.getFullYear();
       const currentMonth = currentDate.getMonth() + 1;
       
@@ -202,13 +187,11 @@ export default function ProtectedPage() {
     }
   }, [isAnimating, targetMonth, isNavigating, currentDate]);
 
-  // Cleanup animation on unmount
   useEffect(() => {
     return cleanup;
   }, [cleanup]);
 
   const monthYearString = useMemo(() => {
-    // During navigation, show the target month to avoid flickering
     if (isNavigating && targetMonth) {
       const targetDate = new Date(targetMonth.year, targetMonth.month - 1, 1);
       return targetDate.toLocaleDateString("en-US", {
