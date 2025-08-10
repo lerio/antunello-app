@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PlusIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
@@ -30,7 +30,7 @@ const TransactionEditModal = dynamic(
 
 export default function ProtectedPage() {
   const router = useRouter();
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { prefetchSpecificMonth } = usePrefetch();
   const { slideDirection, animationPhase, isAnimating, startSlideAnimation, cleanup } = useSlideAnimation();
   
@@ -38,21 +38,28 @@ export default function ProtectedPage() {
   const [targetMonth, setTargetMonth] = useState<{ year: number; month: number } | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Optimized date parsing from URL
-  const currentDate = useMemo(() => {
-    if (pathname === "/protected") {
-      return new Date();
-    }
-
-    const match = pathname.match(/\/protected\/(\d{4})\/(\d{2})/);
-    if (match) {
-      const [, year, month] = match;
-      const date = new Date(parseInt(year), parseInt(month) - 1);
+  // Initialize current date from URL params or default to current date
+  const initialDate = useMemo(() => {
+    const yearParam = searchParams.get('year');
+    const monthParam = searchParams.get('month');
+    
+    if (yearParam && monthParam) {
+      const year = parseInt(yearParam);
+      const month = parseInt(monthParam);
+      const date = new Date(year, month - 1);
       return isNaN(date.getTime()) ? new Date() : date;
     }
 
     return new Date();
-  }, [pathname]);
+  }, [searchParams]);
+
+  // Use client-side state for current date to avoid RSC requests
+  const [currentDate, setCurrentDate] = useState(initialDate);
+
+  // Update state when URL params change (e.g., browser back/forward)
+  useEffect(() => {
+    setCurrentDate(initialDate);
+  }, [initialDate]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -144,6 +151,10 @@ export default function ProtectedPage() {
         currentDate.getMonth() + (direction === "prev" ? -1 : 1)
       );
 
+      // Update state immediately for instant UI update
+      setCurrentDate(newDate);
+
+      // Update URL without triggering navigation (no RSC request)
       const now = new Date();
       const isCurrentMonth =
         newDate.getMonth() === now.getMonth() &&
@@ -159,54 +170,23 @@ export default function ProtectedPage() {
       // Determine slide direction (opposite of navigation direction)
       const slideDir = direction === "prev" ? "right" : "left";
 
-      // Start the slide animation immediately
+      // Update URL without triggering navigation (no RSC request)
+      const newUrl = isCurrentMonth 
+        ? '/protected'
+        : `/protected?year=${newDate.getFullYear()}&month=${(newDate.getMonth() + 1).toString().padStart(2, "0")}`;
+      
+      window.history.pushState(null, '', newUrl);
+
+      // Start the slide animation immediately (no router.push needed)
       startSlideAnimation(slideDir, () => {
-        // This callback runs during the animation, triggering the actual navigation
-        if (isCurrentMonth) {
-          router.push("/protected");
-        } else {
-          const year = newDate.getFullYear();
-          const month = (newDate.getMonth() + 1).toString().padStart(2, "0");
-          router.push(`/protected/${year}/${month}`);
-        }
+        // Animation callback - no navigation needed since we use history.pushState
       });
     },
-    [currentDate, router, isAnimating, startSlideAnimation]
+    [currentDate, isAnimating, startSlideAnimation]
   );
 
-  // Prefetch adjacent month routes and data for faster navigation
-  useEffect(() => {
-    const prevDate = new Date(currentDate);
-    prevDate.setMonth(currentDate.getMonth() - 1);
-    const nextDate = new Date(currentDate);
-    nextDate.setMonth(currentDate.getMonth() + 1);
-
-    const now = new Date();
-    
-    // Prefetch previous month route and data
-    const isPrevCurrent = prevDate.getMonth() === now.getMonth() && 
-                         prevDate.getFullYear() === now.getFullYear();
-    if (!isPrevCurrent) {
-      const prevYear = prevDate.getFullYear();
-      const prevMonth = (prevDate.getMonth() + 1).toString().padStart(2, "0");
-      router.prefetch(`/protected/${prevYear}/${prevMonth}`);
-      // Data prefetching is handled by useTransactionsOptimized hook
-    } else {
-      router.prefetch("/protected");
-    }
-
-    // Prefetch next month route and data
-    const isNextCurrent = nextDate.getMonth() === now.getMonth() && 
-                         nextDate.getFullYear() === now.getFullYear();
-    if (!isNextCurrent) {
-      const nextYear = nextDate.getFullYear();
-      const nextMonth = (nextDate.getMonth() + 1).toString().padStart(2, "0");
-      router.prefetch(`/protected/${nextYear}/${nextMonth}`);
-      // Data prefetching is handled by useTransactionsOptimized hook
-    } else {
-      router.prefetch("/protected");
-    }
-  }, [currentDate, router]);
+  // Data prefetching is handled by useTransactionsOptimized hook
+  // No route prefetching needed since we're using client-side state
 
   // Clear target month and navigation state when animation completes and URL has changed
   useEffect(() => {
