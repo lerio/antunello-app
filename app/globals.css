@@ -197,7 +197,7 @@
 .sticky-date-header {
   position: -webkit-sticky;
   position: sticky;
-  top: 73px; /* Match the header height exactly */
+  top: 80px; /* Match the header height exactly */
   z-index: 40;
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
@@ -212,7 +212,7 @@
 /* Month slide animations */
 .month-container {
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden; /* Only hide horizontal overflow for animations */
   width: 100%;
 }
 
@@ -220,6 +220,11 @@
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
   width: 100%;
+}
+
+/* Ensure transactions list allows sticky positioning */
+.transactions-list {
+  position: relative;
 }
 
 /* Slide out animations */

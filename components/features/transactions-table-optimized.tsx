@@ -67,7 +67,7 @@ const DateGroup = React.memo(({
 }) => (
   <div className="mb-6">
     {/* Sticky Date Header */}
-    <div className="sticky top-28 bg-gray-50 dark:bg-gray-900 z-40 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6">
+    <div className="sticky top-[112px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
       <h3 className="font-semibold text-gray-600 dark:text-gray-400">{formatDateHeader(transactions[0].date)}</h3>
       <span className={`font-semibold ${
         dailyTotal >= 0 ? "text-green-500" : "text-red-500"

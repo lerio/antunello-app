@@ -302,40 +302,35 @@ export default function ProtectedPage() {
           </div>
         </div>
 
-        {/* Month content container with animations */}
+        {/* Month content container with animations - Summary only */}
         <div className="month-container">
           <div className={getContentClasses()}>
             {/* Show loading state during navigation or when data is loading */}
             {(isNavigating || isLoading) ? (
-              <>
-                {/* Balance Summary Card - Loading */}
-                <MonthSummary transactions={[]} isLoading={true} />
-                
-                {/* Transactions List - Loading */}
-                <div className="space-y-4 mt-8">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
-                      <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <MonthSummary transactions={[]} isLoading={true} />
             ) : (
-              <>
-                {/* Balance Summary Card */}
-                <MonthSummary transactions={transactions} isLoading={false} />
-
-                {/* Transactions List */}
-                <div className="transactions-list mt-8">
-                  <TransactionsTable
-                    transactions={transactions}
-                    onTransactionClick={handleEditTransaction}
-                  />
-                </div>
-              </>
+              <MonthSummary transactions={transactions} isLoading={false} />
             )}
           </div>
+        </div>
+
+        {/* Transactions List - Outside animation container to preserve sticky headers */}
+        <div className="transactions-list mt-8">
+          {(isNavigating || isLoading) ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                  <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <TransactionsTable
+              transactions={transactions}
+              onTransactionClick={handleEditTransaction}
+            />
+          )}
         </div>
       </div>
 
