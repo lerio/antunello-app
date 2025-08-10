@@ -89,22 +89,57 @@ export function useTransactionsOptimized(year: number, month: number) {
     const handleRealtimeUpdate = (payload: any) => {
       const { eventType, new: newRecord, old: oldRecord } = payload
       
-      // Update current month if affected
-      const record = newRecord || oldRecord
-      const recordDate = new Date(record.date)
-      const recordYear = recordDate.getFullYear()
-      const recordMonth = recordDate.getMonth() + 1
-
-      if (recordYear === year && recordMonth === month) {
-        mutate()
-      }
-
-      // Also invalidate adjacent months if they might be affected
-      if (Math.abs(recordYear - year) <= 1) {
-        const monthDiff = Math.abs((recordYear - year) * 12 + (recordMonth - month))
-        if (monthDiff <= 1) {
-          globalMutate(prevMonthKey)
-          globalMutate(nextMonthKey)
+      // Handle different event types for better real-time sync
+      if (eventType === 'INSERT' && newRecord) {
+        const recordDate = new Date(newRecord.date)
+        const recordYear = recordDate.getFullYear()
+        const recordMonth = recordDate.getMonth() + 1
+        const recordMonthKey = `transactions-${recordYear}-${recordMonth}`
+        
+        // Only update if it's for current month and not already in cache (avoid duplicates from optimistic updates)
+        if (recordYear === year && recordMonth === month) {
+          mutate((current: Transaction[] = []) => {
+            // Check if transaction already exists (from optimistic update)
+            if (current.some(t => t.id === newRecord.id || t.id.startsWith('temp-'))) {
+              return current.map(t => t.id.startsWith('temp-') ? newRecord : t)
+            }
+            return [newRecord, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          }, false)
+        }
+      } else if (eventType === 'UPDATE' && newRecord && oldRecord) {
+        const newRecordDate = new Date(newRecord.date)
+        const oldRecordDate = new Date(oldRecord.date)
+        
+        const newMonthKey = `transactions-${newRecordDate.getFullYear()}-${newRecordDate.getMonth() + 1}`
+        const oldMonthKey = `transactions-${oldRecordDate.getFullYear()}-${oldRecordDate.getMonth() + 1}`
+        
+        // Handle month changes
+        if (newMonthKey !== oldMonthKey) {
+          // Remove from old month
+          globalMutate(oldMonthKey, (transactions: Transaction[] = []) => {
+            return transactions.filter(t => t.id !== newRecord.id)
+          }, false)
+          
+          // Add to new month
+          globalMutate(newMonthKey, (transactions: Transaction[] = []) => {
+            return [newRecord, ...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          }, false)
+        } else if (newMonthKey === monthKey) {
+          // Update in current month
+          mutate((transactions: Transaction[] = []) => {
+            return transactions.map(t => t.id === newRecord.id ? newRecord : t)
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          }, false)
+        }
+      } else if (eventType === 'DELETE' && oldRecord) {
+        const recordDate = new Date(oldRecord.date)
+        const recordYear = recordDate.getFullYear()
+        const recordMonth = recordDate.getMonth() + 1
+        
+        if (recordYear === year && recordMonth === month) {
+          mutate((transactions: Transaction[] = []) => {
+            return transactions.filter(t => t.id !== oldRecord.id)
+          }, false)
         }
       }
     }

@@ -1,6 +1,7 @@
 import { useSWRConfig } from 'swr'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
+import { convertToEUR } from '@/utils/currency-conversion'
 
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
@@ -8,82 +9,276 @@ export function useTransactionMutations() {
 
   const getMonthKey = (date: string) => {
     const d = new Date(date)
-    return `transactions-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return `transactions-${d.getFullYear()}-${d.getMonth() + 1}`
   }
 
   const getTransactionKey = (id: string) => `transaction-${id}`
 
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
-    const { data: newTransaction, error } = await supabase
-      .from('transactions')
-      .insert([data])
-      .select()
-      .single()
-
-    if (error) throw error
-    
-    // Optimistically update the cache
     const monthKey = getMonthKey(data.date)
-    mutate(monthKey, (transactions: Transaction[] = []) => {
-      return [...transactions, newTransaction]
-    }, false) // Don't revalidate immediately
+    
+    // Calculate EUR amount for optimistic update
+    let optimisticEurAmount = data.eur_amount
+    if (!optimisticEurAmount) {
+      if (data.currency === 'EUR') {
+        optimisticEurAmount = data.amount
+      }
+      // For non-EUR, leave undefined so it shows loading state until conversion completes
+    }
+    
+    // Create optimistic transaction with temporary ID
+    const optimisticTransaction: Transaction = {
+      ...data,
+      id: `temp-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      eur_amount: optimisticEurAmount,
+    }
 
-    return newTransaction
+    // Optimistically update the cache immediately
+    mutate(monthKey, (transactions: Transaction[] = []) => {
+      const newList = [optimisticTransaction, ...transactions]
+      // Sort by date descending to maintain proper order
+      return newList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    }, false)
+
+    try {
+      // Perform currency conversion for all currencies before database insert
+      let transactionData = { ...data }
+      
+      if (!data.eur_amount) {
+        if (data.currency === 'EUR') {
+          // For EUR transactions, eur_amount = amount
+          transactionData.eur_amount = data.amount
+          transactionData.exchange_rate = 1.0
+          transactionData.rate_date = data.date.split('T')[0]
+        } else {
+          // For non-EUR transactions, convert to EUR
+          const conversionResult = await convertToEUR(data.amount, data.currency, data.date.split('T')[0])
+          if (conversionResult) {
+            transactionData.eur_amount = conversionResult.eurAmount
+            transactionData.exchange_rate = conversionResult.exchangeRate
+            transactionData.rate_date = conversionResult.rateDate
+          }
+        }
+      }
+
+      const { data: newTransaction, error } = await supabase
+        .from('transactions')
+        .insert([transactionData])
+        .select()
+        .single()
+
+      if (error) throw error
+      
+      // Replace optimistic transaction with real one
+      mutate(monthKey, (transactions: Transaction[] = []) => {
+        return transactions.map(t => 
+          t.id === optimisticTransaction.id ? newTransaction : t
+        ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }, false)
+
+      return newTransaction
+    } catch (error) {
+      // Rollback optimistic update on error
+      mutate(monthKey, (transactions: Transaction[] = []) => {
+        return transactions.filter(t => t.id !== optimisticTransaction.id)
+      }, false)
+      throw error
+    }
   }
 
   const updateTransaction = async (id: string, data: Partial<Transaction>, oldDate: string) => {
-    const { data: updatedTransaction, error } = await supabase
-      .from('transactions')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Handle month change
     const oldMonthKey = getMonthKey(oldDate)
     const newMonthKey = getMonthKey(data.date || oldDate)
+    
+    // Get the current transaction from cache for optimistic update
+    let originalTransaction: Transaction | undefined
 
+    // Helper function to calculate EUR amount for optimistic update
+    const calculateOptimisticEurAmount = async (transaction: Transaction, updates: Partial<Transaction>) => {
+      const newCurrency = updates.currency || transaction.currency
+      const newAmount = updates.amount !== undefined ? updates.amount : transaction.amount
+      const newDate = updates.date || transaction.date
+      
+      if (newCurrency === 'EUR') {
+        return newAmount
+      } else if (updates.amount !== undefined || updates.currency !== undefined || updates.date !== undefined) {
+        // Try to calculate EUR amount optimistically for immediate feedback
+        try {
+          const conversionResult = await convertToEUR(newAmount, newCurrency, newDate.split('T')[0])
+          return conversionResult?.eurAmount
+        } catch (error) {
+          // If conversion fails, clear the EUR amount so it gets recalculated by server
+          return undefined
+        }
+      } else {
+        // Keep existing EUR amount if no relevant changes
+        return updates.eur_amount !== undefined ? updates.eur_amount : transaction.eur_amount
+      }
+    }
+
+    // Optimistically update the cache immediately
     if (oldMonthKey !== newMonthKey) {
-      // Remove from old month
+      // Moving between months
       mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+        originalTransaction = transactions.find(t => t.id === id)
         return transactions.filter(t => t.id !== id)
       }, false)
 
-      // Add to new month
-      mutate(newMonthKey, (transactions: Transaction[] = []) => {
-        return [...transactions, updatedTransaction]
-      }, false)
+      if (originalTransaction) {
+        const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
+        const updatedTransaction = { 
+          ...originalTransaction, 
+          ...data,
+          updated_at: new Date().toISOString(),
+          ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
+        }
+        mutate(newMonthKey, (transactions: Transaction[] = []) => {
+          const newList = [updatedTransaction, ...transactions]
+          return newList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }, false)
+      }
     } else {
-      // Update in current month
+      // Staying in same month - get original transaction first, then do async calculation
       mutate(oldMonthKey, (transactions: Transaction[] = []) => {
-        return transactions.map(t => t.id === id ? updatedTransaction : t)
+        originalTransaction = transactions.find(t => t.id === id)
+        return transactions // Return unchanged for now
       }, false)
+      
+      if (originalTransaction) {
+        const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
+        mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+          return transactions.map(t => {
+            if (t.id === id) {
+              return { 
+                ...t, 
+                ...data,
+                updated_at: new Date().toISOString(),
+                ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
+              }
+            }
+            return t
+          }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }, false)
+      }
     }
 
-    // Update the single transaction cache
-    mutate(getTransactionKey(id), updatedTransaction, false)
+    try {
+      // Perform currency conversion if needed before database update
+      let updateData = { ...data }
+      
+      // Check if we need to recalculate EUR amount (for any currency when amount/currency/date changes)
+      const needsCurrencyConversion = (
+        updateData.amount !== undefined ||
+        updateData.currency !== undefined ||
+        updateData.date !== undefined
+      ) && updateData.eur_amount === undefined // Only if EUR amount not explicitly provided
+      
+      if (needsCurrencyConversion && originalTransaction) {
+        const newCurrency = updateData.currency || originalTransaction.currency
+        const newAmount = updateData.amount !== undefined ? updateData.amount : originalTransaction.amount
+        const newDate = updateData.date || originalTransaction.date
+        
+        if (newCurrency === 'EUR') {
+          // For EUR transactions, eur_amount = amount
+          updateData.eur_amount = newAmount
+          updateData.exchange_rate = 1.0
+          updateData.rate_date = newDate.split('T')[0]
+        } else {
+          // For non-EUR transactions, convert to EUR
+          const conversionResult = await convertToEUR(newAmount, newCurrency, newDate.split('T')[0])
+          if (conversionResult) {
+            updateData.eur_amount = conversionResult.eurAmount
+            updateData.exchange_rate = conversionResult.exchangeRate
+            updateData.rate_date = conversionResult.rateDate
+          }
+        }
+      }
 
-    return updatedTransaction
+      const { data: updatedTransaction, error } = await supabase
+        .from('transactions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update cache with real data
+      if (oldMonthKey !== newMonthKey) {
+        mutate(newMonthKey, (transactions: Transaction[] = []) => {
+          return transactions.map(t => t.id === id ? updatedTransaction : t)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }, false)
+      } else {
+        mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+          return transactions.map(t => t.id === id ? updatedTransaction : t)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }, false)
+      }
+
+      // Update the single transaction cache
+      mutate(getTransactionKey(id), updatedTransaction, false)
+
+      return updatedTransaction
+    } catch (error) {
+      // Rollback optimistic update on error
+      if (originalTransaction) {
+        if (oldMonthKey !== newMonthKey) {
+          // Restore to old month
+          mutate(newMonthKey, (transactions: Transaction[] = []) => {
+            return transactions.filter(t => t.id !== id)
+          }, false)
+          mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+            return [...transactions, originalTransaction!]
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          }, false)
+        } else {
+          mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+            return transactions.map(t => t.id === id ? originalTransaction! : t)
+          }, false)
+        }
+      }
+      throw error
+    }
   }
 
   const deleteTransaction = async (transaction: Transaction) => {
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', transaction.id)
-
-    if (error) throw error
-
-    // Remove from cache
     const monthKey = getMonthKey(transaction.date)
+    
+    // Optimistically remove from cache immediately
+    let removedTransaction: Transaction | undefined
     mutate(monthKey, (transactions: Transaction[] = []) => {
+      removedTransaction = transactions.find(t => t.id === transaction.id)
       return transactions.filter(t => t.id !== transaction.id)
     }, false)
 
     // Remove from single transaction cache
     mutate(getTransactionKey(transaction.id), null, false)
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transaction.id)
+
+      if (error) throw error
+      
+      return transaction
+    } catch (error) {
+      // Rollback optimistic update on error
+      if (removedTransaction) {
+        mutate(monthKey, (transactions: Transaction[] = []) => {
+          return [...transactions, removedTransaction!]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }, false)
+        
+        // Restore single transaction cache
+        mutate(getTransactionKey(transaction.id), removedTransaction, false)
+      }
+      throw error
+    }
   }
 
   return {
