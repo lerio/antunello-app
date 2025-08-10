@@ -17,7 +17,7 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Antunello App",
+  title: "Antunello",
   description: "...dei conti se ne occupa lui",
 };
 
@@ -45,8 +45,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.className} ${inter.variable}`} suppressHydrationWarning>
-      <body className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <html
+      lang="en"
+      className={`${geistSans.className} ${inter.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100"
+        style={{ fontFamily: "Inter, sans-serif" }}
+      >
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider
             attribute="class"
@@ -58,7 +65,7 @@ export default function RootLayout({
               <CacheManager />
               <div className="min-h-screen flex flex-col">
                 <Toaster position="top-right" />
-                
+
                 {/* New Header Design */}
                 <header className="bg-white dark:bg-gray-800 shadow-sm">
                   <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -66,7 +73,9 @@ export default function RootLayout({
                       <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
                         N
                       </div>
-                      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Antunello App</h1>
+                      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        Antunello
+                      </h1>
                     </div>
                     <div className="flex items-center space-x-4">
                       {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
@@ -75,9 +84,7 @@ export default function RootLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-grow">
-                  {children}
-                </main>
+                <main className="flex-grow">{children}</main>
 
                 <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
                   <p>

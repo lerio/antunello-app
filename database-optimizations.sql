@@ -1,4 +1,4 @@
--- Database Performance Optimizations for Antunello App
+-- Database Performance Optimizations for Antunello
 -- Run these in your Supabase SQL Editor after the initial migration
 
 -- 1. Add composite indexes for optimal query performance
