@@ -207,59 +207,8 @@
   background: rgb(17 24 39 / 0.95); /* Dark mode with transparency */
 }
 
-/* Month slide animations */
-.month-container {
-  position: relative;
-  overflow-x: hidden; /* Only hide horizontal overflow for animations */
-  width: 100%;
-}
-
-.month-content {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-  width: 100%;
-}
-
 /* Ensure transactions list allows sticky positioning */
 .transactions-list {
   position: relative;
-}
-
-/* Slide out animations */
-.month-content.slide-left {
-  transform: translateX(-100%);
-}
-
-.month-content.slide-right {
-  transform: translateX(100%);
-}
-
-/* Slide in animations */
-.month-content.slide-in-from-left {
-  transform: translateX(-100%);
-  animation: slideInFromLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.month-content.slide-in-from-right {
-  transform: translateX(100%);
-  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes slideInFromLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 

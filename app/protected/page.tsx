@@ -7,7 +7,6 @@ import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { usePrefetch } from "@/hooks/usePrefetch";
-import { useSlideAnimation } from "@/hooks/useSlideAnimation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Transaction } from "@/types/database";
@@ -29,11 +28,6 @@ export default function ProtectedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { prefetchSpecificMonth } = usePrefetch();
-  const { slideDirection, animationPhase, isAnimating, startSlideAnimation, cleanup } = useSlideAnimation();
-  
-  // Track the target month and navigation state during animation
-  const [targetMonth, setTargetMonth] = useState<{ year: number; month: number } | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const initialDate = useMemo(() => {
     const yearParam = searchParams.get('year');
@@ -137,74 +131,35 @@ export default function ProtectedPage() {
 
   const navigateMonth = useCallback(
     (direction: "prev" | "next") => {
-      // Don't allow navigation during animation
-      if (isAnimating) return;
-
       const newDate = new Date(currentDate);
       newDate.setMonth(
         currentDate.getMonth() + (direction === "prev" ? -1 : 1)
       );
 
-      // Update state immediately for instant UI update
       setCurrentDate(newDate);
 
-      // Update URL without triggering navigation (no RSC request)
       const now = new Date();
       const isCurrentMonth =
         newDate.getMonth() === now.getMonth() &&
         newDate.getFullYear() === now.getFullYear();
 
-      setTargetMonth({
-        year: newDate.getFullYear(),
-        month: newDate.getMonth() + 1
-      });
-      setIsNavigating(true);
-
-      const slideDir = direction === "prev" ? "right" : "left";
-
-      // Update URL without triggering navigation (no RSC request)
       const newUrl = isCurrentMonth 
         ? '/protected'
         : `/protected?year=${newDate.getFullYear()}&month=${(newDate.getMonth() + 1).toString().padStart(2, "0")}`;
       
       window.history.pushState(null, '', newUrl);
-
-      startSlideAnimation(slideDir, () => {});
     },
-    [currentDate, isAnimating, startSlideAnimation]
+    [currentDate]
   );
 
 
-  useEffect(() => {
-    if (!isAnimating && (targetMonth || isNavigating)) {
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1;
-      
-      if (!targetMonth || (currentYear === targetMonth.year && currentMonth === targetMonth.month)) {
-        setTargetMonth(null);
-        setIsNavigating(false);
-      }
-    }
-  }, [isAnimating, targetMonth, isNavigating, currentDate]);
-
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
 
   const monthYearString = useMemo(() => {
-    if (isNavigating && targetMonth) {
-      const targetDate = new Date(targetMonth.year, targetMonth.month - 1, 1);
-      return targetDate.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    }
-    
     return currentDate.toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
-  }, [currentDate, isNavigating, targetMonth]);
+  }, [currentDate]);
 
   if (error) {
     return (
@@ -222,20 +177,6 @@ export default function ProtectedPage() {
     );
   }
 
-  // Calculate animation classes
-  const getContentClasses = () => {
-    const baseClasses = "month-content";
-    
-    if (animationPhase === 'sliding') {
-      return `${baseClasses} ${slideDirection === 'left' ? 'slide-left' : 'slide-right'}`;
-    }
-    
-    if (animationPhase === 'transitioning') {
-      return `${baseClasses} ${slideDirection === 'left' ? 'slide-in-from-right' : 'slide-in-from-left'}`;
-    }
-    
-    return baseClasses;
-  };
 
   return (
     <div>
@@ -247,9 +188,8 @@ export default function ProtectedPage() {
               onClick={() => navigateMonth("prev")}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Previous month"
-              disabled={isAnimating}
             >
-              <ChevronLeft size={24} className={`text-gray-600 dark:text-gray-400 ${isAnimating ? 'opacity-50' : ''}`} />
+              <ChevronLeft size={24} className="text-gray-600 dark:text-gray-400" />
             </button>
             <h2 className="text-2xl font-semibold mx-6 text-gray-900 dark:text-gray-100">
               {monthYearString}
@@ -258,43 +198,31 @@ export default function ProtectedPage() {
               onClick={() => navigateMonth("next")}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Next month"
-              disabled={isAnimating}
             >
-              <ChevronRight size={24} className={`text-gray-600 dark:text-gray-400 ${isAnimating ? 'opacity-50' : ''}`} />
+              <ChevronRight size={24} className="text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>
 
-        {/* Month content container with animations - Summary only */}
-        <div className="month-container">
-          <div className={getContentClasses()}>
-            {/* Show loading state during navigation or when data is loading */}
-            {(isNavigating || isLoading) ? (
-              <MonthSummary transactions={[]} isLoading={true} />
-            ) : (
-              <MonthSummary transactions={transactions} isLoading={false} />
-            )}
-          </div>
-        </div>
+        <MonthSummary transactions={transactions} isLoading={isLoading} />
 
-        {/* Transactions List - Outside animation container to preserve sticky headers */}
-        <div className="transactions-list mt-8">
-          {(isNavigating || isLoading) ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
-                  <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
+        {isLoading ? (
+          <div className="space-y-4 mt-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="transactions-list mt-8">
             <TransactionsTable
               transactions={transactions}
               onTransactionClick={handleEditTransaction}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Floating Add Button - Hidden when modals are open */}
