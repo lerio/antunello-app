@@ -30,9 +30,9 @@ export default function ProtectedPage() {
   const { prefetchSpecificMonth } = usePrefetch();
 
   const initialDate = useMemo(() => {
-    const yearParam = searchParams.get('year');
-    const monthParam = searchParams.get('month');
-    
+    const yearParam = searchParams.get("year");
+    const monthParam = searchParams.get("month");
+
     if (yearParam && monthParam) {
       const year = parseInt(yearParam);
       const month = parseInt(monthParam);
@@ -143,16 +143,18 @@ export default function ProtectedPage() {
         newDate.getMonth() === now.getMonth() &&
         newDate.getFullYear() === now.getFullYear();
 
-      const newUrl = isCurrentMonth 
-        ? '/protected'
-        : `/protected?year=${newDate.getFullYear()}&month=${(newDate.getMonth() + 1).toString().padStart(2, "0")}`;
-      
-      window.history.pushState(null, '', newUrl);
+      const newUrl = isCurrentMonth
+        ? "/protected"
+        : `/protected?year=${newDate.getFullYear()}&month=${(
+            newDate.getMonth() + 1
+          )
+            .toString()
+            .padStart(2, "0")}`;
+
+      window.history.pushState(null, "", newUrl);
     },
     [currentDate]
   );
-
-
 
   const monthYearString = useMemo(() => {
     return currentDate.toLocaleDateString("en-US", {
@@ -177,29 +179,34 @@ export default function ProtectedPage() {
     );
   }
 
-
   return (
     <div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Sticky Month Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4 -mx-6 px-6">
-          <div className="flex justify-center items-center mb-8">
-            <button 
+          <div className="flex justify-center items-center">
+            <button
               onClick={() => navigateMonth("prev")}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Previous month"
             >
-              <ChevronLeft size={24} className="text-gray-600 dark:text-gray-400" />
+              <ChevronLeft
+                size={24}
+                className="text-gray-600 dark:text-gray-400"
+              />
             </button>
             <h2 className="text-2xl font-semibold mx-6 text-gray-900 dark:text-gray-100">
               {monthYearString}
             </h2>
-            <button 
+            <button
               onClick={() => navigateMonth("next")}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Next month"
             >
-              <ChevronRight size={24} className="text-gray-600 dark:text-gray-400" />
+              <ChevronRight
+                size={24}
+                className="text-gray-600 dark:text-gray-400"
+              />
             </button>
           </div>
         </div>
@@ -227,7 +234,7 @@ export default function ProtectedPage() {
 
       {/* Floating Add Button - Hidden when modals are open */}
       {!showAddModal && !editingTransaction && (
-        <button 
+        <button
           onClick={handleAddTransaction}
           className="fixed bottom-8 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors z-60"
           aria-label="Add transaction"
