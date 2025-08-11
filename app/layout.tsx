@@ -67,16 +67,16 @@ export default function RootLayout({
                 <Toaster position="top-right" />
 
                 {/* New Header Design */}
-                <header className="bg-white dark:bg-gray-800 shadow-sm">
+                <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
                   <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
+                    <Link href="/protected" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
                       <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
                         N
                       </div>
                       <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                         Antunello
                       </h1>
-                    </div>
+                    </Link>
                     <div className="flex items-center space-x-4">
                       {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                     </div>

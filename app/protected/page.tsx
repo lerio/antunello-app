@@ -184,10 +184,10 @@ export default function ProtectedPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Sticky Month Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4 -mx-6 px-6">
-          <div className="flex justify-center items-center">
+          <div className="relative flex justify-center items-center">
             <button
               onClick={() => navigateMonth("prev")}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="absolute left-0 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Previous month"
             >
               <ChevronLeft
@@ -195,12 +195,12 @@ export default function ProtectedPage() {
                 className="text-gray-600 dark:text-gray-400"
               />
             </button>
-            <h2 className="text-2xl font-semibold mx-6 text-gray-900 dark:text-gray-100">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               {monthYearString}
             </h2>
             <button
               onClick={() => navigateMonth("next")}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="absolute right-0 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               aria-label="Next month"
             >
               <ChevronRight
