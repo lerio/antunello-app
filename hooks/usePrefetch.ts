@@ -1,39 +1,22 @@
 import { useCallback, useRef } from 'react'
-import { mutate, useSWRConfig } from 'swr'
-import { createClient } from '@/utils/supabase/client'
+import useSWR, { useSWRConfig, preload } from 'swr'
 import { Transaction } from '@/types/database'
+import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
 
 // Track prefetch requests to avoid duplicates
 const prefetchQueue = new Set<string>()
 const prefetchDebounce = new Map<string, NodeJS.Timeout>()
 
 export function usePrefetch() {
-  const supabase = createClient()
   const prefetchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
-  const { cache } = useSWRConfig()
+  const { cache, mutate } = useSWRConfig()
 
   const isInCache = useCallback((monthKey: string): boolean => {
     return cache.get(monthKey) !== undefined
   }, [cache])
 
-  const fetchMonth = useCallback(async (year: number, month: number): Promise<Transaction[]> => {
-    const start = new Date(year, month - 1, 1)
-    const end = new Date(year, month, 0, 23, 59, 59)
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .gte('date', start.toISOString())
-      .lte('date', end.toISOString())
-      .order('date', { ascending: false })
-      .limit(1000)
-
-    if (error) throw error
-    return data || []
-  }, [supabase])
-
   const prefetchMonth = useCallback(async (year: number, month: number, priority: 'low' | 'medium' = 'low') => {
-    const monthKey = `transactions-${year}-${month}`
+    const monthKey = createMonthKey(year, month)
     
     // Skip if already in cache
     if (isInCache(monthKey)) {
@@ -60,10 +43,8 @@ export function usePrefetch() {
       try {
         console.log(`Prefetching ${monthKey}...`)
         
-        // Use SWR's mutate to populate cache
-        await mutate(monthKey, fetchMonth(year, month), {
-          revalidate: false, // Don't revalidate, just populate cache
-        })
+        // Use SWR's official preload function - this ensures proper cache integration
+        preload(monthKey, transactionFetcher)
         
         console.log(`✓ Prefetched ${monthKey}`)
       } catch (error) {
@@ -74,7 +55,7 @@ export function usePrefetch() {
     }, delay)
 
     prefetchDebounce.set(monthKey, timeoutId)
-  }, [fetchMonth, isInCache])
+  }, [isInCache])
 
   const prefetchAdjacentMonths = useCallback((currentYear: number, currentMonth: number) => {
     // Calculate previous month

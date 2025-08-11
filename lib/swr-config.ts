@@ -10,7 +10,7 @@ export const getSwrConfig = (): SWRConfiguration => {
     // Optimized revalidation settings for faster perceived performance
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-    revalidateOnMount: true,
+    revalidateOnMount: false, // Don't revalidate on mount to use prefetched data
     
     // Smart retry settings
     errorRetryCount: 2, // Reduced for faster failure detection

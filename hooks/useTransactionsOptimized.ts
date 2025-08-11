@@ -3,41 +3,27 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { usePrefetch } from './usePrefetch'
+import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
 
 // Consolidated, optimized transactions hook
 export function useTransactionsOptimized(year: number, month: number) {
   const supabase = createClient()
   const { prefetchAdjacentMonths, isInCache } = usePrefetch()
   
-  // Single optimized fetcher with intelligent caching
-  const fetcher = useCallback(async (key: string) => {
-    const [, targetYear, targetMonth] = key.split('-').map(Number)
-    
-    const start = new Date(targetYear, targetMonth - 1, 1)
-    const end = new Date(targetYear, targetMonth, 0, 23, 59, 59)
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .gte('date', start.toISOString())
-      .lte('date', end.toISOString())
-      .order('date', { ascending: false })
-      .limit(1000) // Reasonable limit to prevent massive queries
-
-    if (error) throw error
-    return data || []
-  }, [supabase])
-
-  const monthKey = `transactions-${year}-${month}`
+  const monthKey = createMonthKey(year, month)
+  const isInCacheResult = isInCache(monthKey)
+  
+  console.log(`🔍 Hook loading ${monthKey}, inCache: ${isInCacheResult}, will ${isInCacheResult ? 'use cache' : 'fetch fresh'}`)
   
   const { 
     data: transactions, 
     error, 
     mutate, 
     isLoading 
-  } = useSWR<Transaction[]>(monthKey, fetcher, {
+  } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
+    revalidateOnMount: !isInCacheResult, // Only revalidate on mount if not already in cache
     dedupingInterval: 5000, // 5 seconds for more responsive updates
     focusThrottleInterval: 15000, // 15 seconds
     keepPreviousData: true, // Keep showing previous data while loading new
@@ -81,7 +67,7 @@ export function useTransactionsOptimized(year: number, month: number) {
         const recordDate = new Date(newRecord.date)
         const recordYear = recordDate.getFullYear()
         const recordMonth = recordDate.getMonth() + 1
-        const recordMonthKey = `transactions-${recordYear}-${recordMonth}`
+        const recordMonthKey = createMonthKey(recordYear, recordMonth)
         
         // Only update if it's for current month and not already in cache (avoid duplicates from optimistic updates)
         if (recordYear === year && recordMonth === month) {
@@ -97,8 +83,8 @@ export function useTransactionsOptimized(year: number, month: number) {
         const newRecordDate = new Date(newRecord.date)
         const oldRecordDate = new Date(oldRecord.date)
         
-        const newMonthKey = `transactions-${newRecordDate.getFullYear()}-${newRecordDate.getMonth() + 1}`
-        const oldMonthKey = `transactions-${oldRecordDate.getFullYear()}-${oldRecordDate.getMonth() + 1}`
+        const newMonthKey = createMonthKey(newRecordDate.getFullYear(), newRecordDate.getMonth() + 1)
+        const oldMonthKey = createMonthKey(oldRecordDate.getFullYear(), oldRecordDate.getMonth() + 1)
         
         // Handle month changes
         if (newMonthKey !== oldMonthKey) {
