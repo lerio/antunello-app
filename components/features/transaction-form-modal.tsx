@@ -6,6 +6,7 @@ import { MinusCircle, PlusCircle, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
+import { CategorySelect } from "@/components/ui/category-select";
 
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
@@ -22,6 +23,7 @@ const CURRENCY_OPTIONS = [
 export default function TransactionFormModal({ onSubmit, initialData, disabled = false }: TransactionFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || "");
+  const [subCategory, setSubCategory] = useState(initialData?.sub_category || "");
   const [transactionType, setTransactionType] = useState<"expense" | "income">(initialData?.type || "expense");
   const [selectedCurrency, setSelectedCurrency] = useState(initialData?.currency || "EUR");
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -36,9 +38,19 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     title: ""
   });
 
-  const { subCategories, currencySymbol } = useMemo(() => ({
+  const { subCategories, currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(() => ({
     subCategories: SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [],
-    currencySymbol: CURRENCY_OPTIONS.find(c => c.value === selectedCurrency)?.symbol || "€"
+    currencySymbol: CURRENCY_OPTIONS.find(c => c.value === selectedCurrency)?.symbol || "€",
+    mainCategoryOptions: MAIN_CATEGORIES.map(category => ({
+      value: category,
+      label: category,
+      isMainCategory: true
+    })),
+    subCategoryOptions: (SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || []).map(category => ({
+      value: category,
+      label: category,
+      isMainCategory: false
+    }))
   }), [mainCategory, selectedCurrency]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,7 +62,6 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     // Validate all required fields
     const formData = new FormData(e.currentTarget);
     const amount = formData.get("amount") as string;
-    const subCategory = formData.get("sub_category") as string;
     const title = formData.get("title") as string;
     
     let hasErrors = false;
@@ -110,8 +121,13 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     }
   }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory]);
 
-  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMainCategory(e.target.value);
+  const handleCategoryChange = useCallback((value: string) => {
+    setMainCategory(value);
+    setSubCategory(""); // Reset sub category when main category changes
+  }, []);
+
+  const handleSubCategoryChange = useCallback((value: string) => {
+    setSubCategory(value);
   }, []);
 
   const handleCurrencyChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -211,19 +227,21 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
               isVisible={!!validationErrors.mainCategory}
               onClose={() => setValidationErrors(prev => ({ ...prev, mainCategory: "" }))}
             >
-              <select
-                className={`${selectClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                id="main-category"
-                name="main_category"
-                value={mainCategory}
-                onChange={handleCategoryChange}
-                disabled={disabled}
-              >
-                <option value="" disabled>Main Category</option>
-                {MAIN_CATEGORIES.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+              <div>
+                <CategorySelect
+                  options={mainCategoryOptions}
+                  value={mainCategory}
+                  onChange={handleCategoryChange}
+                  placeholder="Main Category"
+                  disabled={disabled}
+                />
+                {/* Hidden input for form submission */}
+                <input
+                  type="hidden"
+                  name="main_category"
+                  value={mainCategory}
+                />
+              </div>
             </ValidationTooltip>
           </div>
 
@@ -234,19 +252,22 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
               isVisible={!!validationErrors.subCategory}
               onClose={() => setValidationErrors(prev => ({ ...prev, subCategory: "" }))}
             >
-              <select
-                className={`${selectClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                id="sub-category"
-                name="sub_category"
-                defaultValue={initialData?.sub_category}
-                key={mainCategory}
-                disabled={disabled}
-              >
-                <option value="">Sub Category</option>
-                {subCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+              <div>
+                <CategorySelect
+                  options={subCategoryOptions}
+                  value={subCategory}
+                  onChange={handleSubCategoryChange}
+                  placeholder="Sub Category"
+                  disabled={disabled || !mainCategory}
+                  key={mainCategory}
+                />
+                {/* Hidden input for form submission */}
+                <input
+                  type="hidden"
+                  name="sub_category"
+                  value={subCategory}
+                />
+              </div>
             </ValidationTooltip>
           </div>
 
