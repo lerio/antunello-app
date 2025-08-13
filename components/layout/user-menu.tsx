@@ -1,7 +1,7 @@
 "use client";
 
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { ChevronDown, User, LogOut } from "lucide-react";
+import { ChevronDown, CircleUserRound, LogOut } from "lucide-react";
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
 
@@ -17,9 +17,7 @@ export function UserMenu({ displayName }: UserMenuProps) {
     <DropdownMenu
       trigger={
         <div className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 transition-colors cursor-pointer touch-manipulation min-h-[44px]">
-          <span className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-            {displayName}
-          </span>
+          <CircleUserRound size={20} className="text-gray-700 dark:text-gray-300 flex-shrink-0" />
           <ChevronDown size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </div>
       }
@@ -29,8 +27,8 @@ export function UserMenu({ displayName }: UserMenuProps) {
           href="/protected/reset-password"
           className="flex items-center gap-2 w-full"
         >
-          <User size={16} />
-          Profile
+          <CircleUserRound size={16} />
+          {displayName}
         </Link>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
