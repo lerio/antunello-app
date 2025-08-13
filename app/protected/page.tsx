@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
-import { usePrefetch } from "@/hooks/usePrefetch";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Transaction } from "@/types/database";
@@ -27,7 +26,6 @@ const TransactionEditModal = dynamic(
 export default function ProtectedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { prefetchSpecificMonth } = usePrefetch();
 
   const initialDate = useMemo(() => {
     const yearParam = searchParams.get("year");
@@ -157,10 +155,20 @@ export default function ProtectedPage() {
   );
 
   const monthYearString = useMemo(() => {
-    return currentDate.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    const currentYear = new Date().getFullYear();
+    const displayYear = currentDate.getFullYear();
+    
+    // Only show year if it's different from current year
+    if (displayYear === currentYear) {
+      return currentDate.toLocaleDateString("en-US", {
+        month: "long",
+      });
+    } else {
+      return currentDate.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
   }, [currentDate]);
 
   if (error) {

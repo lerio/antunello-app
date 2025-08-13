@@ -4,17 +4,15 @@ import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { usePrefetch } from './usePrefetch'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
+import { transactionCache } from '@/utils/simple-cache'
 
 // Consolidated, optimized transactions hook
 export function useTransactionsOptimized(year: number, month: number) {
   const supabase = createClient()
-  const { prefetchAdjacentMonths, isInCache } = usePrefetch()
+  const { prefetchAdjacentMonths } = usePrefetch()
   
   const monthKey = createMonthKey(year, month)
-  const isInCacheResult = isInCache(monthKey)
-  
-  console.log(`🔍 Hook loading ${monthKey}, inCache: ${isInCacheResult}, will ${isInCacheResult ? 'use cache' : 'fetch fresh'}`)
-  
+
   const { 
     data: transactions, 
     error, 
@@ -23,16 +21,17 @@ export function useTransactionsOptimized(year: number, month: number) {
   } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-    revalidateOnMount: !isInCacheResult, // Only revalidate on mount if not already in cache
-    dedupingInterval: 5000, // 5 seconds for more responsive updates
-    focusThrottleInterval: 15000, // 15 seconds
-    keepPreviousData: true, // Keep showing previous data while loading new
-    refreshInterval: 0, // Disable automatic refresh, rely on realtime
+    dedupingInterval: 10000,
+    focusThrottleInterval: 30000,
+    keepPreviousData: true,
+    refreshInterval: 0,
+    // Use cache as fallback data to prevent loading states
+    fallbackData: transactionCache.get(monthKey) || undefined,
   })
 
   // Intelligent prefetching of adjacent months
   useEffect(() => {
-    // Only prefetch after the current month data has loaded
+    // Only prefetch after the current month data has loaded or is cached
     if (!isLoading && !error) {
       prefetchAdjacentMonths(year, month)
     }
