@@ -30,27 +30,28 @@ const TransactionRow = React.memo(
     return (
       <div
         onClick={() => onClick(transaction)}
-        className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        className="group bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       >
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <Icon
-              {...({
-                size: 20,
-                className: "text-gray-500 dark:text-gray-400",
-              } as LucideProps)}
-            />
-          </div>
-          <div className="ml-4">
-            <p className="font-medium text-gray-800 dark:text-gray-200">
+        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+          <Icon
+            {...({
+              size: 20,
+              className: "text-gray-500 dark:text-gray-400",
+            } as LucideProps)}
+          />
+        </div>
+        <div className="ml-4 flex-1 min-w-0 overflow-hidden">
+          <div className="relative">
+            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden">
               {transaction.title}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {transaction.sub_category}
-            </p>
+            <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
           </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+            {transaction.sub_category}
+          </p>
         </div>
-        <div>
+        <div className="flex-shrink-0 ml-4">
           <p
             className={`font-medium text-right ${
               transaction.type === "expense" ? "text-red-500" : "text-green-500"

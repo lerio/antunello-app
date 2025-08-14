@@ -3,7 +3,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "find-pipe-titles": "node scripts/find-pipe-titles.js",
+    "find-pipe-titles:verbose": "node scripts/find-pipe-titles.js --verbose",
+    "update-pipe-titles": "node scripts/update-pipe-titles.js",
+    "update-pipe-titles:execute": "node scripts/update-pipe-titles.js --execute"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.15",
@@ -15,6 +19,7 @@
     "@types/react-datepicker": "^7.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.1",
     "lucide-react": "^0.539.0",
     "next": "^15.4.6",
     "next-themes": "^0.4.6",

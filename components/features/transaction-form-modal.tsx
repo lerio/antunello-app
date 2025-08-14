@@ -63,6 +63,8 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     const formData = new FormData(e.currentTarget);
     const amount = formData.get("amount") as string;
     const title = formData.get("title") as string;
+    const formMainCategory = formData.get("main_category") as string;
+    const formSubCategory = formData.get("sub_category") as string;
     
     let hasErrors = false;
     const newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
@@ -72,12 +74,12 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
       hasErrors = true;
     }
     
-    if (!mainCategory) {
+    if (!formMainCategory) {
       newErrors.mainCategory = "Please select a main category";
       hasErrors = true;
     }
     
-    if (!subCategory) {
+    if (!formSubCategory?.trim()) {
       newErrors.subCategory = "Please select a sub category";
       hasErrors = true;
     }
@@ -119,7 +121,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     } finally {
       setIsLoading(false);
     }
-  }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory]);
+  }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory, subCategory]);
 
   const handleCategoryChange = useCallback((value: string) => {
     setMainCategory(value);
