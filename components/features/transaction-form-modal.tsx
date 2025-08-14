@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseDateTime } from "@/utils/date";
@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
@@ -29,6 +30,15 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
   const [selectedDate, setSelectedDate] = useState<Date>(
     initialData?.date ? new Date(initialData.date) : new Date()
   );
+  
+  // Validation state for tooltips
+  const [hideFromTotals, setHideFromTotals] = useState(initialData?.hide_from_totals || false);
+  const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
+  
+  const updateHideFromTotals = useCallback((value: boolean) => {
+    setHideFromTotals(value);
+    hideFromTotalsRef.current = value;
+  }, []);
   
   // Validation state for tooltips
   const [validationErrors, setValidationErrors] = useState({
@@ -115,6 +125,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
         sub_category: subCategory,
         title: formData.get("title") as string,
         date: selectedDate.toISOString(),
+        hide_from_totals: hideFromTotalsRef.current,
       });
     } catch (error) {
       console.error("Form submission failed:", error);
@@ -315,6 +326,21 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <Calendar size={20} className="text-gray-400 dark:text-gray-500" />
               </div>
+            </div>
+          </div>
+
+          {/* Hide from totals toggle */}
+          <div>
+            <div className="h-12 flex items-center">
+              <ToggleSwitch
+                id="hide-from-totals"
+                name="hide-from-totals"
+                checked={hideFromTotals}
+                onChange={updateHideFromTotals}
+                label="Hide monthly transaction"
+                disabled={disabled}
+                className="w-full"
+              />
             </div>
           </div>
         </div>

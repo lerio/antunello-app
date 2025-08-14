@@ -127,6 +127,9 @@ export function useTransactionsOptimized(year: number, month: number) {
     if (!transactions?.length) return null
 
     const totals = transactions.reduce((acc, t) => {
+      // Skip transactions that are hidden from totals
+      if (t.hide_from_totals) return acc
+      
       const currency = t.currency
       if (!acc[currency]) acc[currency] = { income: 0, expense: 0, count: 0 }
       

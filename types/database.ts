@@ -14,6 +14,8 @@ export type Transaction = {
   eur_amount?: number
   exchange_rate?: number
   rate_date?: string
+  // Hide from monthly totals
+  hide_from_totals?: boolean
 }
 
 export type ExchangeRate = {

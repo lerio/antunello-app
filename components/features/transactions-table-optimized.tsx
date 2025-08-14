@@ -5,6 +5,7 @@ import { formatDate, formatDateHeader } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import NoTransactions from "@/components/features/no-transactions";
+import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
 import { LucideProps } from "lucide-react";
 
 type TransactionsTableProps = {
@@ -30,7 +31,9 @@ const TransactionRow = React.memo(
     return (
       <div
         onClick={() => onClick(transaction)}
-        className="group bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        className={`group bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+          transaction.hide_from_totals ? 'opacity-50' : ''
+        }`}
       >
         <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
           <Icon
@@ -87,13 +90,20 @@ const DateGroup = React.memo(
     transactions: Transaction[];
     dailyTotal: number;
     onTransactionClick: (transaction: Transaction) => void;
-  }) => (
+  }) => {
+    // Calculate hidden transactions count for this day
+    const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
+    
+    return (
     <div className="mb-6">
       {/* Sticky Date Header */}
       <div className="sticky top-[72px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
-        <h3 className="font-semibold text-gray-600 dark:text-gray-400">
-          {formatDateHeader(transactions[0].date)}
-        </h3>
+        <div className="flex items-center">
+          <h3 className="font-semibold text-gray-600 dark:text-gray-400">
+            {formatDateHeader(transactions[0].date)}
+          </h3>
+          <DailyHiddenIndicator count={hiddenCount} />
+        </div>
         <span
           className={`font-semibold ${
             dailyTotal >= 0 ? "text-green-500" : "text-red-500"
@@ -114,7 +124,8 @@ const DateGroup = React.memo(
         ))}
       </div>
     </div>
-  )
+    );
+  }
 );
 
 DateGroup.displayName = "DateGroup";
@@ -153,6 +164,9 @@ export default function TransactionsTable({
     <div className="space-y-6">
       {Object.entries(groupedData).map(([date, dateTransactions]) => {
         const dailyTotal = dateTransactions.reduce((total, t) => {
+          // Skip transactions that are hidden from totals
+          if (t.hide_from_totals) return total;
+          
           const amount = t.eur_amount || (t.currency === "EUR" ? t.amount : 0);
           return total + (t.type === "expense" ? -amount : amount);
         }, 0);

@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import {
   ArrowLeft,
   DollarSign,
@@ -39,6 +40,15 @@ export default function TransactionFormHtmlDesign({
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
   );
+  const [hideFromTotals, setHideFromTotals] = useState(
+    initialData?.hide_from_totals || false
+  );
+  const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
+  
+  const updateHideFromTotals = useCallback((value: boolean) => {
+    setHideFromTotals(value);
+    hideFromTotalsRef.current = value;
+  }, []);
 
   const subCategories = useMemo(() => {
     return SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [];
@@ -79,7 +89,9 @@ export default function TransactionFormHtmlDesign({
           sub_category: formData.get("sub_category") as string,
           title: formData.get("title") as string,
           date: parseDateTime(formData.get("date") as string),
+          hide_from_totals: hideFromTotalsRef.current,
         };
+
 
         await onSubmit(data);
       } catch (error) {
@@ -288,6 +300,20 @@ export default function TransactionFormHtmlDesign({
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <Calendar size={20} className="text-gray-400" />
               </div>
+            </div>
+          </div>
+
+          {/* Hide from totals toggle */}
+          <div>
+            <div className="h-12 flex items-center">
+              <ToggleSwitch
+                id="hide-from-totals"
+                name="hide-from-totals"
+                checked={hideFromTotals}
+                onChange={updateHideFromTotals}
+                label="Hide monthly transaction"
+                className="w-full"
+              />
             </div>
           </div>
         </div>

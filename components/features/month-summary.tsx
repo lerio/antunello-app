@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Transaction, getCategoryType } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronRight, EyeOff, Info } from "lucide-react";
+import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
 
 type CurrencyTotals = {
   [currency: string]: number;
@@ -32,6 +33,11 @@ export default function MonthSummary({
   let incomeTotal = 0;
   const incomeCategoryTotals: Record<string, number> = {};
   const expenseCategoryTotals: Record<string, number> = {};
+  
+  // Track hidden transactions
+  let hiddenExpenseTotal = 0;
+  let hiddenIncomeTotal = 0;
+  let hiddenTransactionCount = 0;
 
   // Calculate totals using EUR amounts
   transactions.forEach((transaction) => {
@@ -42,6 +48,17 @@ export default function MonthSummary({
 
     // Skip transactions without EUR conversion (to avoid incorrect totals)
     if (eurAmount === 0 && transaction.currency !== "EUR") {
+      return;
+    }
+
+    // Handle hidden transactions separately
+    if (transaction.hide_from_totals) {
+      hiddenTransactionCount++;
+      if (transaction.type === "expense") {
+        hiddenExpenseTotal += eurAmount;
+      } else {
+        hiddenIncomeTotal += eurAmount;
+      }
       return;
     }
 
@@ -97,7 +114,14 @@ export default function MonthSummary({
         <>
           {/* Balance Row */}
           <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-lg font-medium text-gray-600 dark:text-gray-400">Balance</span>
+            <div className="flex items-center">
+              <span className="text-lg font-medium text-gray-600 dark:text-gray-400">Balance</span>
+              <HiddenTransactionsTooltip 
+                count={hiddenTransactionCount}
+                hiddenIncomeTotal={hiddenIncomeTotal}
+                hiddenExpenseTotal={hiddenExpenseTotal}
+              />
+            </div>
             <span className={`text-lg font-bold ${balanceTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatCurrency(Math.abs(balanceTotal), "EUR")}
             </span>

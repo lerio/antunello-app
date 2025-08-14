@@ -2,6 +2,7 @@ import { useSWRConfig } from 'swr'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { convertToEUR } from '@/utils/currency-conversion'
+import { transactionCache } from '@/utils/simple-cache'
 
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
@@ -13,6 +14,19 @@ export function useTransactionMutations() {
   }
 
   const getTransactionKey = (id: string) => `transaction-${id}`
+
+  // Helper function to update both SWR cache and simple cache
+  const updateBothCaches = (monthKey: string, updateFn: (transactions: Transaction[]) => Transaction[]) => {
+    // Update SWR cache - handle undefined case
+    mutate(monthKey, (currentData: Transaction[] = []) => updateFn(currentData), false)
+    
+    // Update simple cache
+    const cachedData = transactionCache.get(monthKey)
+    if (cachedData) {
+      const updatedData = updateFn(cachedData)
+      transactionCache.set(monthKey, updatedData)
+    }
+  }
 
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     const monthKey = getMonthKey(data.date)
@@ -36,11 +50,11 @@ export function useTransactionMutations() {
     }
 
     // Optimistically update the cache immediately
-    mutate(monthKey, (transactions: Transaction[] = []) => {
+    updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
       const newList = [optimisticTransaction, ...transactions]
       // Sort by date descending to maintain proper order
       return newList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    }, false)
+    })
 
     try {
       // Perform currency conversion for all currencies before database insert
@@ -72,18 +86,18 @@ export function useTransactionMutations() {
       if (error) throw error
       
       // Replace optimistic transaction with real one
-      mutate(monthKey, (transactions: Transaction[] = []) => {
+      updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
         return transactions.map(t => 
           t.id === optimisticTransaction.id ? newTransaction : t
         ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      }, false)
+      })
 
       return newTransaction
     } catch (error) {
       // Rollback optimistic update on error
-      mutate(monthKey, (transactions: Transaction[] = []) => {
+      updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
         return transactions.filter(t => t.id !== optimisticTransaction.id)
-      }, false)
+      })
       throw error
     }
   }
@@ -121,10 +135,10 @@ export function useTransactionMutations() {
     // Optimistically update the cache immediately
     if (oldMonthKey !== newMonthKey) {
       // Moving between months
-      mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
         originalTransaction = transactions.find(t => t.id === id)
         return transactions.filter(t => t.id !== id)
-      }, false)
+      })
 
       if (originalTransaction) {
         const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
@@ -134,21 +148,21 @@ export function useTransactionMutations() {
           updated_at: new Date().toISOString(),
           ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
         }
-        mutate(newMonthKey, (transactions: Transaction[] = []) => {
+        updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
           const newList = [updatedTransaction, ...transactions]
           return newList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        }, false)
+        })
       }
     } else {
       // Staying in same month - get original transaction first, then do async calculation
-      mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
         originalTransaction = transactions.find(t => t.id === id)
         return transactions // Return unchanged for now
-      }, false)
+      })
       
       if (originalTransaction) {
         const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
-        mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+        updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
           return transactions.map(t => {
             if (t.id === id) {
               return { 
@@ -160,7 +174,7 @@ export function useTransactionMutations() {
             }
             return t
           }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        }, false)
+        })
       }
     }
 
@@ -207,15 +221,15 @@ export function useTransactionMutations() {
 
       // Update cache with real data
       if (oldMonthKey !== newMonthKey) {
-        mutate(newMonthKey, (transactions: Transaction[] = []) => {
+        updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
           return transactions.map(t => t.id === id ? updatedTransaction : t)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        }, false)
+        })
       } else {
-        mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+        updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
           return transactions.map(t => t.id === id ? updatedTransaction : t)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        }, false)
+        })
       }
 
       // Update the single transaction cache
@@ -227,17 +241,17 @@ export function useTransactionMutations() {
       if (originalTransaction) {
         if (oldMonthKey !== newMonthKey) {
           // Restore to old month
-          mutate(newMonthKey, (transactions: Transaction[] = []) => {
+          updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
             return transactions.filter(t => t.id !== id)
-          }, false)
-          mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+          })
+          updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
             return [...transactions, originalTransaction!]
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          }, false)
+          })
         } else {
-          mutate(oldMonthKey, (transactions: Transaction[] = []) => {
+          updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
             return transactions.map(t => t.id === id ? originalTransaction! : t)
-          }, false)
+          })
         }
       }
       throw error
@@ -249,10 +263,10 @@ export function useTransactionMutations() {
     
     // Optimistically remove from cache immediately
     let removedTransaction: Transaction | undefined
-    mutate(monthKey, (transactions: Transaction[] = []) => {
+    updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
       removedTransaction = transactions.find(t => t.id === transaction.id)
       return transactions.filter(t => t.id !== transaction.id)
-    }, false)
+    })
 
     // Remove from single transaction cache
     mutate(getTransactionKey(transaction.id), null, false)
@@ -269,10 +283,10 @@ export function useTransactionMutations() {
     } catch (error) {
       // Rollback optimistic update on error
       if (removedTransaction) {
-        mutate(monthKey, (transactions: Transaction[] = []) => {
+        updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
           return [...transactions, removedTransaction!]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        }, false)
+        })
         
         // Restore single transaction cache
         mutate(getTransactionKey(transaction.id), removedTransaction, false)
