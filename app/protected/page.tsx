@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, ArrowUp } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
@@ -52,6 +52,7 @@ export default function ProtectedPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const { transactions, summary, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
@@ -62,6 +63,23 @@ export default function ProtectedPage() {
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
+
+  // Handle scroll to show/hide scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []);
 
   const handleAddTransaction = useCallback(() => {
     setShowAddModal(true);
@@ -221,6 +239,17 @@ export default function ProtectedPage() {
           </div>
         )}
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && !showAddModal && !editingTransaction && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-28 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-all duration-300 z-60"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp size={28} />
+        </button>
+      )}
 
       {/* Floating Add Button - Hidden when modals are open */}
       {!showAddModal && !editingTransaction && (
