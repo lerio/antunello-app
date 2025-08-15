@@ -91,7 +91,7 @@ export function HorizontalMonthSelector({
           <div className="absolute inset-0 bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
           <button
             onClick={navigateToCurrentMonth}
-            className="ml-3 p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
+            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
             aria-label="Return to current month"
             title="Return to current month"
           >
@@ -106,7 +106,7 @@ export function HorizontalMonthSelector({
           <div className="absolute inset-0 bg-gradient-to-l from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
           <button
             onClick={navigateToCurrentMonth}
-            className="mr-3 p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
+            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
             aria-label="Return to current month"
             title="Return to current month"
           >

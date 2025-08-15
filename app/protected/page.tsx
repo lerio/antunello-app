@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ArrowUp } from "lucide-react";
+import { Plus, ArrowUp, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
@@ -47,7 +47,7 @@ export default function ProtectedPage() {
   }, [initialDate]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
-  
+
   const {
     showAddModal,
     editingTransaction,
@@ -55,7 +55,7 @@ export default function ProtectedPage() {
     closeAddModal,
     openEditModal,
     closeEditModal,
-    hasOpenModal
+    hasOpenModal,
   } = useModalState();
 
   const { transactions, summary, isLoading, error } = useTransactionsOptimized(
@@ -74,14 +74,14 @@ export default function ProtectedPage() {
       setShowScrollTop(window.scrollY > 300);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToTop = useCallback(() => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
   }, []);
 
@@ -89,9 +89,12 @@ export default function ProtectedPage() {
     openAddModal();
   }, [openAddModal]);
 
-  const handleEditTransaction = useCallback((transaction: Transaction) => {
-    openEditModal(transaction);
-  }, [openEditModal]);
+  const handleEditTransaction = useCallback(
+    (transaction: Transaction) => {
+      openEditModal(transaction);
+    },
+    [openEditModal]
+  );
 
   const handleAddSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
@@ -158,9 +161,8 @@ export default function ProtectedPage() {
     setCurrentDate(newDate);
 
     const now = new Date();
-    const isCurrentMonth = 
-      month === now.getMonth() + 1 && 
-      year === now.getFullYear();
+    const isCurrentMonth =
+      month === now.getMonth() + 1 && year === now.getFullYear();
 
     const newUrl = isCurrentMonth
       ? "/protected"
@@ -172,7 +174,7 @@ export default function ProtectedPage() {
   const monthYearString = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const displayYear = currentDate.getFullYear();
-    
+
     // Only show year if it's different from current year
     if (displayYear === currentYear) {
       return currentDate.toLocaleDateString("en-US", {
@@ -205,6 +207,33 @@ export default function ProtectedPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Year and Actions Row */}
+        <div className="flex items-center justify-between pt-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {currentDate.getFullYear()}
+            </h2>
+            <button
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => {
+                /* Summary functionality to be implemented */
+              }}
+            >
+              Summary
+            </button>
+          </div>
+
+          <button
+            className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            onClick={() => {
+              /* Search functionality to be implemented */
+            }}
+            aria-label="Search transactions"
+          >
+            <Search size={20} />
+          </button>
+        </div>
+
         {/* Sticky Horizontal Month Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
           {monthsLoading ? (
@@ -216,7 +245,7 @@ export default function ProtectedPage() {
               months={availableMonths}
               selectedMonth={{
                 year: currentDate.getFullYear(),
-                month: currentDate.getMonth() + 1
+                month: currentDate.getMonth() + 1,
               }}
               onMonthSelect={handleMonthSelect}
             />
@@ -270,10 +299,7 @@ export default function ProtectedPage() {
       </Modal>
 
       {/* Edit Entry Modal */}
-      <Modal
-        isOpen={!!editingTransaction}
-        onClose={closeEditModal}
-      >
+      <Modal isOpen={!!editingTransaction} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
