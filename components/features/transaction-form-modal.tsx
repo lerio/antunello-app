@@ -168,7 +168,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     <div className="w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-4 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter">
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
           {/* Amount with Currency and Hide Toggle */}
           <div className="flex gap-3">
             <div className="flex-1" style={{ width: '75%' }}>
@@ -376,7 +376,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
 
       {/* Delete Section - Only show for existing transactions */}
       {onDelete && initialData && (
-        <div className="mt-2 pb-2">
+        <div className="pb-2">
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
