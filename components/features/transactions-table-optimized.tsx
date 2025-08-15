@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Transaction } from "@/types/database";
-import { formatDate, formatDateHeader } from "@/utils/date";
+import { formatDate, formatDateHeader, formatDateHeaderWithYear } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import NoTransactions from "@/components/features/no-transactions";
@@ -11,6 +11,7 @@ import { LucideProps } from "lucide-react";
 type TransactionsTableProps = {
   transactions: Transaction[];
   onTransactionClick?: (transaction: Transaction) => void;
+  showYear?: boolean; // For search results - forces year display
 };
 
 // Optimized transaction row component with new card design
@@ -85,11 +86,13 @@ const DateGroup = React.memo(
     transactions,
     dailyTotal,
     onTransactionClick,
+    showYear = false,
   }: {
     date: string;
     transactions: Transaction[];
     dailyTotal: number;
     onTransactionClick: (transaction: Transaction) => void;
+    showYear?: boolean;
   }) => {
     // Calculate hidden transactions count for this day
     const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
@@ -100,7 +103,7 @@ const DateGroup = React.memo(
       <div className="sticky top-[72px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
         <div className="flex items-center">
           <h3 className="font-semibold text-gray-600 dark:text-gray-400">
-            {formatDateHeader(transactions[0].date)}
+            {showYear ? formatDateHeaderWithYear(transactions[0].date) : formatDateHeader(transactions[0].date)}
           </h3>
           <DailyHiddenIndicator count={hiddenCount} />
         </div>
@@ -133,6 +136,7 @@ DateGroup.displayName = "DateGroup";
 export default function TransactionsTable({
   transactions,
   onTransactionClick,
+  showYear = false,
 }: TransactionsTableProps) {
   const groupedData = useMemo(() => {
     if (!transactions.length) return {};
@@ -178,6 +182,7 @@ export default function TransactionsTable({
             transactions={dateTransactions}
             dailyTotal={dailyTotal}
             onTransactionClick={handleTransactionClick}
+            showYear={showYear}
           />
         );
       })}

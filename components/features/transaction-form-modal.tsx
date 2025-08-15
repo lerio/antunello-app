@@ -149,8 +149,8 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
   }, []);
 
   // Reusable class strings
-  const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base h-12 px-4";
-  const selectClass = "form-select block w-full pl-3 pr-10 py-3 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 text-base rounded-lg shadow-sm";
+  const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
+  const selectClass = "form-select block w-full pl-3 pr-10 py-3 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none text-base rounded-lg shadow-sm";
   
   const getTypeButtonClass = (type: 'expense' | 'income', isSelected: boolean) => {
     const baseClass = "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all";
@@ -194,7 +194,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center">
                     <select
-                      className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                       id="currency"
                       name="currency"
                       value={selectedCurrency}
@@ -358,7 +358,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
         {/* Submit Button */}
         <div className="mt-6 sm:mt-8 md:mt-12 pb-2">
           <button
-            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 focus:ring-gray-500 dark:focus:ring-gray-400 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             type="submit"
             disabled={isLoading || disabled}
           >
@@ -392,14 +392,14 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
                   await onDelete(initialData);
                   setShowDeleteConfirm(false);
                 }}
-                className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
+                className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
               >
                 <Trash2 size={20} className="mr-2 flex-shrink-0" />
                 Confirm
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-gray-500 dark:focus:ring-gray-400"
+                className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
               >
                 Cancel
               </button>

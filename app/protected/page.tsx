@@ -85,6 +85,13 @@ export default function ProtectedPage() {
     });
   }, []);
 
+  const handleSearchClick = useCallback(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    
+    router.push(`/protected/search?from_year=${year}&from_month=${month.toString().padStart(2, '0')}`);
+  }, [router, currentDate]);
+
   const handleAddTransaction = useCallback(() => {
     openAddModal();
   }, [openAddModal]);
@@ -208,7 +215,7 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year and Actions Row */}
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-4 pb-2">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {currentDate.getFullYear()}
@@ -225,9 +232,7 @@ export default function ProtectedPage() {
 
           <button
             className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            onClick={() => {
-              /* Search functionality to be implemented */
-            }}
+            onClick={handleSearchClick}
             aria-label="Search transactions"
           >
             <Search size={20} />

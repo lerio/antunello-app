@@ -52,4 +52,37 @@ export function formatDateHeader(isoString: string): string {
       year: 'numeric'
     })
   }
+}
+
+// Format date header with forced year display (for search results)
+export function formatDateHeaderWithYear(isoString: string): string {
+  const date = new Date(isoString)
+  const today = new Date()
+  
+  // Reset time to compare only dates
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
+  
+  if (dateOnly.getTime() === todayOnly.getTime()) {
+    // For current year: "Today, August 15"  
+    // For different year: "Today, August 15, 2023"
+    const baseFormat = `Today, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+    return date.getFullYear() === today.getFullYear() ? baseFormat : `${baseFormat}, ${date.getFullYear()}`
+  } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+    // For current year: "Yesterday, August 14"
+    // For different year: "Yesterday, August 14, 2023"  
+    const baseFormat = `Yesterday, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+    return date.getFullYear() === today.getFullYear() ? baseFormat : `${baseFormat}, ${date.getFullYear()}`
+  } else {
+    // Always include year: "Thursday, July 31, 2023"
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
 } 
