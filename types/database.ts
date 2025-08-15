@@ -30,28 +30,6 @@ export type ExchangeRate = {
   is_missing?: boolean
 }
 
-export const MAIN_CATEGORIES = [
-  'Bank Movements',
-  'Dining',
-  'Education',
-  'Entertainment',
-  'Fitness',
-  'Gifts and Donations',
-  'Government Benefits',
-  'Groceries',
-  'Health',
-  'Housing',
-  'Insurance',
-  'Other Income',
-  'Personal Care',
-  'Primary Income',
-  'Services',
-  'Shopping',
-  'Taxes and Fines',
-  'Transportation',
-  'Travel',
-] as const
-
 export const CATEGORIES_WITH_TYPES = [
   {
     "category": "Bank Movements",
@@ -233,27 +211,13 @@ export const CATEGORIES_WITH_TYPES = [
   }
 ] as const
 
-export const SUB_CATEGORIES: Record<(typeof MAIN_CATEGORIES)[number], string[]> = {
-  'Bank Movements': ['Initial Assets'],
-  Dining: ['Bars and Drinks', 'Food Delivery', 'Restaurants'],
-  Education: ['Books and Supplies', 'Educational Services', 'Tuition and Fees'],
-  Entertainment: ['Media Subscriptions', 'Movies and Theaters', 'Museums and Events'],
-  Fitness: ['Other Activities', 'Sport Equipment', 'Sport Memberships'],
-  'Gifts and Donations': ['Charity', 'Donations to Causes', 'Gifts', 'Loan'],
-  'Government Benefits': ['Child Support', 'Unemployment Benefits', 'Welfare'],
-  Groceries: ['Drugstore', 'Supermarket'],
-  Health: ['Health Insurance', 'Medical Bills', 'Pharmacy'],
-  Housing: ['Furniture and Houseware', 'Home Maintenance', 'Rent', 'Utilities'],
-  Insurance: ['Car Insurance', 'Home Insurance', 'Other Insurance', 'Travel Insurance'],
-  'Other Income': ['Gifts and Inheritance', 'Miscellaneous Income', 'Reimbursements', 'Second-Hand Sales'],
-  'Personal Care': ['Haircuts and Beauty', 'Spa and Treatments'],
-  'Primary Income': ['Investment Income', 'Salary'],
-  Services: ['Bank Fees', 'Digital Services', 'Office', 'Other Services', 'Postal Office', 'Stationery'],
-  Shopping: ['Books and Comics', 'Clothing and Accessories', 'Tech and Gadgets', 'Toys and Videogames'],
-  'Taxes and Fines': ['Fines', 'Income Taxes', 'Investment Losses', 'Property Taxes'],
-  Transportation: ['Fuel', 'Parking and Tolls', 'Public Transportation', 'Taxi and Car Sharing', 'Vehicles and Maintenance'],
-  Travel: ['Accommodations', 'Flights', 'Trains and Buses', 'Travel Fees']
-}
+// Derived arrays from CATEGORIES_WITH_TYPES
+export const MAIN_CATEGORIES = CATEGORIES_WITH_TYPES.map(cat => cat.category)
+
+export const SUB_CATEGORIES: Record<string, string[]> = CATEGORIES_WITH_TYPES.reduce(
+  (acc, cat) => ({ ...acc, [cat.category]: cat.subcategories }),
+  {}
+)
 
 // Helper function to get category type
 export function getCategoryType(category: string): 'income' | 'expense' {

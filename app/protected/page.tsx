@@ -7,9 +7,11 @@ import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
+import { useModalState } from "@/hooks/useModalState";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
+import { FloatingButton } from "@/components/ui/floating-button";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
@@ -17,11 +19,6 @@ import TransactionsTable from "@/components/features/transactions-table-optimize
 import MonthSummary from "@/components/features/month-summary";
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
-  { ssr: false }
-);
-
-const TransactionEditModal = dynamic(
-  () => import("@/components/features/transaction-edit-modal"),
   { ssr: false }
 );
 
@@ -49,10 +46,17 @@ export default function ProtectedPage() {
     setCurrentDate(initialDate);
   }, [initialDate]);
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  const {
+    showAddModal,
+    editingTransaction,
+    openAddModal,
+    closeAddModal,
+    openEditModal,
+    closeEditModal,
+    hasOpenModal
+  } = useModalState();
 
   const { transactions, summary, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
@@ -82,12 +86,12 @@ export default function ProtectedPage() {
   }, []);
 
   const handleAddTransaction = useCallback(() => {
-    setShowAddModal(true);
-  }, []);
+    openAddModal();
+  }, [openAddModal]);
 
   const handleEditTransaction = useCallback((transaction: Transaction) => {
-    setEditingTransaction(transaction);
-  }, []);
+    openEditModal(transaction);
+  }, [openEditModal]);
 
   const handleAddSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
@@ -96,7 +100,7 @@ export default function ProtectedPage() {
       toast.promise(toastPromise, {
         loading: "Adding transaction...",
         success: () => {
-          setShowAddModal(false);
+          closeAddModal();
           return "Transaction added successfully!";
         },
         error: (err) => {
@@ -104,7 +108,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [addTransaction]
+    [addTransaction, closeAddModal]
   );
 
   const handleEditSubmit = useCallback(
@@ -120,7 +124,7 @@ export default function ProtectedPage() {
       toast.promise(toastPromise, {
         loading: "Updating transaction...",
         success: () => {
-          setEditingTransaction(null);
+          closeEditModal();
           return "Transaction updated successfully!";
         },
         error: (err) => {
@@ -128,7 +132,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction]
+    [updateTransaction, editingTransaction, closeEditModal]
   );
 
   const handleDeleteTransaction = useCallback(
@@ -138,7 +142,7 @@ export default function ProtectedPage() {
       toast.promise(toastPromise, {
         loading: "Deleting transaction...",
         success: () => {
-          setEditingTransaction(null);
+          closeEditModal();
           return "Transaction deleted successfully!";
         },
         error: (err) => {
@@ -146,7 +150,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [deleteTransaction]
+    [deleteTransaction, closeEditModal]
   );
 
   const handleMonthSelect = useCallback((year: number, month: number) => {
@@ -240,41 +244,39 @@ export default function ProtectedPage() {
         )}
       </div>
 
-      {/* Scroll to Top Button */}
-      {showScrollTop && !showAddModal && !editingTransaction && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-28 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-all duration-300 z-60"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp size={28} />
-        </button>
-      )}
-
-      {/* Floating Add Button - Hidden when modals are open */}
-      {!showAddModal && !editingTransaction && (
-        <button
-          onClick={handleAddTransaction}
-          className="fixed bottom-8 right-8 w-16 h-16 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors z-60"
-          aria-label="Add transaction"
-        >
-          <Plus size={28} />
-        </button>
+      {/* Floating Buttons - Hidden when modals are open */}
+      {!hasOpenModal && (
+        <>
+          {showScrollTop && (
+            <FloatingButton
+              onClick={scrollToTop}
+              icon={ArrowUp}
+              label="Scroll to top"
+              position="stacked"
+              className="transition-all duration-300"
+            />
+          )}
+          <FloatingButton
+            onClick={handleAddTransaction}
+            icon={Plus}
+            label="Add transaction"
+          />
+        </>
       )}
 
       {/* Add Entry Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
+      <Modal isOpen={showAddModal} onClose={closeAddModal}>
         <TransactionFormModal onSubmit={handleAddSubmit} />
       </Modal>
 
       {/* Edit Entry Modal */}
       <Modal
         isOpen={!!editingTransaction}
-        onClose={() => setEditingTransaction(null)}
+        onClose={closeEditModal}
       >
         {editingTransaction && (
-          <TransactionEditModal
-            transaction={editingTransaction}
+          <TransactionFormModal
+            initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
           />

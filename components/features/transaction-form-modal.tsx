@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseDateTime } from "@/utils/date";
-import { MinusCircle, PlusCircle, Calendar } from "lucide-react";
+import { MinusCircle, PlusCircle, Calendar, Trash2 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
@@ -13,6 +13,7 @@ interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
   initialData?: Transaction;
   disabled?: boolean;
+  onDelete?: (transaction: Transaction) => Promise<void>;
 }
 
 const CURRENCY_OPTIONS = [
@@ -21,8 +22,9 @@ const CURRENCY_OPTIONS = [
   { value: "JPY", label: "JPY", symbol: "¥" },
 ] as const;
 
-export default function TransactionFormModal({ onSubmit, initialData, disabled = false }: TransactionFormModalProps) {
+export default function TransactionFormModal({ onSubmit, initialData, disabled = false, onDelete }: TransactionFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || "");
   const [subCategory, setSubCategory] = useState(initialData?.sub_category || "");
   const [transactionType, setTransactionType] = useState<"expense" | "income">(initialData?.type || "expense");
@@ -363,6 +365,40 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
           </button>
         </div>
       </form>
+
+      {/* Delete Section - Only show for existing transactions */}
+      {onDelete && initialData && (
+        <div className="mt-2 pb-2">
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
+            >
+              <Trash2 size={20} className="mr-2 flex-shrink-0" />
+              Delete Transaction
+            </button>
+          ) : (
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  await onDelete(initialData);
+                  setShowDeleteConfirm(false);
+                }}
+                className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
+              >
+                <Trash2 size={20} className="mr-2 flex-shrink-0" />
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-gray-500 dark:focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <style jsx global>{`
         .form-select {
