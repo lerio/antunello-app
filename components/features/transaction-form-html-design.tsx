@@ -2,13 +2,14 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
-import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import {
   ArrowLeft,
   DollarSign,
   Calendar,
   MinusCircle,
   PlusCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 type TransactionFormProps = {
@@ -139,7 +140,7 @@ export default function TransactionFormHtmlDesign({
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          {/* Amount with Currency */}
+          {/* Amount with Currency and Hide Toggle */}
           <div>
             <label
               className="block text-sm font-medium text-gray-700 mb-2"
@@ -147,35 +148,59 @@ export default function TransactionFormHtmlDesign({
             >
               Amount
             </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                {currencySymbol}
-              </span>
-              <input
-                className="pl-10 pr-20 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12"
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                required
-                defaultValue={initialData?.amount}
-                autoComplete="off"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center">
-                <select
-                  className="h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm rounded-md form-select"
-                  id="currency"
-                  name="currency"
-                  value={selectedCurrency}
-                  onChange={handleCurrencyChange}
-                  aria-label="Currency selection"
+            <div className="flex gap-3">
+              <div className="flex-1" style={{ width: '75%' }}>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                    {currencySymbol}
+                  </span>
+                  <input
+                    className="pl-10 pr-20 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12"
+                    id="amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    required
+                    defaultValue={initialData?.amount}
+                    autoComplete="off"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center">
+                    <select
+                      className="h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm rounded-md form-select"
+                      id="currency"
+                      name="currency"
+                      value={selectedCurrency}
+                      onChange={handleCurrencyChange}
+                      aria-label="Currency selection"
+                    >
+                      {CURRENCY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Hide Toggle Eye Icon */}
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => updateHideFromTotals(!hideFromTotals)}
+                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
+                    hideFromTotals
+                      ? 'bg-gray-100 border-gray-300 text-gray-600'
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  title={hideFromTotals ? 'Hidden from monthly totals' : 'Visible in monthly totals'}
                 >
-                  {CURRENCY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  {hideFromTotals ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -303,19 +328,6 @@ export default function TransactionFormHtmlDesign({
             </div>
           </div>
 
-          {/* Hide from totals toggle */}
-          <div>
-            <div className="h-12 flex items-center">
-              <ToggleSwitch
-                id="hide-from-totals"
-                name="hide-from-totals"
-                checked={hideFromTotals}
-                onChange={updateHideFromTotals}
-                label="Hide monthly transaction"
-                className="w-full"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Submit Button */}

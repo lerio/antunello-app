@@ -2,12 +2,11 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseDateTime } from "@/utils/date";
-import { MinusCircle, PlusCircle, Calendar, Trash2 } from "lucide-react";
+import { MinusCircle, PlusCircle, Calendar, Trash2, Eye, EyeOff } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
-import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
@@ -170,45 +169,68 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          {/* Amount with Currency */}
-          <div>
-            <ValidationTooltip
-              message={validationErrors.amount}
-              isVisible={!!validationErrors.amount}
-              onClose={() => setValidationErrors(prev => ({ ...prev, amount: "" }))}
-            >
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
-                  {currencySymbol}
-                </span>
-                <input
-                  className={`${inputClass.replace('px-4', 'pl-10 pr-20')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="Amount"
-                  defaultValue={initialData?.amount}
-                  autoComplete="off"
-                  disabled={disabled}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center">
-                  <select
-                    className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    id="currency"
-                    name="currency"
-                    value={selectedCurrency}
-                    onChange={handleCurrencyChange}
-                    aria-label="Currency selection"
+          {/* Amount with Currency and Hide Toggle */}
+          <div className="flex gap-3">
+            <div className="flex-1" style={{ width: '75%' }}>
+              <ValidationTooltip
+                message={validationErrors.amount}
+                isVisible={!!validationErrors.amount}
+                onClose={() => setValidationErrors(prev => ({ ...prev, amount: "" }))}
+              >
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
+                    {currencySymbol}
+                  </span>
+                  <input
+                    className={`${inputClass.replace('px-4', 'pl-10 pr-20')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    id="amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="Amount"
+                    defaultValue={initialData?.amount}
+                    autoComplete="off"
                     disabled={disabled}
-                  >
-                    {CURRENCY_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center">
+                    <select
+                      className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-base rounded-md form-select ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      id="currency"
+                      name="currency"
+                      value={selectedCurrency}
+                      onChange={handleCurrencyChange}
+                      aria-label="Currency selection"
+                      disabled={disabled}
+                    >
+                      {CURRENCY_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-            </ValidationTooltip>
+              </ValidationTooltip>
+            </div>
+            
+            {/* Hide Toggle Eye Icon */}
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => updateHideFromTotals(!hideFromTotals)}
+                className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
+                  hideFromTotals
+                    ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={disabled}
+                title={hideFromTotals ? 'Hidden from monthly totals' : 'Visible in monthly totals'}
+              >
+                {hideFromTotals ? (
+                  <EyeOff size={20} />
+                ) : (
+                  <Eye size={20} />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Transaction Type */}
@@ -331,20 +353,6 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
             </div>
           </div>
 
-          {/* Hide from totals toggle */}
-          <div>
-            <div className="h-12 flex items-center">
-              <ToggleSwitch
-                id="hide-from-totals"
-                name="hide-from-totals"
-                checked={hideFromTotals}
-                onChange={updateHideFromTotals}
-                label="Hide monthly transaction"
-                disabled={disabled}
-                className="w-full"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Submit Button */}
