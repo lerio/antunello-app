@@ -30,7 +30,7 @@ export function HorizontalMonthSelector({
   const isInFuture = selectedDate > currentDate
   const isInPast = selectedDate < currentDate
 
-  // Center the selected month when it changes
+  // Center the selected month instantly (without smooth animation)
   useEffect(() => {
     if (selectedRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current
@@ -43,10 +43,8 @@ export function HorizontalMonthSelector({
       // Calculate scroll position to center the element
       const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
       
-      container.scrollTo({
-        left: scrollLeft,
-        behavior: 'smooth'
-      })
+      // Use instant scrolling (no smooth behavior)
+      container.scrollLeft = scrollLeft
     }
   }, [selectedMonth])
 
