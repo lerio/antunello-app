@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
+import { useAvailableMonths } from "@/hooks/useAvailableMonths";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
@@ -55,6 +57,8 @@ export default function ProtectedPage() {
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
+
+  const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
@@ -127,32 +131,21 @@ export default function ProtectedPage() {
     [deleteTransaction]
   );
 
-  const navigateMonth = useCallback(
-    (direction: "prev" | "next") => {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(
-        currentDate.getMonth() + (direction === "prev" ? -1 : 1)
-      );
+  const handleMonthSelect = useCallback((year: number, month: number) => {
+    const newDate = new Date(year, month - 1, 1);
+    setCurrentDate(newDate);
 
-      setCurrentDate(newDate);
+    const now = new Date();
+    const isCurrentMonth = 
+      month === now.getMonth() + 1 && 
+      year === now.getFullYear();
 
-      const now = new Date();
-      const isCurrentMonth =
-        newDate.getMonth() === now.getMonth() &&
-        newDate.getFullYear() === now.getFullYear();
+    const newUrl = isCurrentMonth
+      ? "/protected"
+      : `/protected?year=${year}&month=${month.toString().padStart(2, "0")}`;
 
-      const newUrl = isCurrentMonth
-        ? "/protected"
-        : `/protected?year=${newDate.getFullYear()}&month=${(
-            newDate.getMonth() + 1
-          )
-            .toString()
-            .padStart(2, "0")}`;
-
-      window.history.pushState(null, "", newUrl);
-    },
-    [currentDate]
-  );
+    window.history.pushState(null, "", newUrl);
+  }, []);
 
   const monthYearString = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -190,33 +183,22 @@ export default function ProtectedPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Sticky Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-6 pb-4 -mx-6 px-6">
-          <div className="relative flex justify-center items-center">
-            <button
-              onClick={() => navigateMonth("prev")}
-              className="absolute left-0 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Previous month"
-            >
-              <ChevronLeft
-                size={24}
-                className="text-gray-600 dark:text-gray-400"
-              />
-            </button>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              {monthYearString}
-            </h2>
-            <button
-              onClick={() => navigateMonth("next")}
-              className="absolute right-0 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Next month"
-            >
-              <ChevronRight
-                size={24}
-                className="text-gray-600 dark:text-gray-400"
-              />
-            </button>
-          </div>
+        {/* Sticky Horizontal Month Selector */}
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
+          {monthsLoading ? (
+            <div className="flex justify-center">
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
+            </div>
+          ) : (
+            <HorizontalMonthSelector
+              months={availableMonths}
+              selectedMonth={{
+                year: currentDate.getFullYear(),
+                month: currentDate.getMonth() + 1
+              }}
+              onMonthSelect={handleMonthSelect}
+            />
+          )}
         </div>
 
         <MonthSummary transactions={transactions} isLoading={isLoading} />

@@ -12,7 +12,7 @@
   "dependencies": {
     "@floating-ui/react": "^0.27.15",
     "@radix-ui/react-label": "^2.1.7",
-    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "^2.55.0",
@@ -30,13 +30,13 @@
     "swr": "^2.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.11",
-    "@types/node": "24.2.1",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "24.3.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "19.1.7",
     "postcss": "8.5.6",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.11",
+    "tailwindcss": "^4.1.12",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.9.2"
   }
