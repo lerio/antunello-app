@@ -54,7 +54,15 @@ export default function RootLayout({
         className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg animate-pulse">
+                A
+              </div>
+            </div>
+          }
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -69,9 +77,12 @@ export default function RootLayout({
                 {/* New Header Design */}
                 <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
                   <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                    <Link href="/protected" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                    <Link
+                      href="/protected"
+                      className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
+                    >
                       <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
-                        N
+                        A
                       </div>
                       <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                         Antunello
