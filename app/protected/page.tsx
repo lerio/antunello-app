@@ -88,8 +88,12 @@ export default function ProtectedPage() {
   const handleSearchClick = useCallback(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
-    
-    router.push(`/protected/search?from_year=${year}&from_month=${month.toString().padStart(2, '0')}`);
+
+    router.push(
+      `/protected/search?from_year=${year}&from_month=${month
+        .toString()
+        .padStart(2, "0")}`
+    );
   }, [router, currentDate]);
 
   const handleAddTransaction = useCallback(() => {
@@ -215,28 +219,27 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year and Actions Row */}
-        <div className="flex items-center justify-between pt-4 pb-2">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {currentDate.getFullYear()}
-            </h2>
-            <button
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onClick={() => {
-                /* Summary functionality to be implemented */
-              }}
-            >
-              Summary
-            </button>
-          </div>
+        <div className="flex items-center justify-between pt-6 pb-2">
+          <div className="flex-1"></div>
 
           <button
-            className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            onClick={handleSearchClick}
-            aria-label="Search transactions"
+            className="px-6 py-1 text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
+            onClick={() => {
+              /* Year functionality to be implemented */
+            }}
           >
-            <Search size={20} />
+            {currentDate.getFullYear()}
           </button>
+
+          <div className="flex-1 flex justify-end">
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={handleSearchClick}
+              aria-label="Search transactions"
+            >
+              <Search size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Sticky Horizontal Month Selector */}

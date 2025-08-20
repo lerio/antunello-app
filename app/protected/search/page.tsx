@@ -174,7 +174,7 @@ export default function SearchPage() {
 
         {/* Sticky Search Row */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
-          <div className="flex items-center w-full gap-2 py-3">
+          <div className="flex items-center w-full gap-2 pb-6">
             <button
               className="flex-shrink-0 px-2 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
               onClick={handleBackToTransactions}
@@ -192,9 +192,9 @@ export default function SearchPage() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none font-medium text-sm"
                 autoFocus
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
                 <Search
-                  size={16}
+                  size={20}
                   className="text-gray-400 dark:text-gray-500"
                 />
               </div>
