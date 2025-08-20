@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
   },
 
-  // Suppress Supabase Edge Runtime warnings
-  webpack: (config, { isServer }) => {
+  // Suppress Supabase Edge Runtime warnings and try cache optimization
+  webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -22,10 +22,17 @@ const nextConfig: NextConfig = {
       };
     }
     
+    // Try disabling filesystem cache in development to avoid the warning
+    if (dev) {
+      config.cache = false;
+    }
+    
     config.ignoreWarnings = [
       { module: /node_modules\/@supabase\/realtime-js/ },
       { module: /node_modules\/@supabase\/supabase-js/ },
       /Critical dependency: the request of a dependency is an expression/,
+      // Suppress the serialization warning as a last resort
+      /Serializing big strings.*impacts deserialization performance/,
     ];
     
     return config;

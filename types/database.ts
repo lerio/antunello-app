@@ -30,186 +30,35 @@ export type ExchangeRate = {
   is_missing?: boolean
 }
 
-export const CATEGORIES_WITH_TYPES = [
-  {
-    "category": "Bank Movements",
-    "subcategories": [
-      "Initial Assets"
-    ],
-    "type": "income"
-  },
-  {
-    "category": "Dining",
-    "subcategories": [
-      "Bars and Drinks",
-      "Food Delivery",
-      "Restaurants"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Education",
-    "subcategories": [
-      "Books and Supplies",
-      "Educational Services",
-      "Tuition and Fees"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Entertainment",
-    "subcategories": [
-      "Media Subscriptions",
-      "Movies and Theaters",
-      "Museums and Events"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Fitness",
-    "subcategories": [
-      "Other Activities",
-      "Sport Equipment",
-      "Sport Memberships"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Gifts and Donations",
-    "subcategories": [
-      "Charity",
-      "Donations to Causes",
-      "Gifts",
-      "Loan"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Government Benefits",
-    "subcategories": [
-      "Child Support",
-      "Unemployment Benefits",
-      "Welfare"
-    ],
-    "type": "income"
-  },
-  {
-    "category": "Groceries",
-    "subcategories": [
-      "Drugstore",
-      "Supermarket"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Health",
-    "subcategories": [
-      "Health Insurance",
-      "Medical Bills",
-      "Pharmacy"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Housing",
-    "subcategories": [
-      "Furniture and Houseware",
-      "Home Maintenance",
-      "Rent",
-      "Utilities"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Insurance",
-    "subcategories": [
-      "Car Insurance",
-      "Home Insurance",
-      "Other Insurance",
-      "Travel Insurance"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Other Income",
-    "subcategories": [
-      "Gifts and Inheritance",
-      "Miscellaneous Income",
-      "Reimbursements",
-      "Second-Hand Sales"
-    ],
-    "type": "income"
-  },
-  {
-    "category": "Personal Care",
-    "subcategories": [
-      "Haircuts and Beauty",
-      "Spa and Treatments"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Primary Income",
-    "subcategories": [
-      "Investment Income",
-      "Salary"
-    ],
-    "type": "income"
-  },
-  {
-    "category": "Services",
-    "subcategories": [
-      "Bank Fees",
-      "Digital Services",
-      "Office",
-      "Other Services",
-      "Postal Office",
-      "Stationery"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Shopping",
-    "subcategories": [
-      "Books and Comics",
-      "Clothing and Accessories",
-      "Tech and Gadgets",
-      "Toys and Videogames"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Taxes and Fines",
-    "subcategories": [
-      "Fines",
-      "Income Taxes",
-      "Investment Losses",
-      "Property Taxes"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Transportation",
-    "subcategories": [
-      "Fuel",
-      "Parking and Tolls",
-      "Public Transportation",
-      "Taxi and Car Sharing",
-      "Vehicles and Maintenance"
-    ],
-    "type": "expense"
-  },
-  {
-    "category": "Travel",
-    "subcategories": [
-      "Accommodations",
-      "Flights",
-      "Trains and Buses",
-      "Travel Fees"
-    ],
-    "type": "expense"
-  }
-] as const
+// Define the type
+type CategoryData = {
+  category: string;
+  subcategories: ReadonlyArray<string>;
+  type: 'income' | 'expense';
+};
+
+// Use a smaller inline constant for now to avoid webpack cache issues
+export const CATEGORIES_WITH_TYPES: ReadonlyArray<CategoryData> = [
+  { category: "Bank Movements", subcategories: ["Initial Assets"], type: "income" },
+  { category: "Dining", subcategories: ["Bars and Drinks", "Food Delivery", "Restaurants"], type: "expense" },
+  { category: "Education", subcategories: ["Books and Supplies", "Educational Services", "Tuition and Fees"], type: "expense" },
+  { category: "Entertainment", subcategories: ["Media Subscriptions", "Movies and Theaters", "Museums and Events"], type: "expense" },
+  { category: "Fitness", subcategories: ["Other Activities", "Sport Equipment", "Sport Memberships"], type: "expense" },
+  { category: "Gifts and Donations", subcategories: ["Charity", "Donations to Causes", "Gifts", "Loan"], type: "expense" },
+  { category: "Government Benefits", subcategories: ["Child Support", "Unemployment Benefits", "Welfare"], type: "income" },
+  { category: "Groceries", subcategories: ["Drugstore", "Supermarket"], type: "expense" },
+  { category: "Health", subcategories: ["Health Insurance", "Medical Bills", "Pharmacy"], type: "expense" },
+  { category: "Housing", subcategories: ["Furniture and Houseware", "Home Maintenance", "Rent", "Utilities"], type: "expense" },
+  { category: "Insurance", subcategories: ["Car Insurance", "Home Insurance", "Other Insurance", "Travel Insurance"], type: "expense" },
+  { category: "Other Income", subcategories: ["Gifts and Inheritance", "Miscellaneous Income", "Reimbursements", "Second-Hand Sales"], type: "income" },
+  { category: "Personal Care", subcategories: ["Haircuts and Beauty", "Spa and Treatments"], type: "expense" },
+  { category: "Primary Income", subcategories: ["Investment Income", "Salary"], type: "income" },
+  { category: "Services", subcategories: ["Bank Fees", "Digital Services", "Office", "Other Services", "Postal Office", "Stationery"], type: "expense" },
+  { category: "Shopping", subcategories: ["Books and Comics", "Clothing and Accessories", "Tech and Gadgets", "Toys and Videogames"], type: "expense" },
+  { category: "Taxes and Fines", subcategories: ["Fines", "Income Taxes", "Investment Losses", "Property Taxes"], type: "expense" },
+  { category: "Transportation", subcategories: ["Fuel", "Parking and Tolls", "Public Transportation", "Taxi and Car Sharing", "Vehicles and Maintenance"], type: "expense" },
+  { category: "Travel", subcategories: ["Accommodations", "Flights", "Trains and Buses", "Travel Fees"], type: "expense" }
+]
 
 // Derived arrays from CATEGORIES_WITH_TYPES
 export const MAIN_CATEGORIES = CATEGORIES_WITH_TYPES.map(cat => cat.category)
