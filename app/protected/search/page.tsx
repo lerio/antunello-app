@@ -174,9 +174,9 @@ export default function SearchPage() {
 
         {/* Sticky Search Row */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
-          <div className="flex items-center w-full gap-3 py-3">
+          <div className="flex items-center w-full gap-2 py-3">
             <button
-              className="flex-shrink-0 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
+              className="flex-shrink-0 px-2 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
               onClick={handleBackToTransactions}
               aria-label="Back to transactions"
             >
