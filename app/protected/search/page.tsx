@@ -170,11 +170,11 @@ export default function SearchPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header spacing */}
-        <div className="pt-4"></div>
+        <div className="pt-2"></div>
 
         {/* Sticky Search Row */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
-          <div className="flex items-center w-full gap-2 pb-6">
+          <div className="flex items-center w-full gap-2 pb-4">
             <button
               className="flex-shrink-0 px-2 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
               onClick={handleBackToTransactions}

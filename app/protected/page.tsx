@@ -219,7 +219,7 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year and Actions Row */}
-        <div className="flex items-center justify-between pt-6 pb-2">
+        <div className="flex items-center justify-between pt-4">
           <div className="flex-1"></div>
 
           <button
