@@ -10,7 +10,7 @@
     "update-pipe-titles:execute": "node scripts/update-pipe-titles.js --execute"
   },
   "dependencies": {
-    "@floating-ui/react": "^0.27.15",
+    "@floating-ui/react": "^0.27.16",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
