@@ -91,6 +91,10 @@ class TransactionCache {
     }
   }
 
+  delete(key: string) {
+    this.cache.delete(key)
+  }
+
   clear() {
     this.cache.clear()
   }

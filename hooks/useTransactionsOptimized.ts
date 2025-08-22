@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { usePrefetch } from './usePrefetch'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
+import { createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
 
 // Consolidated, optimized transactions hook
@@ -12,6 +13,14 @@ export function useTransactionsOptimized(year: number, month: number) {
   const { prefetchAdjacentMonths } = usePrefetch()
   
   const monthKey = createMonthKey(year, month)
+
+  // Helper to invalidate year cache
+  const invalidateYearCache = useCallback((date: string) => {
+    const transactionDate = new Date(date)
+    const yearKey = createYearKey(transactionDate.getFullYear())
+    globalMutate(yearKey, undefined, true)
+    transactionCache.delete(yearKey)
+  }, [])
 
   const { 
     data: transactions, 
@@ -78,6 +87,9 @@ export function useTransactionsOptimized(year: number, month: number) {
             return [newRecord, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           }, false)
         }
+        
+        // Invalidate year cache for the affected year
+        invalidateYearCache(newRecord.date)
       } else if (eventType === 'UPDATE' && newRecord && oldRecord) {
         const newRecordDate = new Date(newRecord.date)
         const oldRecordDate = new Date(oldRecord.date)
@@ -103,6 +115,12 @@ export function useTransactionsOptimized(year: number, month: number) {
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           }, false)
         }
+        
+        // Invalidate year caches for affected years
+        invalidateYearCache(oldRecord.date)
+        if (newRecord.date !== oldRecord.date) {
+          invalidateYearCache(newRecord.date)
+        }
       } else if (eventType === 'DELETE' && oldRecord) {
         const recordDate = new Date(oldRecord.date)
         const recordYear = recordDate.getFullYear()
@@ -113,6 +131,9 @@ export function useTransactionsOptimized(year: number, month: number) {
             return transactions.filter(t => t.id !== oldRecord.id)
           }, false)
         }
+        
+        // Invalidate year cache for the affected year
+        invalidateYearCache(oldRecord.date)
       }
     }
 
@@ -120,7 +141,7 @@ export function useTransactionsOptimized(year: number, month: number) {
     return () => {
       if (channel) supabase.removeChannel(channel)
     }
-  }, [year, month, mutate, supabase])
+  }, [year, month, mutate, supabase, invalidateYearCache])
 
   // Memoized summary calculations
   const summary = useMemo(() => {

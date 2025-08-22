@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { convertToEUR } from '@/utils/currency-conversion'
 import { transactionCache } from '@/utils/simple-cache'
+import { createYearKey } from '@/utils/year-fetcher'
 
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
@@ -13,9 +14,14 @@ export function useTransactionMutations() {
     return `transactions-${d.getFullYear()}-${d.getMonth() + 1}`
   }
 
+  const getYearKey = (date: string) => {
+    const d = new Date(date)
+    return createYearKey(d.getFullYear())
+  }
+
   const getTransactionKey = (id: string) => `transaction-${id}`
 
-  // Helper function to update both SWR cache and simple cache
+  // Helper function to update both SWR cache and simple cache (both month and year)
   const updateBothCaches = (monthKey: string, updateFn: (transactions: Transaction[]) => Transaction[]) => {
     // Update SWR cache - handle undefined case
     mutate(monthKey, (currentData: Transaction[] = []) => updateFn(currentData), false)
@@ -26,6 +32,15 @@ export function useTransactionMutations() {
       const updatedData = updateFn(cachedData)
       transactionCache.set(monthKey, updatedData)
     }
+  }
+
+  // Helper function to invalidate year cache when transactions change
+  const invalidateYearCache = (date: string) => {
+    const yearKey = getYearKey(date)
+    // Remove from SWR cache to force refetch
+    mutate(yearKey, undefined, true)
+    // Remove from simple cache
+    transactionCache.delete(yearKey)
   }
 
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
@@ -91,6 +106,9 @@ export function useTransactionMutations() {
           t.id === optimisticTransaction.id ? newTransaction : t
         ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       })
+
+      // Invalidate year cache to ensure yearly summary is updated
+      invalidateYearCache(data.date)
 
       return newTransaction
     } catch (error) {
@@ -235,6 +253,12 @@ export function useTransactionMutations() {
       // Update the single transaction cache
       mutate(getTransactionKey(id), updatedTransaction, false)
 
+      // Invalidate year caches to ensure yearly summaries are updated
+      invalidateYearCache(oldDate)
+      if (data.date && data.date !== oldDate) {
+        invalidateYearCache(data.date)
+      }
+
       return updatedTransaction
     } catch (error) {
       // Rollback optimistic update on error
@@ -278,6 +302,9 @@ export function useTransactionMutations() {
         .eq('id', transaction.id)
 
       if (error) throw error
+      
+      // Invalidate year cache to ensure yearly summary is updated
+      invalidateYearCache(transaction.date)
       
       return transaction
     } catch (error) {
