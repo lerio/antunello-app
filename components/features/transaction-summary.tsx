@@ -15,15 +15,17 @@ type CategoryTotals = {
   };
 };
 
-type MonthSummaryProps = {
+type TransactionSummaryProps = {
   transactions: Transaction[];
   isLoading?: boolean;
+  includeHiddenInTotals?: boolean;
 };
 
-export default function MonthSummary({
+export default function TransactionSummary({
   transactions,
   isLoading = false,
-}: MonthSummaryProps) {
+  includeHiddenInTotals = false,
+}: TransactionSummaryProps) {
   // State for collapsible sections (default collapsed)
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
@@ -41,17 +43,14 @@ export default function MonthSummary({
 
   // Calculate totals using EUR amounts
   transactions.forEach((transaction) => {
-    // Use EUR amount if available, otherwise fall back to original amount (assuming EUR)
-    const eurAmount =
-      transaction.eur_amount ||
-      (transaction.currency === "EUR" ? transaction.amount : 0);
-
-    // Skip transactions without EUR conversion (to avoid incorrect totals)
-    if (eurAmount === 0 && transaction.currency !== "EUR") {
+    // Skip transactions without eur_amount (they haven't been converted)
+    if (transaction.eur_amount === null || transaction.eur_amount === undefined) {
       return;
     }
 
-    // Handle hidden transactions separately
+    const eurAmount = transaction.eur_amount;
+
+    // Handle hidden transactions
     if (transaction.hide_from_totals) {
       hiddenTransactionCount++;
       if (transaction.type === "expense") {
@@ -59,10 +58,14 @@ export default function MonthSummary({
       } else {
         hiddenIncomeTotal += eurAmount;
       }
-      return;
+      
+      // If we're not including hidden transactions in totals, skip to next transaction
+      if (!includeHiddenInTotals) {
+        return;
+      }
     }
 
-    // Update expense/income totals
+    // Update expense/income totals (includes hidden transactions if includeHiddenInTotals is true)
     if (transaction.type === "expense") {
       expenseTotal += eurAmount;
       // Update expense category totals
@@ -116,11 +119,13 @@ export default function MonthSummary({
           <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <span className="text-lg font-medium text-gray-600 dark:text-gray-400">Balance</span>
-              <HiddenTransactionsTooltip 
-                count={hiddenTransactionCount}
-                hiddenIncomeTotal={hiddenIncomeTotal}
-                hiddenExpenseTotal={hiddenExpenseTotal}
-              />
+              {!includeHiddenInTotals && hiddenTransactionCount > 0 && (
+                <HiddenTransactionsTooltip 
+                  count={hiddenTransactionCount}
+                  hiddenIncomeTotal={hiddenIncomeTotal}
+                  hiddenExpenseTotal={hiddenExpenseTotal}
+                />
+              )}
             </div>
             <span className={`text-lg font-bold ${balanceTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatCurrency(Math.abs(balanceTotal), "EUR")}

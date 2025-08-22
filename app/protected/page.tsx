@@ -16,7 +16,7 @@ import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
-import MonthSummary from "@/components/features/month-summary";
+import TransactionSummary from "@/components/features/transaction-summary";
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
   { ssr: false }
@@ -225,7 +225,15 @@ export default function ProtectedPage() {
           <button
             className="px-6 py-1 text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
             onClick={() => {
-              /* Year functionality to be implemented */
+              const year = currentDate.getFullYear();
+              const currentYear = new Date().getFullYear();
+              const isCurrentYear = year === currentYear;
+              
+              const newUrl = isCurrentYear
+                ? "/protected/year"
+                : `/protected/year?year=${year}`;
+              
+              router.push(newUrl);
             }}
           >
             {currentDate.getFullYear()}
@@ -260,7 +268,7 @@ export default function ProtectedPage() {
           )}
         </div>
 
-        <MonthSummary transactions={transactions} isLoading={isLoading} />
+        <TransactionSummary transactions={transactions} isLoading={isLoading} />
 
         {isLoading ? (
           <div className="space-y-4 mt-8">

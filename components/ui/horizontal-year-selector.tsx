@@ -1,0 +1,171 @@
+import React, { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+export interface YearOption {
+  year: number;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+interface HorizontalYearSelectorProps {
+  years: YearOption[];
+  selectedYear: number;
+  onYearSelect: (year: number) => void;
+  className?: string;
+}
+
+export function HorizontalYearSelector({
+  years,
+  selectedYear,
+  onYearSelect,
+  className = "",
+}: HorizontalYearSelectorProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLButtonElement>(null);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
+
+  // Determine if we should show navigation arrows based on selected year
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const isCurrentYearSelected = selectedYear === currentYear;
+  const isInFuture = selectedYear > currentYear;
+  const isInPast = selectedYear < currentYear;
+
+  // Center the selected year instantly (without smooth animation)
+  useEffect(() => {
+    if (selectedRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const selectedElement = selectedRef.current;
+
+      const containerWidth = container.clientWidth;
+      const elementLeft = selectedElement.offsetLeft;
+      const elementWidth = selectedElement.clientWidth;
+
+      // Calculate scroll position to center the element
+      const scrollLeft = elementLeft - containerWidth / 2 + elementWidth / 2;
+
+      // Use instant scrolling (no smooth behavior)
+      container.scrollLeft = scrollLeft;
+    }
+  }, [selectedYear]);
+
+  // Update fade indicators based on scroll position
+  const updateFadeIndicators = () => {
+    if (!scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const scrollLeft = container.scrollLeft;
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+    setShowLeftFade(scrollLeft > 10);
+    setShowRightFade(scrollLeft < maxScrollLeft - 10);
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Initial check
+    updateFadeIndicators();
+
+    container.addEventListener("scroll", updateFadeIndicators);
+    window.addEventListener("resize", updateFadeIndicators);
+
+    return () => {
+      container.removeEventListener("scroll", updateFadeIndicators);
+      window.removeEventListener("resize", updateFadeIndicators);
+    };
+  }, [years]);
+
+  const navigateToCurrentYear = () => {
+    const today = new Date();
+    onYearSelect(today.getFullYear());
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      {/* Left arrow - Return to current year (when browsing future) */}
+      {!isCurrentYearSelected && isInFuture && (
+        <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center">
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
+          <button
+            onClick={navigateToCurrentYear}
+            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
+            aria-label="Return to current year"
+            title="Return to current year"
+          >
+            <ChevronLeft
+              size={16}
+              className="text-gray-700 dark:text-gray-300"
+            />
+          </button>
+        </div>
+      )}
+
+      {/* Right arrow - Return to current year (when browsing past) */}
+      {!isCurrentYearSelected && isInPast && (
+        <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end">
+          <div className="absolute inset-0 bg-gradient-to-l from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
+          <button
+            onClick={navigateToCurrentYear}
+            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
+            aria-label="Return to current year"
+            title="Return to current year"
+          >
+            <ChevronRight
+              size={16}
+              className="text-gray-700 dark:text-gray-300"
+            />
+          </button>
+        </div>
+      )}
+
+      {/* Scrollable years container */}
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-8"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {years.map((yearOption) => {
+          const isSelected = yearOption.year === selectedYear;
+
+          return (
+            <button
+              key={yearOption.year}
+              ref={isSelected ? selectedRef : undefined}
+              onClick={() => onYearSelect(yearOption.year)}
+              className={`
+                flex-shrink-0 px-4 py-3.5 rounded-lg font-medium text-sm transition-all transform
+                ${
+                  isSelected
+                    ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-lg scale-105"
+                    : yearOption.isToday
+                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    : yearOption.isFuture
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md"
+                }
+                ${isSelected ? "hover:scale-105" : "hover:scale-102"}
+              `}
+            >
+              <div className="text-center min-w-[80px]">
+                <div className="font-semibold">{yearOption.year}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Custom scrollbar hide styles */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -webkit-overflow-scrolling: touch;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </div>
+  );
+}
