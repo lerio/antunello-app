@@ -30,21 +30,29 @@ export function HorizontalMonthSelector({
   const isInFuture = selectedDate > currentDate
   const isInPast = selectedDate < currentDate
 
-  // Center the selected month instantly (without smooth animation)
+  // Center the selected month with smooth animation after DOM updates
   useEffect(() => {
     if (selectedRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const selectedElement = selectedRef.current
       
-      const containerWidth = container.clientWidth
-      const elementLeft = selectedElement.offsetLeft
-      const elementWidth = selectedElement.clientWidth
+      // Use setTimeout to delay centering until after React has completed DOM updates
+      const timeoutId = setTimeout(() => {
+        const containerWidth = container.clientWidth
+        const elementLeft = selectedElement.offsetLeft
+        const elementWidth = selectedElement.clientWidth
+        
+        // Calculate scroll position to center the element
+        const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
+        
+        // Use smooth scrolling animation
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        })
+      }, 50) // Small delay to allow DOM updates to complete
       
-      // Calculate scroll position to center the element
-      const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
-      
-      // Use instant scrolling (no smooth behavior)
-      container.scrollLeft = scrollLeft
+      return () => clearTimeout(timeoutId)
     }
   }, [selectedMonth])
 
