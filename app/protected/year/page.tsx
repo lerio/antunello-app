@@ -90,6 +90,7 @@ export default function YearSummaryPage() {
           transactions={transactions} 
           isLoading={isLoading} 
           includeHiddenInTotals={true}
+          currentYear={currentYear}
         />
 
         {/* Empty space where transactions would normally be */}
