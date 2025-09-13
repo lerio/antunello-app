@@ -93,12 +93,6 @@ export default function YearSummaryPage() {
           currentYear={currentYear}
         />
 
-        {/* Empty space where transactions would normally be */}
-        <div className="mt-8 text-center py-16">
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
-            Year Summary View
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -34,6 +34,11 @@ export const yearTransactionFetcher = async (key: string): Promise<Transaction[]
 async function fetchYearTransactions(key: string): Promise<Transaction[]> {
   const year = parseInt(key.split('-')[2]) // Extract year from "year-transactions-YYYY"
   
+  // Validate the year
+  if (isNaN(year) || year < 1000 || year > 9999) {
+    throw new Error(`Invalid year extracted from key: ${key}`)
+  }
+  
   const startDate = `${year}-01-01`
   const endDate = `${year}-12-31`
 
@@ -73,5 +78,9 @@ async function fetchYearTransactions(key: string): Promise<Transaction[]> {
 
 // Helper to create year keys consistently
 export const createYearKey = (year: number): string => {
+  // Validate the year input
+  if (isNaN(year) || year < 1000 || year > 9999) {
+    throw new Error(`Invalid year provided: ${year}`)
+  }
   return `year-transactions-${year}`
 }

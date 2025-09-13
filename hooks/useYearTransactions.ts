@@ -5,9 +5,9 @@ import { yearTransactionFetcher, createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
 import { useYearPrefetch } from './useYearPrefetch'
 
-export function useYearTransactions(year: number) {
+export function useYearTransactions(year?: number) {
   const { prefetchAdjacentYears } = useYearPrefetch()
-  const yearKey = createYearKey(year)
+  const yearKey = year ? createYearKey(year) : null
 
   const { 
     data: transactions, 
@@ -22,13 +22,13 @@ export function useYearTransactions(year: number) {
     keepPreviousData: true,
     refreshInterval: 0,
     // Use cache as fallback data to prevent loading states
-    fallbackData: transactionCache.get(yearKey) || undefined,
+    fallbackData: yearKey ? transactionCache.get(yearKey) || undefined : undefined,
   })
 
   // Intelligent prefetching of adjacent years
   useEffect(() => {
     // Only prefetch after the current year data has loaded or is cached
-    if (!isLoading && !error) {
+    if (year && !isLoading && !error) {
       prefetchAdjacentYears(year)
     }
   }, [year, isLoading, error, prefetchAdjacentYears])

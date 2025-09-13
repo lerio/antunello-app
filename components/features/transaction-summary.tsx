@@ -16,6 +16,15 @@ type CategoryTotals = {
   };
 };
 
+type CategoryData = {
+  type: 'income' | 'expense';
+  category: string;
+  icon: React.ComponentType<LucideProps>;
+  total: number;
+  monthlyAverage: number;
+  difference: number | null;
+};
+
 type TransactionSummaryProps = {
   transactions: Transaction[];
   isLoading?: boolean;
@@ -32,7 +41,7 @@ export default function TransactionSummary({
 
   // Fetch previous year data for comparison if currentYear is provided
   const previousYear = currentYear ? currentYear - 1 : undefined;
-  const { transactions: previousYearTransactions } = useYearTransactions(previousYear || 0);
+  const { transactions: previousYearTransactions } = useYearTransactions(previousYear);
   
   // Use EUR as the unified currency for all calculations
   let expenseTotal = 0;
@@ -182,7 +191,7 @@ export default function TransactionSummary({
     
     const sign = isPositive ? '+' : '-';
     return (
-      <span className={`${colorClass} text-xs sm:text-sm`}>
+      <span className={`${colorClass} text-sm sm:text-sm`}>
         {sign}{formatAmount(Math.abs(difference))}
       </span>
     );
@@ -246,13 +255,7 @@ export default function TransactionSummary({
   ];
 
   // Prepare categories data
-  const categoriesData: Array<{
-    type: 'income' | 'expense';
-    category: string;
-    icon: React.ComponentType<LucideProps>;
-    monthlyAverage: number;
-    difference: number | null;
-  }> = [];
+  const categoriesData: CategoryData[] = [];
   
   // Add Income categories
   if (Object.keys(incomeCategoryTotals).length > 0) {
@@ -264,6 +267,7 @@ export default function TransactionSummary({
           type: 'income',
           category,
           icon: CATEGORY_ICONS[category],
+          total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
           difference: currentYear && previousYear ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
         });
@@ -280,6 +284,7 @@ export default function TransactionSummary({
           type: 'expense',
           category,
           icon: CATEGORY_ICONS[category],
+          total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
           difference: currentYear && previousYear ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
         });
@@ -298,18 +303,20 @@ export default function TransactionSummary({
             <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Totals (€)</h3>
             <div className="overflow-hidden">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm"></th>
-                    <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total</th>
-                    <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Monthly</th>
-                    {currentYear && previousYear && (
-                      <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                        vs {previousYear}
-                      </th>
-                    )}
-                  </tr>
-                </thead>
+                {currentYear && (
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>
+                      <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Total</th>
+                      <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Monthly</th>
+                      {previousYear && (
+                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
+                          vs {previousYear}
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                )}
                 <tbody>
                   {totalsData.map((item) => {
                     const isHiddenExpense = item.isHiddenExpense;
@@ -318,12 +325,12 @@ export default function TransactionSummary({
                         <td className="py-2 sm:py-3 px-1 sm:px-2">
                           <span className={`${
                             isHiddenExpense 
-                              ? 'text-xs sm:text-sm text-red-600 dark:text-red-400 ml-2 sm:ml-4'
+                              ? 'text-sm sm:text-sm text-red-600 dark:text-red-400 ml-2 sm:ml-4'
                               : item.isBalance 
-                              ? `font-medium text-xs sm:text-sm ${item.total >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
+                              ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
                               : item.isIncome
-                              ? 'font-medium text-xs sm:text-sm text-green-600 dark:text-green-400'
-                              : 'font-medium text-xs sm:text-sm text-red-600 dark:text-red-400'
+                              ? 'font-medium text-sm sm:text-sm text-green-600 dark:text-green-400'
+                              : 'font-medium text-sm sm:text-sm text-red-600 dark:text-red-400'
                           }`}>
                             {item.category}
                           </span>
@@ -331,34 +338,37 @@ export default function TransactionSummary({
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                           <span className={`${
                             isHiddenExpense
-                              ? 'text-xs sm:text-sm text-red-500'
+                              ? 'text-sm sm:text-sm text-red-500'
                               : item.isBalance 
-                              ? `font-medium text-xs sm:text-sm ${item.total >= 0 ? 'text-green-500' : 'text-red-500'}`
+                              ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-500' : 'text-red-500'}`
                               : item.isIncome
-                              ? 'font-medium text-xs sm:text-sm text-green-500'
-                              : 'font-medium text-xs sm:text-sm text-red-500'
+                              ? 'font-medium text-sm sm:text-sm text-green-500'
+                              : 'font-medium text-sm sm:text-sm text-red-500'
                           }`}>
                             {formatAmount(Math.abs(item.total))}
                           </span>
                         </td>
                         {/* Hidden expenses don't show monthly average */}
-                        {!isHiddenExpense && (
-                          <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            <span className={`text-xs sm:text-sm ${
-                              item.isBalance 
-                                ? `${item.monthlyAverage >= 0 ? 'text-green-500' : 'text-red-500'}`
-                                : item.isIncome
-                                ? 'text-green-500'
-                                : 'text-red-500'
-                            }`}>
-                              {formatAmount(Math.abs(item.monthlyAverage))}
-                            </span>
-                          </td>
-                        )}
-                        {isHiddenExpense && (
-                          <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">-</span>
-                          </td>
+                        {currentYear && (
+                          <>
+                            {!isHiddenExpense ? (
+                              <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
+                                <span className={`text-sm sm:text-sm ${
+                                  item.isBalance 
+                                    ? `${item.monthlyAverage >= 0 ? 'text-green-500' : 'text-red-500'}`
+                                    : item.isIncome
+                                    ? 'text-green-500'
+                                    : 'text-red-500'
+                                }`}>
+                                  {formatAmount(Math.abs(item.monthlyAverage))}
+                                </span>
+                              </td>
+                            ) : (
+                              <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
+                                <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
+                              </td>
+                            )}
+                          </>
                         )}
                         {/* Hidden expenses don't show vs previous year comparison */}
                         {currentYear && previousYear && !isHiddenExpense && (
@@ -366,13 +376,13 @@ export default function TransactionSummary({
                             {item.difference !== null ? (
                               formatDifference(item.difference, item.isIncome || item.isBalance)
                             ) : (
-                              <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">-</span>
+                              <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                             )}
                           </td>
                         )}
                         {currentYear && previousYear && isHiddenExpense && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">-</span>
+                            <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                           </td>
                         )}
                       </tr>
@@ -391,10 +401,12 @@ export default function TransactionSummary({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm"></th>
-                      <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Monthly</th>
+                      <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>
+                      <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
+                        {currentYear ? 'Monthly' : 'Total'}
+                      </th>
                       {currentYear && previousYear && (
-                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
                           vs {previousYear}
                         </th>
                       )}
@@ -406,18 +418,18 @@ export default function TransactionSummary({
                         <td className="py-2 sm:py-3 px-1 sm:px-2">
                           <div className="flex items-center min-w-0">
                             <item.icon {...({ size: 14, className: "text-gray-400 dark:text-gray-500 mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" } as LucideProps)} />
-                            <div className="relative min-w-0 flex-1 max-w-[140px] sm:max-w-[200px]">
+                            <div className={`relative min-w-0 flex-1 ${currentYear && previousYear ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
                               <span 
-                                className={`font-medium text-xs sm:text-sm block overflow-hidden whitespace-nowrap ${
+                                className={`font-medium text-sm sm:text-sm block ${currentYear && previousYear ? 'overflow-hidden whitespace-nowrap' : ''} ${
                                   item.type === 'income'
                                     ? 'text-green-600 dark:text-green-400'
                                     : 'text-red-600 dark:text-red-400'
                                 }`} 
                                 title={item.category}
-                                style={{
+                                style={currentYear && previousYear ? {
                                   maskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)',
                                   WebkitMaskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)'
-                                }}
+                                } : undefined}
                               >
                                 {item.category}
                               </span>
@@ -425,10 +437,10 @@ export default function TransactionSummary({
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                          <span className={`text-xs sm:text-sm ${
+                          <span className={`text-sm sm:text-sm ${
                             item.type === 'income' ? 'text-green-500' : 'text-red-500'
                           }`}>
-                            {formatAmount(Math.abs(item.monthlyAverage))}
+                            {formatAmount(Math.abs(currentYear ? item.monthlyAverage : item.total))}
                           </span>
                         </td>
                         {currentYear && previousYear && (
