@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Transaction, getCategoryType } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, EyeOff, Info } from "lucide-react";
+import { LucideProps, EyeOff, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 
@@ -38,6 +38,10 @@ export default function TransactionSummary({
   includeHiddenInTotals = false,
   currentYear,
 }: TransactionSummaryProps) {
+
+  // State for collapsible categories in monthly view
+  const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
+  const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
 
   // Fetch previous year data for comparison if currentYear is provided
   const previousYear = currentYear ? currentYear - 1 : undefined;
@@ -221,38 +225,91 @@ export default function TransactionSummary({
     return <LoadingSkeleton />;
   }
 
-  // Prepare totals data
-  const totalsData = [
-    {
-      category: balanceTotal >= 0 ? 'Gains' : 'Losses',
-      total: balanceTotal,
-      monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
-      difference: currentYear && previousYear ? getDifferenceFromPrevYear(balanceTotal, prevYearBalanceTotal, true) : null,
-      isBalance: true
-    },
-    {
-      category: 'Income',
-      total: incomeTotal,
-      monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
-      difference: currentYear && previousYear ? getDifferenceFromPrevYear(incomeTotal, prevYearIncomeTotal) : null,
-      isIncome: true
-    },
-    {
-      category: 'Expenses',
-      total: expenseTotal,
-      monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
-      difference: currentYear && previousYear ? getDifferenceFromPrevYear(expenseTotal, prevYearExpenseTotal) : null,
-      isExpense: true
-    },
-    // Add Hidden Expenses row if there are any hidden expenses
-    ...(hiddenExpenseTotal > 0 ? [{
-      category: 'Hidden',
-      total: hiddenExpenseTotal,
-      monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
-      difference: currentYear && previousYear ? getDifferenceFromPrevYear(hiddenExpenseTotal, prevYearHiddenExpenseTotal) : null,
-      isHiddenExpense: true
-    }] : [])
-  ];
+  // Prepare totals data with categories for monthly view
+  const createTotalsData = () => {
+    const baseData = [
+      {
+        category: balanceTotal >= 0 ? 'Gains' : 'Losses',
+        total: balanceTotal,
+        monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
+        difference: currentYear && previousYear ? getDifferenceFromPrevYear(balanceTotal, prevYearBalanceTotal, true) : null,
+        isBalance: true
+      },
+      {
+        category: 'Income',
+        total: incomeTotal,
+        monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
+        difference: currentYear && previousYear ? getDifferenceFromPrevYear(incomeTotal, prevYearIncomeTotal) : null,
+        isIncome: true,
+        isCollapsible: !currentYear
+      },
+      {
+        category: 'Expenses',
+        total: expenseTotal,
+        monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
+        difference: currentYear && previousYear ? getDifferenceFromPrevYear(expenseTotal, prevYearExpenseTotal) : null,
+        isExpense: true,
+        isCollapsible: !currentYear
+      },
+      // Add Hidden Expenses row if there are any hidden expenses
+      ...(hiddenExpenseTotal > 0 ? [{
+        category: 'Hidden',
+        total: hiddenExpenseTotal,
+        monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
+        difference: currentYear && previousYear ? getDifferenceFromPrevYear(hiddenExpenseTotal, prevYearHiddenExpenseTotal) : null,
+        isHiddenExpense: true
+      }] : [])
+    ];
+
+    // In monthly view, add category breakdowns under Income and Expenses
+    if (!currentYear) {
+      const extendedData: any[] = [];
+      
+      for (const item of baseData) {
+        extendedData.push(item);
+        
+        // Add income categories after Income row
+        if (item.isIncome && isIncomeExpanded) {
+          Object.entries(incomeCategoryTotals)
+            .sort(([, a], [, b]) => b - a)
+            .forEach(([category, amount]) => {
+              extendedData.push({
+                category,
+                total: amount,
+                monthlyAverage: getMonthlyAverage(amount, currentYear),
+                difference: null,
+                isSubCategory: true,
+                type: 'income',
+                icon: CATEGORY_ICONS[category]
+              });
+            });
+        }
+        
+        // Add expense categories after Expenses row
+        if (item.isExpense && isExpensesExpanded) {
+          Object.entries(expenseCategoryTotals)
+            .sort(([, a], [, b]) => b - a)
+            .forEach(([category, amount]) => {
+              extendedData.push({
+                category,
+                total: amount,
+                monthlyAverage: getMonthlyAverage(amount, currentYear),
+                difference: null,
+                isSubCategory: true,
+                type: 'expense',
+                icon: CATEGORY_ICONS[category]
+              });
+            });
+        }
+      }
+      
+      return extendedData;
+    }
+    
+    return baseData;
+  };
+
+  const totalsData = createTotalsData();
 
   // Prepare categories data
   const categoriesData: CategoryData[] = [];
@@ -318,26 +375,57 @@ export default function TransactionSummary({
                   </thead>
                 )}
                 <tbody>
-                  {totalsData.map((item) => {
+                  {totalsData.map((item, index) => {
                     const isHiddenExpense = item.isHiddenExpense;
+                    const isSubCategory = item.isSubCategory;
+                    const isCollapsible = item.isCollapsible;
+                    
                     return (
-                      <tr key={item.category} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                      <tr key={`${item.category}-${index}`} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <td className="py-2 sm:py-3 px-1 sm:px-2">
-                          <span className={`${
-                            isHiddenExpense 
-                              ? 'text-sm sm:text-sm text-red-600 dark:text-red-400 ml-2 sm:ml-4'
-                              : item.isBalance 
-                              ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
-                              : item.isIncome
-                              ? 'font-medium text-sm sm:text-sm text-green-600 dark:text-green-400'
-                              : 'font-medium text-sm sm:text-sm text-red-600 dark:text-red-400'
-                          }`}>
-                            {item.category}
-                          </span>
+                          <div className="flex items-center">
+                            {isCollapsible && (
+                              <button
+                                onClick={() => {
+                                  if (item.isIncome) {
+                                    setIsIncomeExpanded(!isIncomeExpanded);
+                                  } else if (item.isExpense) {
+                                    setIsExpensesExpanded(!isExpensesExpanded);
+                                  }
+                                }}
+                                className="mr-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                              >
+                                {item.isIncome && isIncomeExpanded ? 
+                                  <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" /> : 
+                                  item.isExpense && isExpensesExpanded ?
+                                  <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" /> :
+                                  <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
+                                }
+                              </button>
+                            )}
+                            {isSubCategory && item.icon && (
+                              <item.icon size={16} className="text-gray-400 dark:text-gray-500 mr-2" />
+                            )}
+                            <span className={`${
+                              isSubCategory 
+                                ? `text-sm sm:text-sm ml-4 ${item.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
+                                : isHiddenExpense 
+                                ? 'text-sm sm:text-sm text-red-600 dark:text-red-400 ml-2 sm:ml-4'
+                                : item.isBalance 
+                                ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
+                                : item.isIncome
+                                ? 'font-medium text-sm sm:text-sm text-green-600 dark:text-green-400'
+                                : 'font-medium text-sm sm:text-sm text-red-600 dark:text-red-400'
+                            }`}>
+                              {item.category}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                           <span className={`${
-                            isHiddenExpense
+                            isSubCategory
+                              ? `text-sm sm:text-sm ${item.type === 'income' ? 'text-green-500' : 'text-red-500'}`
+                              : isHiddenExpense
                               ? 'text-sm sm:text-sm text-red-500'
                               : item.isBalance 
                               ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-500' : 'text-red-500'}`
@@ -348,7 +436,7 @@ export default function TransactionSummary({
                             {formatAmount(Math.abs(item.total))}
                           </span>
                         </td>
-                        {/* Hidden expenses don't show monthly average */}
+                        {/* Monthly column only in year view */}
                         {currentYear && (
                           <>
                             {!isHiddenExpense ? (
@@ -370,7 +458,7 @@ export default function TransactionSummary({
                             )}
                           </>
                         )}
-                        {/* Hidden expenses don't show vs previous year comparison */}
+                        {/* Comparison column only in year view */}
                         {currentYear && previousYear && !isHiddenExpense && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             {item.difference !== null ? (
@@ -393,8 +481,8 @@ export default function TransactionSummary({
             </div>
           </div>
 
-          {/* Categories Table */}
-          {categoriesData.length > 0 && (
+          {/* Categories Table - Only show in year view */}
+          {currentYear && categoriesData.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Category Breakdown (€)</h3>
               <div className="overflow-hidden">
