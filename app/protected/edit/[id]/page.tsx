@@ -4,42 +4,45 @@ import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import dynamic from "next/dynamic";
 import { Transaction } from "@/types/database";
-import { ArrowLeft, Edit3, Trash2, AlertTriangle } from "lucide-react";
+import { Trash2, AlertTriangle } from "lucide-react";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useTransaction } from "@/hooks/useTransaction";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 
 // Lazy load the HTML-design form
-const TransactionForm = dynamic(() => import("@/components/features/transaction-form-html-design"), {
-  loading: () => (
-    <div className="w-full max-w-2xl mx-auto animate-pulse space-y-6">
-      {/* Type Toggle Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Amount and Currency Row Skeleton */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 h-16 bg-gray-200 rounded-xl"></div>
+const TransactionForm = dynamic(
+  () => import("@/components/features/transaction-form-html-design"),
+  {
+    loading: () => (
+      <div className="w-full max-w-2xl mx-auto animate-pulse space-y-6">
+        {/* Type Toggle Skeleton */}
         <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Amount and Currency Row Skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 h-16 bg-gray-200 rounded-xl"></div>
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Title Skeleton */}
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Categories Row Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+          <div className="h-16 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Date Skeleton */}
+        <div className="h-16 bg-gray-200 rounded-xl"></div>
+
+        {/* Button Skeleton */}
+        <div className="h-14 bg-blue-200 rounded-xl"></div>
       </div>
-      
-      {/* Title Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Categories Row Skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="h-16 bg-gray-200 rounded-xl"></div>
-        <div className="h-16 bg-gray-200 rounded-xl"></div>
-      </div>
-      
-      {/* Date Skeleton */}
-      <div className="h-16 bg-gray-200 rounded-xl"></div>
-      
-      {/* Button Skeleton */}
-      <div className="h-14 bg-blue-200 rounded-xl"></div>
-    </div>
-  )
-});
+    ),
+  }
+);
 
 export default function EditTransactionPage({
   params,
@@ -96,7 +99,7 @@ export default function EditTransactionPage({
         return `Failed to delete transaction: ${err.message}`;
       },
     });
-    
+
     setShowDeleteConfirm(false);
   };
 
@@ -106,7 +109,10 @@ export default function EditTransactionPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#f7fafc' }}>
+      <div
+        className="min-h-screen"
+        style={{ fontFamily: "Inter, sans-serif", backgroundColor: "#f7fafc" }}
+      >
         <div className="min-h-screen flex items-center justify-center px-4">
           <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12 animate-pulse">
             {/* Header Skeleton */}
@@ -116,10 +122,10 @@ export default function EditTransactionPage({
                 <div className="w-12 h-4 bg-gray-300 rounded"></div>
               </div>
             </div>
-            
+
             <div className="w-48 h-10 bg-gray-300 rounded mb-2"></div>
             <div className="w-96 h-4 bg-gray-200 rounded mb-12"></div>
-            
+
             {/* Form Skeleton */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div className="h-16 bg-gray-200 rounded-lg"></div>
@@ -129,7 +135,7 @@ export default function EditTransactionPage({
               <div className="md:col-span-2 h-12 bg-gray-200 rounded-lg"></div>
               <div className="h-12 bg-gray-200 rounded-lg"></div>
             </div>
-            
+
             <div className="mt-12 h-14 bg-indigo-200 rounded-lg"></div>
           </div>
         </div>
@@ -140,24 +146,32 @@ export default function EditTransactionPage({
   if (!transaction) return null;
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#f7fafc' }}>
+    <div
+      className="min-h-screen"
+      style={{ fontFamily: "Inter, sans-serif", backgroundColor: "#f7fafc" }}
+    >
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full space-y-6">
-          <TransactionForm initialData={transaction} onSubmit={handleSubmit} onBack={handleBack} />
-          
+          <TransactionForm
+            initialData={transaction}
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+          />
+
           {/* Delete Section */}
           <div className="max-w-4xl mx-auto bg-red-50 rounded-2xl p-6 border border-red-200">
             <div className="flex items-start gap-4">
               <div className="p-2 bg-red-100 text-red-600 rounded-xl">
                 <AlertTriangle size={20} />
               </div>
-              
+
               <div className="flex-1">
                 <h3 className="font-semibold text-red-900 mb-2">Danger Zone</h3>
                 <p className="text-sm text-red-800 mb-4">
-                  Once you delete this transaction, it cannot be recovered. This action is permanent.
+                  Once you delete this transaction, it cannot be recovered. This
+                  action is permanent.
                 </p>
-                
+
                 {!showDeleteConfirm ? (
                   <Button
                     onClick={() => setShowDeleteConfirm(true)}

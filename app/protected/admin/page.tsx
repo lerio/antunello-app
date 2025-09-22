@@ -211,7 +211,7 @@ export default function AdminPage() {
                     <div className="font-medium text-red-800 dark:text-red-200">Errors:</div>
                     <ul className="mt-1 space-y-1 text-red-700 dark:text-red-300">
                       {importResult.errors.slice(0, 10).map((error, index) => (
-                        <li key={index} className="text-xs">• {error}</li>
+                        <li key={`error-${error}-${index}`} className="text-xs">• {error}</li>
                       ))}
                       {importResult.errors.length > 10 && (
                         <li className="text-xs">... and {importResult.errors.length - 10} more errors</li>

@@ -1,7 +1,5 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -55,14 +53,20 @@
   }
 }
 
-@utility container {
-  margin-inline: auto;
-  padding-inline: 2rem;
-  @media (width >= --theme(--breakpoint-sm)) {
-    max-width: none;
+@layer utilities {
+  .container {
+    margin-inline: auto;
+    padding-inline: 2rem;
   }
-  @media (width >= 1400px) {
-    max-width: 1400px;
+  @media (min-width: 640px) {
+    .container {
+      max-width: none;
+    }
+  }
+  @media (min-width: 1400px) {
+    .container {
+      max-width: 1400px;
+    }
   }
 }
 
@@ -197,7 +201,6 @@
   position: sticky;
   top: 80px; /* Match the header height exactly */
   z-index: 40;
-  background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
   backdrop-filter: blur(8px);
   background: rgb(249 250 251 / 0.95); /* Light mode with transparency */

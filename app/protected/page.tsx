@@ -8,6 +8,7 @@ import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
 import { useModalState } from "@/hooks/useModalState";
+import { useAllTransactions } from "@/hooks/useAllTransactions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
@@ -17,6 +18,7 @@ import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
+import OverallTotals from "@/components/features/overall-totals";
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
   { ssr: false }
@@ -64,6 +66,8 @@ export default function ProtectedPage() {
   );
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
+
+  const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactions();
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
@@ -249,6 +253,11 @@ export default function ProtectedPage() {
             </button>
           </div>
         </div>
+
+        {/* Overall Totals */}
+        {!allTransactionsLoading && (
+          <OverallTotals allTransactions={allTransactions} />
+        )}
 
         {/* Sticky Horizontal Month Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">

@@ -2,11 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { ArrowLeft, Plus } from "lucide-react";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
-import { Button } from "@/components/ui/button";
 
 // Lazy load the HTML-design form
 const TransactionForm = dynamic(() => import("@/components/features/transaction-form-html-design"), {
