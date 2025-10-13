@@ -74,9 +74,7 @@ export default function YearSummaryPage() {
         </div>
 
         {/* Overall Totals */}
-        {!allTransactionsLoading && (
-          <OverallTotals allTransactions={allTransactions} />
-        )}
+        <OverallTotals />
 
         {/* Sticky Horizontal Year Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">

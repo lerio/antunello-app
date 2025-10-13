@@ -90,6 +90,8 @@ export function useTransactionsOptimized(year: number, month: number) {
         
         // Invalidate year cache for the affected year
         invalidateYearCache(newRecord.date)
+        // Revalidate overall totals
+        globalMutate('/api/overall-totals', undefined, true)
       } else if (eventType === 'UPDATE' && newRecord && oldRecord) {
         const newRecordDate = new Date(newRecord.date)
         const oldRecordDate = new Date(oldRecord.date)
@@ -121,6 +123,8 @@ export function useTransactionsOptimized(year: number, month: number) {
         if (newRecord.date !== oldRecord.date) {
           invalidateYearCache(newRecord.date)
         }
+        // Revalidate overall totals
+        globalMutate('/api/overall-totals', undefined, true)
       } else if (eventType === 'DELETE' && oldRecord) {
         const recordDate = new Date(oldRecord.date)
         const recordYear = recordDate.getFullYear()
@@ -134,6 +138,8 @@ export function useTransactionsOptimized(year: number, month: number) {
         
         // Invalidate year cache for the affected year
         invalidateYearCache(oldRecord.date)
+        // Revalidate overall totals
+        globalMutate('/api/overall-totals', undefined, true)
       }
     }
 

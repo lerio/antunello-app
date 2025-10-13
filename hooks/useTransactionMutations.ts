@@ -109,6 +109,8 @@ export function useTransactionMutations() {
 
       // Invalidate year cache to ensure yearly summary is updated
       invalidateYearCache(data.date)
+      // Revalidate overall totals
+      mutate('/api/overall-totals', undefined, true)
 
       return newTransaction
     } catch (error) {
@@ -258,6 +260,8 @@ export function useTransactionMutations() {
       if (data.date && data.date !== oldDate) {
         invalidateYearCache(data.date)
       }
+      // Revalidate overall totals
+      mutate('/api/overall-totals', undefined, true)
 
       return updatedTransaction
     } catch (error) {
@@ -305,6 +309,8 @@ export function useTransactionMutations() {
       
       // Invalidate year cache to ensure yearly summary is updated
       invalidateYearCache(transaction.date)
+      // Revalidate overall totals
+      mutate('/api/overall-totals', undefined, true)
       
       return transaction
     } catch (error) {

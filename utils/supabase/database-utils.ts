@@ -155,6 +155,17 @@ export async function importTransactions(
   result.success = totalImported > 0
   
   console.log('Import complete. Total imported:', totalImported);
+
+  // Revalidate overall totals
+  try {
+    const { mutate: globalMutate } = await import('swr')
+    // In case dynamic import fails, fallback to require
+    // @ts-ignore
+    const gm = globalMutate || (require('swr').mutate)
+    gm('/api/overall-totals', undefined, true)
+  } catch (e) {
+    // ignore if SWR not available in this context
+  }
   
   return result
 }
