@@ -41,6 +41,8 @@ export default function SearchPage() {
     results: searchResults,
     isLoading: searchLoading,
     error: searchError,
+    removeFromResults,
+    refetch: refetchSearch,
   } = useTransactionSearch(searchQuery);
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
@@ -150,20 +152,27 @@ export default function SearchPage() {
 
   const handleDeleteTransaction = useCallback(
     async (transaction: Transaction) => {
+      // Optimistically remove from UI
+      removeFromResults(transaction.id);
+
       const toastPromise = deleteTransaction(transaction);
 
       toast.promise(toastPromise, {
         loading: "Deleting transaction...",
         success: () => {
+          // Ensure search is in sync with DB
+          void refetchSearch();
           closeEditModal();
           return "Transaction deleted successfully!";
         },
         error: (err) => {
+          // On error, refetch to restore previous results
+          void refetchSearch();
           return `Failed to delete transaction: ${err.message}`;
         },
       });
     },
-    [deleteTransaction, closeEditModal]
+    [deleteTransaction, removeFromResults, refetchSearch, closeEditModal]
   );
 
   return (
