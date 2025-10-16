@@ -2,8 +2,6 @@ import useSWR from 'swr'
 
 export type TotalsResp = {
   eurTotal: number
-  currencyTotals: Record<string, number>
-  currencyEurTotals: Record<string, number>
 }
 
 const fetcher = (url: string) => fetch(url).then(r => {
