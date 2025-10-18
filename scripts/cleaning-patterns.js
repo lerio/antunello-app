@@ -5,8 +5,8 @@
 
 const CLEANING_PATTERNS = [
   // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-  { pattern: /\/\/[^\/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, replacement: '' },
-  { pattern: /\/\/[^\/]+\/[A-Z]{2}$/i, replacement: '' },
+  { pattern: /\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, replacement: '' },
+  { pattern: /\/\/[^/]+\/[A-Z]{2}$/i, replacement: '' },
   
   // Remove common purchase/transaction phrases
   { pattern: /\s+Your\s+purchase\s+at\s+(.+)$/i, replacement: '' },

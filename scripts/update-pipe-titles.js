@@ -184,8 +184,8 @@ async function updateTransactionTitles() {
     function cleanTitle(title) {
       return title
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replace(/\/\/[^\/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
-        .replace(/\/\/[^\/]+\/[A-Z]{2}$/i, '')
+        .replace(/\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
+        .replace(/\/\/[^/]+\/[A-Z]{2}$/i, '')
         
         // Remove common purchase/transaction phrases
         .replace(/\s+Your\s+purchase\s+at\s+(.+)$/i, '') // "SPOTIFY Your purchase at SPOTIFY" -> "SPOTIFY"

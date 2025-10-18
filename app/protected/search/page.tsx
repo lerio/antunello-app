@@ -161,13 +161,13 @@ export default function SearchPage() {
         loading: "Deleting transaction...",
         success: () => {
           // Ensure search is in sync with DB
-          void refetchSearch();
+          refetchSearch();
           closeEditModal();
           return "Transaction deleted successfully!";
         },
         error: (err) => {
           // On error, refetch to restore previous results
-          void refetchSearch();
+          refetchSearch();
           return `Failed to delete transaction: ${err.message}`;
         },
       });

@@ -44,7 +44,7 @@ export function useTransactionSearch(query: string) {
       setError(null)
       return
     }
-    const timeoutId = setTimeout(() => { void refetch() }, 300)
+    const timeoutId = setTimeout(() => { refetch() }, 300)
     return () => clearTimeout(timeoutId)
   }, [query, refetch])
 
