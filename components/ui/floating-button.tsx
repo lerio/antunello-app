@@ -2,11 +2,11 @@ import React from 'react'
 import { LucideIcon } from 'lucide-react'
 
 interface FloatingButtonProps {
-  onClick: () => void
-  icon: LucideIcon
-  label: string
-  position?: 'bottom' | 'stacked'
-  className?: string
+  readonly onClick: () => void
+  readonly icon: LucideIcon
+  readonly label: string
+  readonly position?: 'bottom' | 'stacked'
+  readonly className?: string
 }
 
 export function FloatingButton({

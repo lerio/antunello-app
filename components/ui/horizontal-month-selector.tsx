@@ -17,10 +17,10 @@ function getMonthButtonVariant(isSelected: boolean, isToday: boolean, isFuture: 
 }
 
 interface HorizontalMonthSelectorProps {
-  months: MonthOption[]
-  selectedMonth: { year: number; month: number }
-  onMonthSelect: (year: number, month: number) => void
-  className?: string
+  readonly months: ReadonlyArray<MonthOption>
+  readonly selectedMonth: Readonly<{ year: number; month: number }>
+  readonly onMonthSelect: (year: number, month: number) => void
+  readonly className?: string
 }
 
 export function HorizontalMonthSelector({

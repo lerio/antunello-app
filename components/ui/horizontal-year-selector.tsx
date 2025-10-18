@@ -22,10 +22,10 @@ export interface YearOption {
 }
 
 interface HorizontalYearSelectorProps {
-  years: YearOption[];
-  selectedYear: number;
-  onYearSelect: (year: number) => void;
-  className?: string;
+  readonly years: ReadonlyArray<YearOption>;
+  readonly selectedYear: number;
+  readonly onYearSelect: (year: number) => void;
+  readonly className?: string;
 }
 
 export function HorizontalYearSelector({

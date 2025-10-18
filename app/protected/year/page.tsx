@@ -41,7 +41,7 @@ export default function YearSummaryPage() {
       ? "/protected/year"
       : `/protected/year?year=${year}`;
 
-    window.history.pushState(null, "", newUrl);
+    globalThis.history.pushState(null, "", newUrl);
   }, []);
 
   if (error) {
@@ -52,7 +52,7 @@ export default function YearSummaryPage() {
             Error Loading Year Data
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
+          <Button onClick={() => globalThis.location?.reload()} className="mt-4">
             Retry
           </Button>
         </div>

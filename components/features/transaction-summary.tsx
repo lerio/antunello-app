@@ -25,10 +25,10 @@ type CategoryData = {
 };
 
 type TransactionSummaryProps = {
-  transactions: Transaction[];
-  isLoading?: boolean;
-  includeHiddenInTotals?: boolean;
-  currentYear?: number;
+  readonly transactions: Transaction[];
+  readonly isLoading?: boolean;
+  readonly includeHiddenInTotals?: boolean;
+  readonly currentYear?: number;
 };
 
 export default function TransactionSummary({

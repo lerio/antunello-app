@@ -46,7 +46,7 @@ export function useTransactionMutations() {
   // Helper to convert currency to EUR
   const convertAndUpdateCurrency = async (amount: number, currency: string, date: string): Promise<Partial<Transaction>> => {
     if (currency === 'EUR') {
-      return { eur_amount: amount, exchange_rate: 1.0, rate_date: date.split('T')[0] }
+      return { eur_amount: amount, exchange_rate: 1, rate_date: date.split('T')[0] }
     }
     const conversionResult = await convertToEUR(amount, currency, date.split('T')[0])
     if (conversionResult) {
@@ -88,7 +88,7 @@ export function useTransactionMutations() {
       // Prepare transaction data with currency conversion
       const transactionData = {
         ...data,
-        ...(!data.eur_amount ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {})
+        ...(data.eur_amount === undefined ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {})
       }
 
       const { data: newTransaction, error } = await supabase

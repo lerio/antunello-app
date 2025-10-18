@@ -29,12 +29,7 @@ const nextConfig: NextConfig = {
     config.optimization = config.optimization || {};
     config.optimization.moduleIds = 'deterministic';
 
-    // Align cache tuning with JS config (in addition to disabling cache in dev)
-    if (config.cache && typeof config.cache === 'object' && (config.cache as any).type === 'filesystem') {
-      (config.cache as any).compression = 'gzip';
-      (config.cache as any).maxAge = 1000 * 60 * 60 * 24 * 7; // 1 week
-      (config.cache as any).maxMemoryGenerations = 1;
-    }
+    // (Removed cache tuning assertions to simplify config and avoid unnecessary type assertions)
 
     // Try disabling filesystem cache in development to avoid the warning
     if (dev) {
