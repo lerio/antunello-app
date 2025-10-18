@@ -122,7 +122,7 @@ export async function importTransactions(
     
     while (retryCount <= maxRetries && !success) {
       try {
-        const { error, count } = await supabase
+        const { error } = await supabase
           .from('transactions')
           .insert(batch)
 

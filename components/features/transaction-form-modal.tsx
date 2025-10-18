@@ -150,7 +150,6 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
 
   // Reusable class strings
   const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
-  const selectClass = "form-select block w-full pl-3 pr-10 py-3 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none text-base rounded-lg shadow-sm";
 
   // Helper to get type button color classes
   const getTypeButtonColorClass = (type: 'expense' | 'income', isSelected: boolean): string => {

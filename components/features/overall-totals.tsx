@@ -4,9 +4,7 @@ import React from "react";
 import { formatCurrency } from "@/utils/currency";
 import { useOverallTotals } from "@/hooks/useOverallTotals";
 
-type OverallTotalsProps = {};
-
-export default function OverallTotals({}: OverallTotalsProps) {
+export default function OverallTotals() {
   const { totals, isLoading, error } = useOverallTotals();
 
   const eurTotal = totals?.eurTotal || 0;

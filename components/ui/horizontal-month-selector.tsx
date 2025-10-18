@@ -17,8 +17,6 @@ export function HorizontalMonthSelector({
 }: HorizontalMonthSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLButtonElement>(null)
-  const [showLeftFade, setShowLeftFade] = useState(false)
-  const [showRightFade, setShowRightFade] = useState(false)
   
   // Determine if we should show navigation arrows based on selected month
   const today = new Date()
@@ -56,33 +54,6 @@ export function HorizontalMonthSelector({
     }
   }, [selectedMonth])
 
-  // Update fade indicators based on scroll position
-  const updateFadeIndicators = () => {
-    if (!scrollContainerRef.current) return
-    
-    const container = scrollContainerRef.current
-    const scrollLeft = container.scrollLeft
-    const maxScrollLeft = container.scrollWidth - container.clientWidth
-    
-    setShowLeftFade(scrollLeft > 10)
-    setShowRightFade(scrollLeft < maxScrollLeft - 10)
-  }
-
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    // Initial check
-    updateFadeIndicators()
-
-    container.addEventListener('scroll', updateFadeIndicators)
-    window.addEventListener('resize', updateFadeIndicators)
-
-    return () => {
-      container.removeEventListener('scroll', updateFadeIndicators)
-      window.removeEventListener('resize', updateFadeIndicators)
-    }
-  }, [months])
 
   const navigateToCurrentMonth = () => {
     const today = new Date()

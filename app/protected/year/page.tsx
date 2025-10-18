@@ -32,7 +32,6 @@ export default function YearSummaryPage() {
 
   const { transactions, isLoading, error } = useYearTransactions(currentYear);
   const { availableYears, isLoading: yearsLoading } = useAvailableYears();
-  const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactions();
 
   const handleYearSelect = useCallback((year: number) => {
     setCurrentYear(year);

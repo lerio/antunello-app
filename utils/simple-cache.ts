@@ -9,7 +9,7 @@ interface CacheEntry {
 
 // LRU cache for transactions with 10 month limit
 class TransactionCache {
-  private cache = new Map<string, CacheEntry>()
+  private readonly cache = new Map<string, CacheEntry>()
   private readonly MAX_ENTRIES = 10
   private readonly TTL = 60 * 60 * 1000 // 1 hour (much longer than before)
 

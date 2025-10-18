@@ -60,14 +60,14 @@ export default function ProtectedPage() {
     hasOpenModal,
   } = useModalState();
 
-  const { transactions, summary, isLoading, error } = useTransactionsOptimized(
+  const { transactions, isLoading, error } = useTransactionsOptimized(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
 
-  const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactions();
+  const { transactions: allTransactions } = useAllTransactions();
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
@@ -187,20 +187,14 @@ export default function ProtectedPage() {
   }, []);
 
   const monthYearString = useMemo(() => {
-    const currentYear = new Date().getFullYear();
     const displayYear = currentDate.getFullYear();
+    const isCurrentYear = displayYear === new Date().getFullYear();
 
     // Only show year if it's different from current year
-    if (displayYear === currentYear) {
-      return currentDate.toLocaleDateString("en-US", {
-        month: "long",
-      });
-    } else {
-      return currentDate.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    }
+    return currentDate.toLocaleDateString("en-US", {
+      month: "long",
+      ...(isCurrentYear ? {} : { year: "numeric" }),
+    });
   }, [currentDate]);
 
   if (error) {
