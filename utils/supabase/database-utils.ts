@@ -188,7 +188,8 @@ export async function importTransactions(
     const gm = globalMutate || (require('swr').mutate)
     gm('/api/overall-totals', undefined, true)
   } catch (e) {
-    // ignore if SWR not available in this context
+    // Handle gracefully if SWR is not available in this context
+    console.warn('Skipping SWR revalidation after import:', e)
   }
   
   return result

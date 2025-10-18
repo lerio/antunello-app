@@ -391,7 +391,7 @@ export default function TransactionSummary({
           icon: CATEGORY_ICONS[category],
           total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
-          difference: currentYear && previousYear ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+          difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
         });
       });
   }
@@ -408,7 +408,7 @@ export default function TransactionSummary({
           icon: CATEGORY_ICONS[category],
           total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
-          difference: currentYear && previousYear ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+          difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
         });
       });
   }
@@ -425,13 +425,13 @@ export default function TransactionSummary({
             <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Totals (€)</h3>
             <div className="overflow-hidden">
               <table className="w-full">
-                {currentYear && (
+                {currentYear != null && (
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>
                       <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Total</th>
                       <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Monthly</th>
-                      {previousYear && (
+                      {previousYear != null && (
                         <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
                           vs {previousYear}
                         </th>
@@ -490,7 +490,7 @@ export default function TransactionSummary({
                           </span>
                         </td>
                         {/* Monthly column only in year view */}
-                        {currentYear && (
+                        {currentYear != null && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             {!isHiddenExpense ? (
                               <span className={getMonthlyAmountClass(item.isBalance || false, item.monthlyAverage)}>
@@ -502,7 +502,7 @@ export default function TransactionSummary({
                           </td>
                         )}
                         {/* Comparison column only in year view */}
-                        {currentYear && previousYear && !isHiddenExpense && (
+                        {currentYear != null && previousYear != null && !isHiddenExpense && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             {item.difference !== null ? (
                               formatDifference(item.difference, item.isIncome || item.isBalance)
@@ -511,7 +511,7 @@ export default function TransactionSummary({
                             )}
                           </td>
                         )}
-                        {currentYear && previousYear && isHiddenExpense && (
+                        {currentYear != null && previousYear != null && isHiddenExpense && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                           </td>
@@ -525,7 +525,7 @@ export default function TransactionSummary({
           </div>
 
           {/* Categories Table - Only show in year view */}
-          {currentYear && categoriesData.length > 0 && (
+          {currentYear != null && categoriesData.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Category Breakdown (€)</h3>
               <div className="overflow-hidden">
@@ -536,7 +536,7 @@ export default function TransactionSummary({
                       <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
                         {currentYear ? 'Monthly' : 'Total'}
                       </th>
-                      {currentYear && previousYear && (
+                      {currentYear != null && previousYear != null && (
                         <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">
                           vs {previousYear}
                         </th>
@@ -549,15 +549,15 @@ export default function TransactionSummary({
                         <td className="py-2 sm:py-3 px-1 sm:px-2">
                           <div className="flex items-center min-w-0">
                             <item.icon {...({ size: 14, className: "text-gray-400 dark:text-gray-500 mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" } as LucideProps)} />
-                            <div className={`relative min-w-0 flex-1 ${currentYear && previousYear ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
+                            <div className={`relative min-w-0 flex-1 ${currentYear != null && previousYear != null ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
                               <span 
-                                className={`font-medium text-sm sm:text-sm block ${currentYear && previousYear ? 'overflow-hidden whitespace-nowrap' : ''} ${
+                                className={`font-medium text-sm sm:text-sm block ${currentYear != null && previousYear != null ? 'overflow-hidden whitespace-nowrap' : ''} ${
                                   item.type === 'income'
                                     ? 'text-green-600 dark:text-green-400'
                                     : 'text-red-600 dark:text-red-400'
                                 }`} 
                                 title={item.category}
-                                style={currentYear && previousYear ? {
+                                style={currentYear != null && previousYear != null ? {
                                   maskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)',
                                   WebkitMaskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)'
                                 } : undefined}
@@ -574,7 +574,7 @@ export default function TransactionSummary({
                             {formatAmount(Math.abs(currentYear ? item.monthlyAverage : item.total))}
                           </span>
                         </td>
-                        {currentYear && previousYear && (
+                        {currentYear != null && previousYear != null && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             {item.difference !== null ? (
                               formatDifference(item.difference, item.type === 'income')

@@ -1,6 +1,19 @@
 import React, { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+function getYearButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
+  if (isSelected) {
+    return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-lg scale-105";
+  }
+  if (isToday) {
+    return "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50";
+  }
+  if (isFuture) {
+    return "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700";
+  }
+  return "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md";
+}
+
 export interface YearOption {
   year: number;
   isToday: boolean;
@@ -116,15 +129,7 @@ export function HorizontalYearSelector({
               onClick={() => onYearSelect(yearOption.year)}
               className={`
                 flex-shrink-0 px-4 py-3.5 rounded-lg font-medium text-sm transition-all transform
-                ${
-                  isSelected
-                    ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-lg scale-105"
-                    : yearOption.isToday
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                    : yearOption.isFuture
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md"
-                }
+                ${getYearButtonVariant(isSelected, yearOption.isToday, yearOption.isFuture)}
                 ${isSelected ? "hover:scale-105" : "hover:scale-102"}
               `}
             >

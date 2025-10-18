@@ -163,49 +163,84 @@ export function useTransactionMutations() {
     })
   }
 
+  // Helper: get original transaction from cache
+  const getOriginalTransactionFromCache = (monthKey: string, id: string): Transaction | undefined => {
+    let original: Transaction | undefined
+    updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
+      original = transactions.find(t => t.id === id)
+      return transactions
+    })
+    return original
+  }
+
+  // Helper: apply optimistic cache updates depending on month change
+  const applyOptimisticUpdate = (oldMonthKey: string, newMonthKey: string, id: string, updated: Transaction) => {
+    if (oldMonthKey !== newMonthKey) {
+      updateCachesOnMonthChange(oldMonthKey, newMonthKey, id, updated)
+    } else {
+      updateCachesInSameMonth(oldMonthKey, id, updated)
+    }
+  }
+
+  // Helper: build update payload for DB
+  const buildUpdateData = async (data: Partial<Transaction>, original: Transaction) => {
+    const needsConversion = !data.eur_amount && (data.amount !== undefined || data.currency !== undefined || data.date !== undefined)
+    return {
+      ...data,
+      ...(needsConversion
+        ? await convertAndUpdateCurrency(
+            data.amount !== undefined ? data.amount : original.amount,
+            data.currency || original.currency,
+            data.date || original.date
+          )
+        : {}),
+    }
+  }
+
+  // Helper: finalize caches and invalidations after DB update
+  const finalizeUpdate = (targetMonthKey: string, id: string, updatedTxn: Transaction, oldDate: string, newDate?: string) => {
+    updateBothCaches(targetMonthKey, (transactions: Transaction[] = []) => {
+      return sortTransactionsByDate(transactions.map(t => (t.id === id ? updatedTxn : t)))
+    })
+    mutate(getTransactionKey(id), updatedTxn, false)
+    invalidateYearCache(oldDate)
+    if (newDate && newDate !== oldDate) invalidateYearCache(newDate)
+    mutate('/api/overall-totals', undefined, true)
+  }
+
+  // Helper: rollback caches on error
+  const rollbackOptimisticUpdate = (oldMonthKey: string, newMonthKey: string, id: string, original: Transaction) => {
+    if (oldMonthKey !== newMonthKey) {
+      updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => transactions.filter(t => t.id !== id))
+      const txnToRestore = original
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => sortTransactionsByDate([...transactions, txnToRestore]))
+    } else {
+      const txnToRestore = original
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => transactions.map(t => (t.id === id ? txnToRestore : t)))
+    }
+  }
+
   const updateTransaction = async (id: string, data: Partial<Transaction>, oldDate: string) => {
     const oldMonthKey = getMonthKey(oldDate)
     const newMonthKey = getMonthKey(data.date || oldDate)
-    let originalTransaction: Transaction | undefined
 
-    // Get original transaction from cache
-    updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
-      originalTransaction = transactions.find(t => t.id === id)
-      return transactions
-    })
-
+    const originalTransaction = getOriginalTransactionFromCache(oldMonthKey, id)
     if (!originalTransaction) return
 
-    // Calculate optimistic EUR amount
     const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
-    const updatedTransaction = {
+    const optimisticUpdated: Transaction = {
       ...originalTransaction,
       ...data,
       updated_at: new Date().toISOString(),
       ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
     }
 
-    // Handle month changes or same month
-    if (oldMonthKey !== newMonthKey) {
-      updateCachesOnMonthChange(oldMonthKey, newMonthKey, id, updatedTransaction)
-    } else {
-      updateCachesInSameMonth(oldMonthKey, id, updatedTransaction)
-    }
+    applyOptimisticUpdate(oldMonthKey, newMonthKey, id, optimisticUpdated)
 
     try {
-      // Prepare update data with currency conversion if needed
-      const updateData = {
-        ...data,
-        ...(!data.eur_amount && (data.amount !== undefined || data.currency !== undefined || data.date !== undefined)
-          ? await convertAndUpdateCurrency(
-              data.amount !== undefined ? data.amount : originalTransaction.amount,
-              data.currency || originalTransaction.currency,
-              data.date || originalTransaction.date
-            )
-          : {})
-      }
+      const updateData = await buildUpdateData(data, originalTransaction)
 
-      const { data: updatedTransaction, error } = await supabase
+      const { data: persisted, error } = await supabase
         .from('transactions')
         .update(updateData)
         .eq('id', id)
@@ -214,45 +249,11 @@ export function useTransactionMutations() {
 
       if (error) throw error
 
-      // Update cache with real data
       const targetMonthKey = oldMonthKey === newMonthKey ? oldMonthKey : newMonthKey
-      updateBothCaches(targetMonthKey, (transactions: Transaction[] = []) => {
-        return sortTransactionsByDate(
-          transactions.map(t => (t.id === id ? updatedTransaction : t))
-        )
-      })
-
-      // Update the single transaction cache
-      mutate(getTransactionKey(id), updatedTransaction, false)
-
-      // Invalidate year caches to ensure yearly summaries are updated
-      invalidateYearCache(oldDate)
-      if (data.date && data.date !== oldDate) {
-        invalidateYearCache(data.date)
-      }
-      // Revalidate overall totals
-      mutate('/api/overall-totals', undefined, true)
-
-      return updatedTransaction
+      finalizeUpdate(targetMonthKey, id, persisted, oldDate, data.date)
+      return persisted
     } catch (error) {
-      // Rollback optimistic update on error
-      if (!originalTransaction) throw error
-
-      if (oldMonthKey !== newMonthKey) {
-        // Restore to old month
-        updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
-          return transactions.filter(t => t.id !== id)
-        })
-        const txnToRestore = originalTransaction
-        updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
-          return sortTransactionsByDate([...transactions, txnToRestore])
-        })
-      } else {
-        const txnToRestore = originalTransaction
-        updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
-          return transactions.map(t => (t.id === id ? txnToRestore : t))
-        })
-      }
+      rollbackOptimisticUpdate(oldMonthKey, newMonthKey, id, originalTransaction)
       throw error
     }
   }

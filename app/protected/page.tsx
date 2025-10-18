@@ -8,7 +8,6 @@ import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
 import { useModalState } from "@/hooks/useModalState";
-import { useAllTransactions } from "@/hooks/useAllTransactions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
@@ -66,8 +65,6 @@ export default function ProtectedPage() {
   );
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
-
-  const { transactions: allTransactions } = useAllTransactions();
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();

@@ -7,6 +7,98 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 
+// Helper: button styles for type toggle
+const getTypeButtonColorClass = (type: 'expense' | 'income', isSelected: boolean): string => {
+  if (type === 'expense') {
+    return isSelected
+      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-500 dark:border-red-400"
+      : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-gray-200 dark:border-gray-600 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-400";
+  }
+  return isSelected
+    ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-500 dark:border-green-400"
+    : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-400 dark:hover:border-green-400";
+};
+
+const getTypeButtonClass = (type: 'expense' | 'income', isSelected: boolean) => {
+  const baseClass = "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all";
+  const colorClass = getTypeButtonColorClass(type, isSelected);
+  return `${baseClass} ${colorClass}`;
+};
+
+// Subcomponent: Type selector toggle
+function TypeSelector({ transactionType, setTransactionType, disabled }: {
+  transactionType: 'expense' | 'income';
+  setTransactionType: React.Dispatch<React.SetStateAction<'expense' | 'income'>>;
+  disabled: boolean;
+}) {
+  return (
+    <div>
+      <div className="flex space-x-4">
+        <button
+          className={`${getTypeButtonClass('expense', transactionType === 'expense')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          type="button"
+          onClick={() => !disabled && setTransactionType('expense')}
+          disabled={disabled}
+        >
+          <MinusCircle size={20} className="mr-2" />
+          Expense
+        </button>
+        <button
+          className={`${getTypeButtonClass('income', transactionType === 'income')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          type="button"
+          onClick={() => !disabled && setTransactionType('income')}
+          disabled={disabled}
+        >
+          <PlusCircle size={20} className="mr-2" />
+          Income
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Subcomponent: Delete section
+function DeleteSection({ initialData, onDelete, showDeleteConfirm, setShowDeleteConfirm }: {
+  initialData?: Transaction;
+  onDelete?: (transaction: Transaction) => Promise<void>;
+  showDeleteConfirm: boolean;
+  setShowDeleteConfirm: (v: boolean) => void;
+}) {
+  if (!onDelete || !initialData) return null;
+  return (
+    <div className="pb-2">
+      {showDeleteConfirm ? (
+        <div className="flex gap-3">
+          <button
+            onClick={async () => {
+              await onDelete(initialData);
+              setShowDeleteConfirm(false);
+            }}
+            className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+          >
+            <Trash2 size={20} className="mr-2 flex-shrink-0" />
+            Confirm
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirm(false)}
+            className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
+        >
+          <Trash2 size={20} className="mr-2 flex-shrink-0" />
+          Delete Transaction
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface TransactionFormModalProps {
   onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
   initialData?: Transaction;
@@ -153,23 +245,6 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
   // Reusable class strings
   const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
 
-  // Helper to get type button color classes
-  const getTypeButtonColorClass = (type: 'expense' | 'income', isSelected: boolean): string => {
-    if (type === 'expense') {
-      return isSelected
-        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-500 dark:border-red-400"
-        : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-gray-200 dark:border-gray-600 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-400";
-    }
-    return isSelected
-      ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-500 dark:border-green-400"
-      : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-400 dark:hover:border-green-400";
-  };
-
-  const getTypeButtonClass = (type: 'expense' | 'income', isSelected: boolean) => {
-    const baseClass = "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all";
-    const colorClass = getTypeButtonColorClass(type, isSelected);
-    return `${baseClass} ${colorClass}`;
-  };
 
   return (
     <div className="w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-4 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter">
@@ -241,28 +316,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
           </div>
 
           {/* Transaction Type */}
-          <div>
-            <div className="flex space-x-4">
-              <button
-                className={`${getTypeButtonClass('expense', transactionType === 'expense')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                type="button"
-                onClick={() => !disabled && setTransactionType("expense")}
-                disabled={disabled}
-              >
-                <MinusCircle size={20} className="mr-2" />
-                Expense
-              </button>
-              <button
-                className={`${getTypeButtonClass('income', transactionType === 'income')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                type="button"
-                onClick={() => !disabled && setTransactionType("income")}
-                disabled={disabled}
-              >
-                <PlusCircle size={20} className="mr-2" />
-                Income
-              </button>
-            </div>
-          </div>
+          <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType} disabled={disabled} />
 
           {/* Main Category */}
           <div>
@@ -382,38 +436,12 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
       </form>
 
       {/* Delete Section - Only show for existing transactions */}
-      {onDelete && initialData && (
-        <div className="pb-2">
-          {showDeleteConfirm ? (
-            <div className="flex gap-3">
-              <button
-                onClick={async () => {
-                  await onDelete(initialData);
-                  setShowDeleteConfirm(false);
-                }}
-                className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
-              >
-                <Trash2 size={20} className="mr-2 flex-shrink-0" />
-                Confirm
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:ring-red-500 dark:focus:ring-red-400"
-            >
-              <Trash2 size={20} className="mr-2 flex-shrink-0" />
-              Delete Transaction
-            </button>
-          )}
-        </div>
-      )}
+      <DeleteSection
+        initialData={initialData}
+        onDelete={onDelete}
+        showDeleteConfirm={showDeleteConfirm}
+        setShowDeleteConfirm={setShowDeleteConfirm}
+      />
 
       <style jsx={true} global={true}>{`
         .form-select {
