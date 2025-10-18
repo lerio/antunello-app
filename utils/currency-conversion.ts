@@ -16,6 +16,37 @@ export interface ExchangeRateResponse {
 }
 
 /**
+ * Parse and validate exchange rate from API response
+ */
+async function parseExchangeRateResponse(data: any, targetCurrency: string): Promise<{ rate: number; isMissing: boolean } | null> {
+  if (data.rates?.[targetCurrency]) {
+    return {
+      rate: data.rates[targetCurrency],
+      isMissing: false
+    };
+  }
+  return null;
+}
+
+/**
+ * Handle retry with fallback on final attempt
+ */
+async function handleRetryFailure(attempt: number, retries: number, targetCurrency: string, date: string): Promise<{ rate: number; isMissing: boolean } | null | undefined> {
+  if (attempt === retries) {
+    // Last attempt failed, try to get the most recent available rate
+    const fallbackRate = await getFallbackExchangeRate(targetCurrency);
+    return fallbackRate
+      ? { rate: fallbackRate.rate, isMissing: true }
+      : null;
+  }
+
+  // Wait before retry (exponential backoff)
+  const delay = Math.pow(2, attempt) * 1000;
+  await new Promise(resolve => setTimeout(resolve, delay));
+  return undefined; // Signal to continue retrying
+}
+
+/**
  * Fetch exchange rates from ECB API (completely free, no API key required)
  */
 export async function fetchExchangeRateFromAPI(
@@ -36,35 +67,22 @@ export async function fetchExchangeRateFromAPI(
       }
 
       const data: any = await response.json();
+      const result = await parseExchangeRateResponse(data, targetCurrency);
 
-      if (data.rates?.[targetCurrency]) {
-        return {
-          rate: data.rates[targetCurrency],
-          isMissing: false
-        };
-      } else {
-        throw new Error(`No rate found for ${targetCurrency} on ${date}`);
+      if (result) {
+        return result;
       }
+      throw new Error(`No rate found for ${targetCurrency} on ${date}`);
     } catch (error) {
       console.warn(`Attempt ${attempt}/${retries} failed for ${date} ${targetCurrency}:`, error);
-      
-      if (attempt === retries) {
-        // Last attempt failed, try to get the most recent available rate
-        const fallbackRate = await getFallbackExchangeRate(targetCurrency);
-        if (fallbackRate) {
-          return {
-            rate: fallbackRate.rate,
-            isMissing: true
-          };
-        }
-        return null;
+
+      const retryResult = await handleRetryFailure(attempt, retries, targetCurrency, date);
+      if (retryResult !== undefined) {
+        return retryResult;
       }
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
-  
+
   return null;
 }
 

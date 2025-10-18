@@ -64,42 +64,45 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     }))
   }), [mainCategory, selectedCurrency]);
 
+  // Helper to validate form fields
+  const validateFormFields = (amount: string, mainCategory: string, subCategory: string, title: string) => {
+    const newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
+
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      newErrors.amount = "Please enter a valid amount";
+    }
+
+    if (!mainCategory) {
+      newErrors.mainCategory = "Please select a main category";
+    }
+
+    if (!subCategory?.trim()) {
+      newErrors.subCategory = "Please select a sub category";
+    }
+
+    if (!title?.trim()) {
+      newErrors.title = "Please enter a title";
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Clear previous validation errors
     setValidationErrors({ amount: "", mainCategory: "", subCategory: "", title: "" });
-    
+
     // Validate all required fields
     const formData = new FormData(e.currentTarget);
     const amount = formData.get("amount") as string;
     const title = formData.get("title") as string;
     const formMainCategory = formData.get("main_category") as string;
     const formSubCategory = formData.get("sub_category") as string;
-    
-    let hasErrors = false;
-    const newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
-    
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      newErrors.amount = "Please enter a valid amount";
-      hasErrors = true;
-    }
-    
-    if (!formMainCategory) {
-      newErrors.mainCategory = "Please select a main category";
-      hasErrors = true;
-    }
-    
-    if (!formSubCategory?.trim()) {
-      newErrors.subCategory = "Please select a sub category";
-      hasErrors = true;
-    }
-    
-    if (!title?.trim()) {
-      newErrors.title = "Please enter a title";
-      hasErrors = true;
-    }
-    
+
+    const newErrors = validateFormFields(amount, formMainCategory, formSubCategory, title);
+    const hasErrors = Object.values(newErrors).some(error => error !== "");
+
     if (hasErrors) {
       setValidationErrors(newErrors);
       // Auto-dismiss tooltips after 4 seconds

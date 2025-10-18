@@ -144,6 +144,25 @@ export function useTransactionMutations() {
     }
   }
 
+  // Helper to update caches when transaction moves between months
+  const updateCachesOnMonthChange = (oldMonthKey: string, newMonthKey: string, id: string, updatedTransaction: Transaction) => {
+    updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
+      return transactions.filter(t => t.id !== id)
+    })
+    updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
+      return sortTransactionsByDate([updatedTransaction, ...transactions])
+    })
+  }
+
+  // Helper to update caches when transaction stays in same month
+  const updateCachesInSameMonth = (monthKey: string, id: string, updatedTransaction: Transaction) => {
+    updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
+      return sortTransactionsByDate(
+        transactions.map(t => (t.id === id ? updatedTransaction : t))
+      )
+    })
+  }
+
   const updateTransaction = async (id: string, data: Partial<Transaction>, oldDate: string) => {
     const oldMonthKey = getMonthKey(oldDate)
     const newMonthKey = getMonthKey(data.date || oldDate)
@@ -166,20 +185,11 @@ export function useTransactionMutations() {
       ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
     }
 
-    // Handle month changes
+    // Handle month changes or same month
     if (oldMonthKey !== newMonthKey) {
-      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
-        return transactions.filter(t => t.id !== id)
-      })
-      updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
-        return sortTransactionsByDate([updatedTransaction, ...transactions])
-      })
+      updateCachesOnMonthChange(oldMonthKey, newMonthKey, id, updatedTransaction)
     } else {
-      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => {
-        return sortTransactionsByDate(
-          transactions.map(t => (t.id === id ? updatedTransaction : t))
-        )
-      })
+      updateCachesInSameMonth(oldMonthKey, id, updatedTransaction)
     }
 
     try {
