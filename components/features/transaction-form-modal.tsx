@@ -101,10 +101,10 @@ function DeleteSection({ initialData, onDelete, showDeleteConfirm, setShowDelete
 }
 
 interface TransactionFormModalProps {
-  onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
-  initialData?: Transaction;
-  disabled?: boolean;
-  onDelete?: (transaction: Transaction) => Promise<void>;
+  readonly onSubmit: (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
+  readonly initialData?: Transaction;
+  readonly disabled?: boolean;
+  readonly onDelete?: (transaction: Transaction) => Promise<void>;
 }
 
 const CURRENCY_OPTIONS = [

@@ -66,7 +66,7 @@ export default function TransactionSummary({
   let prevYearHiddenIncomeTotal = 0;
 
   // Calculate totals using EUR amounts
-  transactions.forEach((transaction) => {
+  for (const transaction of transactions) {
     // Skip transactions without eur_amount (they haven't been converted)
     if (transaction.eur_amount === null || transaction.eur_amount === undefined) {
       return;
@@ -102,11 +102,11 @@ export default function TransactionSummary({
       }
       incomeCategoryTotals[transaction.main_category] += eurAmount;
     }
-  });
+  }
 
   // Calculate previous year totals if data is available
   if (previousYearTransactions && previousYearTransactions.length > 0) {
-    previousYearTransactions.forEach((transaction) => {
+    for (const transaction of previousYearTransactions) {
       if (transaction.eur_amount === null || transaction.eur_amount === undefined) {
         return;
       }
@@ -137,7 +137,7 @@ export default function TransactionSummary({
         }
         prevYearIncomeCategoryTotals[transaction.main_category] += eurAmount;
       }
-    });
+    }
   }
   
   // Calculate balance
@@ -313,9 +313,7 @@ export default function TransactionSummary({
   // Helper to add income categories to extended data
   const addIncomeCategoryRows = (extendedData: any[]) => {
     if (!isIncomeExpanded) return;
-    Object.entries(incomeCategoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([category, amount]) => {
+    for (const [category, amount] of Object.entries(incomeCategoryTotals).sort(([, a], [, b]) => b - a)) {
         extendedData.push({
           category,
           total: amount,
@@ -325,15 +323,13 @@ export default function TransactionSummary({
           type: 'income',
           icon: CATEGORY_ICONS[category]
         });
-      });
+    }
   };
 
   // Helper to add expense categories to extended data
   const addExpenseCategoryRows = (extendedData: any[]) => {
     if (!isExpensesExpanded) return;
-    Object.entries(expenseCategoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([category, amount]) => {
+    for (const [category, amount] of Object.entries(expenseCategoryTotals).sort(([, a], [, b]) => b - a)) {
         extendedData.push({
           category,
           total: amount,
@@ -343,7 +339,7 @@ export default function TransactionSummary({
           type: 'expense',
           icon: CATEGORY_ICONS[category]
         });
-      });
+    }
   };
 
   // Prepare totals data with categories for monthly view
@@ -381,36 +377,34 @@ export default function TransactionSummary({
   
   // Add Income categories
   if (Object.keys(incomeCategoryTotals).length > 0) {
-    Object.entries(incomeCategoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([category, amount]) => {
-        const prevYearAmount = prevYearIncomeCategoryTotals[category] || 0;
-        categoriesData.push({
-          type: 'income',
-          category,
-          icon: CATEGORY_ICONS[category],
-          total: amount,
-          monthlyAverage: getMonthlyAverage(amount, currentYear),
-          difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
-        });
+    const entries = Object.entries(incomeCategoryTotals).sort(([, a], [, b]) => b - a);
+    for (const [category, amount] of entries) {
+      const prevYearAmount = prevYearIncomeCategoryTotals[category] || 0;
+      categoriesData.push({
+        type: 'income',
+        category,
+        icon: CATEGORY_ICONS[category],
+        total: amount,
+        monthlyAverage: getMonthlyAverage(amount, currentYear),
+        difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
       });
+    }
   }
   
   // Add Expense categories
   if (Object.keys(expenseCategoryTotals).length > 0) {
-    Object.entries(expenseCategoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([category, amount]) => {
-        const prevYearAmount = prevYearExpenseCategoryTotals[category] || 0;
-        categoriesData.push({
-          type: 'expense',
-          category,
-          icon: CATEGORY_ICONS[category],
-          total: amount,
-          monthlyAverage: getMonthlyAverage(amount, currentYear),
-          difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
-        });
+    const entries = Object.entries(expenseCategoryTotals).sort(([, a], [, b]) => b - a);
+    for (const [category, amount] of entries) {
+      const prevYearAmount = prevYearExpenseCategoryTotals[category] || 0;
+      categoriesData.push({
+        type: 'expense',
+        category,
+        icon: CATEGORY_ICONS[category],
+        total: amount,
+        monthlyAverage: getMonthlyAverage(amount, currentYear),
+        difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
       });
+    }
   }
 
   const hasData = Object.keys(incomeCategoryTotals).length > 0 || Object.keys(expenseCategoryTotals).length > 0;
@@ -492,28 +486,25 @@ export default function TransactionSummary({
                         {/* Monthly column only in year view */}
                         {currentYear != null && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            {!isHiddenExpense ? (
+                            {isHiddenExpense ? (
+                              <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
+                            ) : (
                               <span className={getMonthlyAmountClass(item.isBalance || false, item.monthlyAverage)}>
                                 {formatAmount(Math.abs(item.monthlyAverage))}
                               </span>
-                            ) : (
-                              <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                             )}
                           </td>
                         )}
                         {/* Comparison column only in year view */}
-                        {currentYear != null && previousYear != null && !isHiddenExpense && (
+                        {currentYear != null && previousYear != null && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            {item.difference !== null ? (
-                              formatDifference(item.difference, item.isIncome || item.isBalance)
-                            ) : (
+                            {isHiddenExpense ? (
                               <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
+                            ) : item.difference === null ? (
+                              <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
+                            ) : (
+                              formatDifference(item.difference, item.isIncome || item.isBalance)
                             )}
-                          </td>
-                        )}
-                        {currentYear != null && previousYear != null && isHiddenExpense && (
-                          <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                           </td>
                         )}
                       </tr>
@@ -576,10 +567,10 @@ export default function TransactionSummary({
                         </td>
                         {currentYear != null && previousYear != null && (
                           <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                            {item.difference !== null ? (
-                              formatDifference(item.difference, item.type === 'income')
-                            ) : (
+                            {item.difference === null ? (
                               <span className="text-gray-400 dark:text-gray-500">-</span>
+                            ) : (
+                              formatDifference(item.difference, item.type === 'income')
                             )}
                           </td>
                         )}

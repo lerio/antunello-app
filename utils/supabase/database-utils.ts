@@ -2,6 +2,8 @@ import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { ImportResult, validateTransactionData } from '@/utils/csv-import'
 
+type TransactionInput = Omit<Transaction, 'id' | 'created_at' | 'updated_at'>
+
 /**
  * Delete all transactions for the current authenticated user
  */
@@ -52,13 +54,13 @@ export async function getUserTransactionCount() {
  * Validate and prepare transactions for import
  */
 async function validateAndPrepareTransactions(
-  transactions: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[],
+  transactions: TransactionInput[],
   userId: string,
   result: ImportResult
-): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[]> {
+): Promise<TransactionInput[]> {
   console.log('Starting validation...');
 
-  const validTransactions: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[] = [];
+  const validTransactions: TransactionInput[] = [];
 
   for (let i = 0; i < transactions.length; i++) {
     const transaction = transactions[i];
@@ -85,7 +87,7 @@ async function validateAndPrepareTransactions(
  */
 async function importBatchWithRetry(
   supabase: any,
-  batch: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[],
+  batch: TransactionInput[],
   batchNumber: number,
   result: ImportResult
 ): Promise<number> {
@@ -132,7 +134,7 @@ async function importBatchWithRetry(
  * Import multiple transactions for the current user
  */
 export async function importTransactions(
-  transactions: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[]
+  transactions: TransactionInput[]
 ): Promise<ImportResult> {
   console.log('Import function started with', transactions.length, 'transactions');
 

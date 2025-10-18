@@ -11,7 +11,12 @@ export default function OverallTotals() {
   if (error) return null;
 
   const formatAmount = (amount: number) =>
-    formatCurrency(amount, "EUR").replace(/[€$£¥₹]/g, "");
+    formatCurrency(amount, "EUR")
+      .replaceAll("€", "")
+      .replaceAll("$", "")
+      .replaceAll("£", "")
+      .replaceAll("¥", "")
+      .replaceAll("₹", "");
 
   const amountColorClass = eurTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 

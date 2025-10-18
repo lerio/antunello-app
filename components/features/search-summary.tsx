@@ -2,59 +2,8 @@ import { Transaction } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
 
-type SearchSummaryProps = {
-  transactions: Transaction[];
-  isLoading?: boolean;
-};
-
-export default function SearchSummary({
-  transactions,
-  isLoading = false,
-}: SearchSummaryProps) {
-  // Use EUR as the unified currency for all calculations
-  let expenseTotal = 0;
-  let incomeTotal = 0;
-
-  // Track hidden transactions
-  let hiddenExpenseTotal = 0;
-  let hiddenIncomeTotal = 0;
-  let hiddenTransactionCount = 0;
-
-  // Calculate totals using EUR amounts
-  transactions.forEach((transaction) => {
-    // Use EUR amount if available, otherwise fall back to original amount (assuming EUR)
-    const eurAmount =
-      transaction.eur_amount ||
-      (transaction.currency === "EUR" ? transaction.amount : 0);
-
-    // Skip transactions without EUR conversion (to avoid incorrect totals)
-    if (eurAmount === 0 && transaction.currency !== "EUR") {
-      return;
-    }
-
-    // Handle hidden transactions separately
-    if (transaction.hide_from_totals) {
-      hiddenTransactionCount++;
-      if (transaction.type === "expense") {
-        hiddenExpenseTotal += eurAmount;
-      } else {
-        hiddenIncomeTotal += eurAmount;
-      }
-      return;
-    }
-
-    // Update expense/income totals
-    if (transaction.type === "expense") {
-      expenseTotal += eurAmount;
-    } else {
-      incomeTotal += eurAmount;
-    }
-  });
-
-  // Calculate balance
-  const balanceTotal = incomeTotal - expenseTotal;
-
-  const LoadingSkeleton = () => (
+function LoadingSkeleton() {
+  return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
       <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
@@ -72,6 +21,59 @@ export default function SearchSummary({
       </div>
     </div>
   );
+}
+
+type SearchSummaryProps = {
+  readonly transactions: ReadonlyArray<Transaction>;
+  readonly isLoading?: boolean;
+};
+
+export default function SearchSummary({
+  transactions,
+  isLoading = false,
+}: SearchSummaryProps) {
+  // Use EUR as the unified currency for all calculations
+  let expenseTotal = 0;
+  let incomeTotal = 0;
+
+  // Track hidden transactions
+  let hiddenExpenseTotal = 0;
+  let hiddenIncomeTotal = 0;
+  let hiddenTransactionCount = 0;
+
+  // Calculate totals using EUR amounts
+  for (const transaction of transactions) {
+    // Use EUR amount if available, otherwise fall back to original amount (assuming EUR)
+    const eurAmount =
+      transaction.eur_amount ||
+      (transaction.currency === "EUR" ? transaction.amount : 0);
+
+    // Skip transactions without EUR conversion (to avoid incorrect totals)
+    if (eurAmount === 0 && transaction.currency !== "EUR") {
+      continue;
+    }
+
+    // Handle hidden transactions separately
+    if (transaction.hide_from_totals) {
+      hiddenTransactionCount++;
+      if (transaction.type === "expense") {
+        hiddenExpenseTotal += eurAmount;
+      } else {
+        hiddenIncomeTotal += eurAmount;
+      }
+      continue;
+    }
+
+    // Update expense/income totals
+    if (transaction.type === "expense") {
+      expenseTotal += eurAmount;
+    } else {
+      incomeTotal += eurAmount;
+    }
+  }
+
+  // Calculate balance
+  const balanceTotal = incomeTotal - expenseTotal;
 
   if (isLoading) {
     return <LoadingSkeleton />;

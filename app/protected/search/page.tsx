@@ -9,7 +9,6 @@ import { useModalState } from "@/hooks/useModalState";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { Modal } from "@/components/ui/modal";
 import { FloatingButton } from "@/components/ui/floating-button";
-import { Button } from "@/components/ui/button";
 import { Transaction } from "@/types/database";
 import toast from "react-hot-toast";
 
@@ -50,11 +49,11 @@ export default function SearchPage() {
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
+      setShowScrollTop(globalThis.scrollY > 300);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    globalThis.addEventListener("scroll", handleScroll);
+    return () => globalThis.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Update URL when search query changes
@@ -75,11 +74,11 @@ export default function SearchPage() {
     const newUrl = params.toString()
       ? `/protected/search?${params}`
       : "/protected/search";
-    window.history.replaceState(null, "", newUrl);
+    globalThis.history.replaceState(null, "", newUrl);
   }, [searchQuery, searchParams]);
 
   const scrollToTop = useCallback(() => {
-    window.scrollTo({
+    globalThis.scrollTo({
       top: 0,
       behavior: "smooth",
     });
@@ -214,8 +213,8 @@ export default function SearchPage() {
         {/* Search Results */}
         {searchLoading && (
           <div className="space-y-4 mt-8">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse">
+            {["s1","s2","s3","s4","s5"].map((key) => (
+              <div key={key} className="animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
                 <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
               </div>

@@ -8,9 +8,9 @@ import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
 import { LucideProps } from "lucide-react";
 
 type TransactionsTableProps = {
-  transactions: Transaction[];
-  onTransactionClick?: (transaction: Transaction) => void;
-  showYear?: boolean; // For search results - forces year display
+  readonly transactions: ReadonlyArray<Transaction>;
+  readonly onTransactionClick?: (transaction: Transaction) => void;
+  readonly showYear?: boolean; // For search results - forces year display
 };
 
 // Optimized transaction row component with new card design
@@ -19,8 +19,8 @@ const TransactionRow = React.memo(
     transaction,
     onClick,
   }: {
-    transaction: Transaction;
-    onClick: (transaction: Transaction) => void;
+    readonly transaction: Transaction;
+    readonly onClick: (transaction: Transaction) => void;
   }) => {
     const Icon =
       CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"];
@@ -87,11 +87,11 @@ const DateGroup = React.memo(
     onTransactionClick,
     showYear = false,
   }: {
-    date: string;
-    transactions: Transaction[];
-    dailyTotal: number;
-    onTransactionClick: (transaction: Transaction) => void;
-    showYear?: boolean;
+    readonly date: string;
+    readonly transactions: ReadonlyArray<Transaction>;
+    readonly dailyTotal: number;
+    readonly onTransactionClick: (transaction: Transaction) => void;
+    readonly showYear?: boolean;
   }) => {
     // Calculate hidden transactions count for this day
     const hiddenCount = transactions.filter(t => t.hide_from_totals).length;

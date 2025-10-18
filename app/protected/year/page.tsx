@@ -16,8 +16,8 @@ export default function YearSummaryPage() {
   const initialYear = useMemo(() => {
     const yearParam = searchParams.get("year");
     if (yearParam) {
-      const year = parseInt(yearParam);
-      return isNaN(year) ? new Date().getFullYear() : year;
+      const year = Number.parseInt(yearParam);
+      return Number.isNaN(year) ? new Date().getFullYear() : year;
     }
     return new Date().getFullYear();
   }, [searchParams]);
