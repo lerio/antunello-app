@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { formatCurrency } from "@/utils/currency";
 import { useOverallTotals } from "@/hooks/useOverallTotals";
 

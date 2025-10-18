@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
-import { parseDateTime } from "@/utils/date";
 import { MinusCircle, PlusCircle, Calendar, Trash2, Eye, EyeOff } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";

@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Transaction } from "@/types/database";
 import { formatDate, formatDateHeader, formatDateHeaderWithYear } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";

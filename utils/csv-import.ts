@@ -1,4 +1,4 @@
-import { Transaction, getCategoryType } from '@/types/database';
+import { Transaction } from '@/types/database';
 import { convertToEUR, batchConvertToEUR } from '@/utils/currency-conversion';
 
 export interface CSVTransaction {

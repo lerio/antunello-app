@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, ReactNode, createContext, useContext } from "react";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DropdownMenuProps {

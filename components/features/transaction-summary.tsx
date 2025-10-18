@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Transaction, getCategoryType } from "@/types/database";
+import { Transaction } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, EyeOff, Info, ChevronDown, ChevronRight } from "lucide-react";
-import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
+import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 
 type CurrencyTotals = {
