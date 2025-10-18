@@ -121,7 +121,7 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
   const expenseCategoryTotals: Record<string, number> = {};
   let hiddenExpenseTotal = 0;
 
-  const converted = transactions.filter((t) => t.eur_amount != null);
+  const converted = transactions.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
   const hidden = converted.filter((t) => t.hide_from_totals);
   const visible = converted.filter((t) => !t.hide_from_totals);
 
@@ -151,7 +151,7 @@ function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevY
   let prevYearHiddenExpenseTotal = 0;
 
   const list = transactions ?? [];
-  const converted = list.filter((t) => t.eur_amount != null);
+  const converted = list.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
   const hidden = converted.filter((t) => t.hide_from_totals);
   const visible = converted.filter((t) => !t.hide_from_totals);
 
@@ -197,7 +197,7 @@ function buildCategoriesData(
         icon: CATEGORY_ICONS[category],
         total: amount,
         monthlyAverage: getMonthlyAverage(amount, currentYear),
-        difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+        difference: currentYear !== undefined && previousYear !== undefined ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
       });
     }
   }
@@ -212,7 +212,7 @@ function buildCategoriesData(
         icon: CATEGORY_ICONS[category],
         total: amount,
         monthlyAverage: getMonthlyAverage(amount, currentYear),
-        difference: currentYear != null && previousYear != null ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+        difference: currentYear !== undefined && previousYear !== undefined ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
       });
     }
   }
@@ -361,13 +361,13 @@ function TotalsTable({
       <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Totals (€)</h3>
       <div className="overflow-hidden">
         <table className="w-full">
-          {currentYear != null && (
+          {currentYear !== undefined && (
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>
                 <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Total</th>
                 <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">Monthly</th>
-                {previousYear != null && (
+                {previousYear !== undefined && (
                   <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">vs {previousYear}</th>
                 )}
               </tr>
@@ -416,7 +416,7 @@ function TotalsTable({
                       {formatAmount(Math.abs(item.total))}
                     </span>
                   </td>
-                  {currentYear != null && (
+                  {currentYear !== undefined && (
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                       {isHiddenExpense ? (
                         <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
@@ -427,7 +427,7 @@ function TotalsTable({
                       )}
                     </td>
                   )}
-                  {currentYear != null && previousYear != null && (
+                  {currentYear !== undefined && previousYear !== undefined && (
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">{renderComparisonCell(item)}</td>
                   )}
                 </tr>
@@ -447,7 +447,7 @@ type CategoriesTableProps = {
 };
 
 function CategoriesTable({ categoriesData, currentYear, previousYear }: CategoriesTableProps) {
-  if (currentYear == null || categoriesData.length === 0) return null;
+  if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
       <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Category Breakdown (€)</h3>
@@ -457,7 +457,7 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
             <tr className="border-b border-gray-200 dark:border-gray-700">
               <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>
               <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">{currentYear ? 'Monthly' : 'Total'}</th>
-              {currentYear != null && previousYear != null && (
+              {currentYear !== undefined && previousYear !== undefined && (
                 <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm">vs {previousYear}</th>
               )}
             </tr>
@@ -468,13 +468,13 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
                 <td className="py-2 sm:py-3 px-1 sm:px-2">
                   <div className="flex items-center min-w-0">
                     <item.icon {...({ size: 14, className: "text-gray-400 dark:text-gray-500 mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" } as LucideProps)} />
-                    <div className={`relative min-w-0 flex-1 ${currentYear != null && previousYear != null ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
+                    <div className={`relative min-w-0 flex-1 ${currentYear !== undefined && previousYear !== undefined ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
                       <span
-                        className={`font-medium text-sm sm:text-sm block ${currentYear != null && previousYear != null ? 'overflow-hidden whitespace-nowrap' : ''} ${
+                        className={`font-medium text-sm sm:text-sm block ${currentYear !== undefined && previousYear !== undefined ? 'overflow-hidden whitespace-nowrap' : ''} ${
                           item.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                         }`}
                         title={item.category}
-                        style={currentYear != null && previousYear != null ? {
+                        style={currentYear !== undefined && previousYear !== undefined ? {
                           maskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)',
                           WebkitMaskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)'
                         } : undefined}
@@ -489,7 +489,7 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
                     {formatAmount(Math.abs(currentYear ? item.monthlyAverage : item.total))}
                   </span>
                 </td>
-                {currentYear != null && previousYear != null && (
+                {currentYear !== undefined && previousYear !== undefined && (
                   <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                     {item.difference === null ? (
                       <span className="text-gray-400 dark:text-gray-500">-</span>
@@ -521,8 +521,8 @@ function LoadingSkeleton() {
         <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
       </div>
       <div className="mt-4 space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex justify-between items-center">
+        {["ls-1", "ls-2", "ls-3"].map((id) => (
+          <div key={id} className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
               <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>

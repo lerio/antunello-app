@@ -63,7 +63,7 @@ function parseCSVLine(line: string): string[] {
 
 export async function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: string): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>> {
   // Convert amount to positive number
-  const amountValue = Math.abs(parseFloat(csvTransaction.amount));
+  const amountValue = Math.abs(Number.parseFloat(csvTransaction.amount));
   
   // Map category names to match our new schema
   const categoryMapping: Record<string, string> = {
@@ -138,7 +138,7 @@ export async function batchMapCSVToTransactions(
   
   // First, prepare basic transaction data without currency conversion
   const basicTransactions = csvTransactions.map((csvTransaction, index) => {
-    const amountValue = Math.abs(parseFloat(csvTransaction.amount));
+    const amountValue = Math.abs(Number.parseFloat(csvTransaction.amount));
     const categoryMapping: Record<string, string> = {
       'Dining': 'Dining',
       'Groceries': 'Groceries',
@@ -242,7 +242,7 @@ export function validateTransactionData(transaction: Omit<Transaction, 'id' | 'c
     errors.push('Main category is required');
   }
   
-  if (!transaction.date || isNaN(new Date(transaction.date).getTime())) {
+  if (!transaction.date || Number.isNaN(new Date(transaction.date).getTime())) {
     errors.push('Valid date is required');
   }
   

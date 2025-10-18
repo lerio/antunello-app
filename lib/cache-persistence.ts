@@ -20,13 +20,13 @@ interface SerializedCacheEntry {
  * Save SWR cache to localStorage
  */
 export function saveCacheToStorage(cache: Map<string, any>) {
-  if (typeof window === 'undefined') return
+  if (typeof globalThis.localStorage === 'undefined') return
 
   try {
     const serializedCache: Record<string, SerializedCacheEntry> = {}
     
     // Only save transaction-related cache entries
-    cache.forEach((value, key) => {
+    for (const [key, value] of Array.from(cache.entries())) {
       if (key.startsWith('transactions-') || key.startsWith('transaction-')) {
         serializedCache[key] = {
           data: value,
@@ -34,7 +34,7 @@ export function saveCacheToStorage(cache: Map<string, any>) {
           isValidating: false
         }
       }
-    })
+    }
 
     const cachedData: CachedData = {
       version: CACHE_VERSION,
@@ -52,7 +52,7 @@ export function saveCacheToStorage(cache: Map<string, any>) {
  * Load SWR cache from localStorage
  */
 export function loadCacheFromStorage(): Map<string, any> | null {
-  if (typeof window === 'undefined') return null
+  if (typeof globalThis.localStorage === 'undefined') return null
 
   try {
     const cached = localStorage.getItem(CACHE_KEY)
@@ -73,15 +73,15 @@ export function loadCacheFromStorage(): Map<string, any> | null {
 
     // Restore cache
     const cache = new Map<string, any>()
-    Object.entries(cachedData.data).forEach(([key, entry]) => {
+    for (const [key, entry] of Object.entries(cachedData.data)) {
       // Only restore if data is not too old (6 hours for transactions)
       const dataAge = Date.now() - entry.timestamp
       const maxAge = key.startsWith('transactions-') ? 6 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000
       
-      if (dataAge < maxAge && entry.data) {
-        cache.set(key, entry.data)
+      if (dataAge < maxAge && (entry as any).data) {
+        cache.set(key, (entry as any).data)
       }
-    })
+    }
 
     return cache
   } catch (error) {
@@ -95,7 +95,7 @@ export function loadCacheFromStorage(): Map<string, any> | null {
  * Clear cached data from localStorage
  */
 export function clearCacheStorage() {
-  if (typeof window === 'undefined') return
+  if (typeof globalThis.localStorage === 'undefined') return
   
   try {
     localStorage.removeItem(CACHE_KEY)
@@ -108,7 +108,7 @@ export function clearCacheStorage() {
  * Get cache storage usage info
  */
 export function getCacheStorageInfo() {
-  if (typeof window === 'undefined') return null
+  if (typeof globalThis.localStorage === 'undefined') return null
 
   try {
     const cached = localStorage.getItem(CACHE_KEY)

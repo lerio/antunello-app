@@ -27,8 +27,8 @@ export const getSwrConfig = (): SWRConfiguration => {
     suspense: false, // Avoid suspense overhead
   }
 
-  // Only add client-side features when in browser
-  if (typeof window !== 'undefined') {
+// Only add client-side features when in browser
+  if (typeof globalThis.localStorage !== 'undefined') {
     return {
       ...baseConfig,
       

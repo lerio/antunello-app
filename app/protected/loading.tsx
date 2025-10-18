@@ -17,8 +17,8 @@ export default function Loading() {
           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
         </div>
         <div className="mt-4 space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex justify-between items-center">
+          {["sk-1", "sk-2", "sk-3"].map((id) => (
+            <div key={id} className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
@@ -31,8 +31,8 @@ export default function Loading() {
 
       {/* Transactions Skeleton */}
       <div className="space-y-6">
-        {[1, 2, 3].map((group) => (
-          <div key={group} className="mb-6">
+        {["g-1", "g-2", "g-3"].map((groupId) => (
+          <div key={groupId} className="mb-6">
             {/* Date Header Skeleton */}
             <div className="sticky top-28 bg-gray-50 dark:bg-gray-900 z-40 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6">
               <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
@@ -41,8 +41,8 @@ export default function Loading() {
             
             {/* Transaction Cards Skeleton */}
             <div className="mt-4 space-y-4">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between shadow-sm animate-pulse">
+              {["c-1", "c-2"].map((cardId) => (
+                <div key={cardId} className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between shadow-sm animate-pulse">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
                     <div className="ml-4">

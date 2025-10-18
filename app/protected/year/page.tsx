@@ -41,7 +41,9 @@ export default function YearSummaryPage() {
       ? "/protected/year"
       : `/protected/year?year=${year}`;
 
-    globalThis.history.pushState(null, "", newUrl);
+    if (typeof (globalThis as any).history?.pushState === "function") {
+      (globalThis as any).history.pushState(null, "", newUrl);
+    }
   }, []);
 
   if (error) {

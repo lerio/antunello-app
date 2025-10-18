@@ -32,10 +32,10 @@ export default function ProtectedPage() {
     const monthParam = searchParams.get("month");
 
     if (yearParam && monthParam) {
-      const year = parseInt(yearParam);
-      const month = parseInt(monthParam);
+      const year = Number.parseInt(yearParam, 10);
+      const month = Number.parseInt(monthParam, 10);
       const date = new Date(year, month - 1);
-      return isNaN(date.getTime()) ? new Date() : date;
+      return Number.isNaN(date.getTime()) ? new Date() : date;
     }
 
     return new Date();
@@ -72,18 +72,23 @@ export default function ProtectedPage() {
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
+      setShowScrollTop((globalThis as any).scrollY > 300);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    if (typeof globalThis.addEventListener === "function") {
+      globalThis.addEventListener("scroll", handleScroll as any);
+      return () => globalThis.removeEventListener("scroll", handleScroll as any);
+    }
+    return undefined;
   }, []);
 
   const scrollToTop = useCallback(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    if (typeof (globalThis as any).scrollTo === "function") {
+      (globalThis as any).scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
   }, []);
 
   const handleSearchClick = useCallback(() => {
@@ -180,7 +185,9 @@ export default function ProtectedPage() {
       ? "/protected"
       : `/protected?year=${year}&month=${month.toString().padStart(2, "0")}`;
 
-    window.history.pushState(null, "", newUrl);
+    if (typeof (globalThis as any).history?.pushState === "function") {
+      (globalThis as any).history.pushState(null, "", newUrl);
+    }
   }, []);
 
   const monthYearString = useMemo(() => {
@@ -202,7 +209,7 @@ export default function ProtectedPage() {
             Error Loading Transactions
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
+          <Button onClick={() => (globalThis as any).location?.reload?.()} className="mt-4">
             Retry
           </Button>
         </div>
@@ -270,8 +277,8 @@ export default function ProtectedPage() {
 
         {isLoading ? (
           <div className="space-y-4 mt-8">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
+            {["s1","s2","s3"].map((id) => (
+              <div key={id} className="animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
                 <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
               </div>

@@ -242,7 +242,8 @@ export async function batchConvertToEUR(
   const eurTransactions: Array<{ index: number; result: CurrencyConversionResult }> = [];
   const nonEurTransactions: Array<{ index: number; transaction: { amount: number; currency: string; date: string } }> = [];
   
-  transactions.forEach((transaction, index) => {
+  for (let index = 0; index < transactions.length; index++) {
+    const transaction = transactions[index];
     if (transaction.currency === 'EUR') {
       eurTransactions.push({
         index,
@@ -256,19 +257,19 @@ export async function batchConvertToEUR(
     } else {
       nonEurTransactions.push({ index, transaction });
     }
-  });
+  }
   
   // Group non-EUR transactions by unique date/currency combinations
   const uniqueRateKeys = new Map<string, { indices: number[]; transaction: { amount: number; currency: string; date: string } }>();
   
-  nonEurTransactions.forEach(({ index, transaction }) => {
+  for (const { index, transaction } of nonEurTransactions) {
     const rateKey = `${transaction.date}-${transaction.currency}`;
     if (uniqueRateKeys.has(rateKey)) {
       uniqueRateKeys.get(rateKey)!.indices.push(index);
     } else {
       uniqueRateKeys.set(rateKey, { indices: [index], transaction });
     }
-  });
+  }
   
   // Fetch exchange rates for unique combinations only
   const uniqueRateEntries = Array.from(uniqueRateKeys.entries());
@@ -299,9 +300,9 @@ export async function batchConvertToEUR(
     });
     
     const batchResults = await Promise.all(batchPromises);
-    batchResults.forEach(({ rateKey, result }) => {
+    for (const { rateKey, result } of batchResults) {
       rateResults.set(rateKey, result);
-    });
+    }
     
     // Delay between batches
     if (i + batchSize < uniqueRateEntries.length) {
@@ -310,18 +311,20 @@ export async function batchConvertToEUR(
   }
   
   // Initialize results array with correct length
-  const finalResults: Array<CurrencyConversionResult | null> = new Array(transactions.length).fill(null);
+  const finalResults: Array<CurrencyConversionResult | null> = Array.from({ length: transactions.length }, () => null);
   
   // Fill EUR results
-  eurTransactions.forEach(({ index, result }) => {
+  for (const { index, result } of eurTransactions) {
     finalResults[index] = result;
-  });
+  }
   
   // Fill non-EUR results using cached rates
-  uniqueRateKeys.forEach(({ indices, transaction }, rateKey) => {
+  for (const [rateKey, group] of Array.from(uniqueRateKeys.entries())) {
+    const { indices } = group;
     const baseRate = rateResults.get(rateKey);
     if (baseRate) {
-      indices.forEach(index => {
+      for (let i = 0; i < indices.length; i++) {
+        const index = indices[i];
         const originalAmount = transactions[index].amount;
         finalResults[index] = {
           eurAmount: Number((originalAmount / baseRate.exchangeRate).toFixed(2)),
@@ -329,13 +332,14 @@ export async function batchConvertToEUR(
           rateDate: baseRate.rateDate,
           isMissing: baseRate.isMissing
         };
-      });
+      }
     } else {
-      indices.forEach(index => {
+      for (let i = 0; i < indices.length; i++) {
+        const index = indices[i];
         finalResults[index] = null;
-      });
+      }
     }
-  });
+  }
   
   return finalResults;
 }

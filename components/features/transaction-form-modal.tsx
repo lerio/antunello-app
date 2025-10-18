@@ -160,7 +160,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
   const validateFormFields = (amount: string, mainCategory: string, subCategory: string, title: string) => {
     const newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
 
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
       newErrors.amount = "Please enter a valid amount";
     }
 
@@ -265,7 +265,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
                     {currencySymbol}
                   </span>
                   <input
-                    className={`${inputClass.replace('px-4', 'pl-10 pr-20')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`${inputClass.replaceAll('px-4', 'pl-10 pr-20')} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                     id="amount"
                     name="amount"
                     type="number"

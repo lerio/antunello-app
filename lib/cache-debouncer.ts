@@ -22,7 +22,8 @@ export function debouncedSave(saveFunction: () => void) {
  * Setup periodic cache saves to ensure data persistence
  */
 export function setupPeriodicSave(saveFunction: () => void) {
-  if (typeof window === 'undefined') return null
+  // Ensure we're in a browser-like environment
+  if (typeof globalThis.addEventListener !== 'function') return null
 
   const interval = setInterval(() => {
     saveFunction()
@@ -33,12 +34,12 @@ export function setupPeriodicSave(saveFunction: () => void) {
     saveFunction()
   }
 
-  window.addEventListener('beforeunload', handleBeforeUnload)
+  globalThis.addEventListener('beforeunload', handleBeforeUnload as any)
 
   // Return cleanup function
   return () => {
     clearInterval(interval)
-    window.removeEventListener('beforeunload', handleBeforeUnload)
+    globalThis.removeEventListener('beforeunload', handleBeforeUnload as any)
     if (saveTimeout) {
       clearTimeout(saveTimeout)
       saveTimeout = null
