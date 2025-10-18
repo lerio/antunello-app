@@ -121,62 +121,60 @@ async function updateTransactionTitles() {
       console.log('🚨 EXECUTE MODE: Database will be updated!\n')
     }
 
-    // Helper function to extract substring between first and second "||"
+    // Extract PayPal transaction name from description
+    function extractPayPalTitle(description) {
+      const match = description.match(/(?:PP\.\d+\.PP\s*\.\s*|^\.\s*)([A-Z][A-Za-z0-9\s&.-]+?)(?:\s+Ihr\s+Einkauf|$)/)
+      if (match && match[1]) {
+        return match[1].trim()
+      }
+
+      const cleaned = description
+        .replace(/^PP\.\d+\.PP\s*\.\s*/, '')
+        .replace(/^\.\s*/, '')
+        .replace(/\s+Ihr\s+Einkauf.*$/, '')
+        .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+        .trim()
+
+      return cleaned || description
+    }
+
+    // Extract ADYEN transaction name from description
+    function extractAdyenTitle(description) {
+      const match = description.match(/^([A-Za-z0-9\s&.-]+?)(?:\s+\d+|\s+L\s|\s+AWV-MELDEPFLICHT|$)/)
+      if (match && match[1]) {
+        return match[1].trim()
+      }
+
+      const cleaned = description
+        .replace(/\s+\d+.*$/, '')
+        .replace(/\s+L\s.*$/, '')
+        .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+        .trim()
+
+      return cleaned || description
+    }
+
+    // Extract new title from transaction with special provider handling
     function extractNewTitle(title) {
       const firstIndex = title.indexOf('||')
       if (firstIndex === -1) return 'N/A'
-      
+
       const secondIndex = title.indexOf('||', firstIndex + 2)
       if (secondIndex === -1) {
-        // If there's no second "||", return everything after the first one
         return title.substring(firstIndex + 2).trim()
       }
-      
+
       const merchantName = title.substring(firstIndex + 2, secondIndex).trim()
-      
-      // Special handling for PayPal transactions - extract text after second "||"
+      const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
+
       if (merchantName.toLowerCase().includes('paypal')) {
-        const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
-        
-        // Extract meaningful part from PayPal transaction description
-        // Common patterns: "PP.3012.PP . MERCHANTNAME" or ". MERCHANTNAME"
-        const match = textAfterSecondPipe.match(/(?:PP\.\d+\.PP\s*\.\s*|^\.\s*)([A-Z][A-Za-z0-9\s&.-]+?)(?:\s+Ihr\s+Einkauf|$)/)
-        if (match && match[1]) {
-          return match[1].trim()
-        }
-        
-        // Fallback: return first meaningful part after cleaning common PayPal prefixes
-        const cleaned = textAfterSecondPipe
-          .replace(/^PP\.\d+\.PP\s*\.\s*/, '')
-          .replace(/^\.\s*/, '')
-          .replace(/\s+Ihr\s+Einkauf.*$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
-          .trim()
-        
-        return cleaned || textAfterSecondPipe
+        return extractPayPalTitle(textAfterSecondPipe)
       }
-      
-      // Special handling for ADYEN transactions - extract text after second "||"
+
       if (merchantName.toLowerCase().includes('adyen')) {
-        const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
-        
-        // Extract meaningful part from ADYEN transaction description
-        // Common pattern: "Urban Sports GmbH 100082136  L  01 Nov  2019..."
-        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]+?)(?:\s+\d+|\s+L\s|\s+AWV-MELDEPFLICHT|$)/)
-        if (match && match[1]) {
-          return match[1].trim()
-        }
-        
-        // Fallback: return first part before numbers or specific keywords
-        const cleaned = textAfterSecondPipe
-          .replace(/\s+\d+.*$/, '')
-          .replace(/\s+L\s.*$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
-          .trim()
-        
-        return cleaned || textAfterSecondPipe
+        return extractAdyenTitle(textAfterSecondPipe)
       }
-      
+
       return merchantName
     }
 
@@ -238,33 +236,91 @@ async function updateTransactionTitles() {
         .trim()
     }
 
-    // Process transactions and prepare updates
-    const updates = []
-    let skippedCount = 0
+    // Prepare updates from transactions
+    function prepareUpdates(transactions, isExecute, isVerbose) {
+      const updates = []
+      let skippedCount = 0
 
-    transactions.forEach((transaction, index) => {
-      const rawTitle = extractNewTitle(transaction.title)
-      const newTitle = cleanTitle(rawTitle)
-      
-      // Skip if the new title is the same as original or invalid
-      if (newTitle === transaction.title || newTitle === 'N/A' || !newTitle) {
-        skippedCount++
-        return
-      }
+      transactions.forEach((transaction, index) => {
+        const rawTitle = extractNewTitle(transaction.title)
+        const newTitle = cleanTitle(rawTitle)
 
-      updates.push({
-        id: transaction.id,
-        oldTitle: transaction.title,
-        newTitle: newTitle
+        if (newTitle === transaction.title || newTitle === 'N/A' || !newTitle) {
+          skippedCount++
+          return
+        }
+
+        updates.push({
+          id: transaction.id,
+          oldTitle: transaction.title,
+          newTitle: newTitle
+        })
+
+        if (isVerbose || (!isExecute && index < 10)) {
+          console.log(`${index + 1}. ID: ${transaction.id}`)
+          console.log(`   Old: "${transaction.title}"`)
+          console.log(`   New: "${newTitle}"`)
+          console.log('   ' + '-'.repeat(50))
+        }
       })
 
-      if (isVerbose || (!isExecute && index < 10)) {
-        console.log(`${index + 1}. ID: ${transaction.id}`)
-        console.log(`   Old: "${transaction.title}"`)
-        console.log(`   New: "${newTitle}"`)
-        console.log('   ' + '-'.repeat(50))
+      return { updates, skippedCount }
+    }
+
+    // Execute a single transaction update
+    async function executeUpdate(update, supabase, isVerbose) {
+      try {
+        const { error } = await supabase
+          .from('transactions')
+          .update({ title: update.newTitle })
+          .eq('id', update.id)
+
+        if (error) {
+          console.error(`❌ Failed to update ${update.id}: ${error.message}`)
+          return false
+        }
+
+        if (isVerbose) {
+          console.log(`✅ Updated ${update.id}`)
+        }
+        return true
+      } catch (error) {
+        console.error(`❌ Error updating ${update.id}: ${error.message}`)
+        return false
       }
-    })
+    }
+
+    // Execute batch updates
+    async function executeBatchUpdates(updates, supabase, isVerbose) {
+      let successCount = 0
+      let errorCount = 0
+      const batchSize = 50
+
+      console.log(`\n🚀 Starting database updates (batch processing)...`)
+
+      for (let i = 0; i < updates.length; i += batchSize) {
+        const batch = updates.slice(i, i + batchSize)
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(updates.length/batchSize)} (${batch.length} items)...`)
+
+        for (const update of batch) {
+          const success = await executeUpdate(update, supabase, isVerbose)
+          if (success) {
+            successCount++
+          } else {
+            errorCount++
+          }
+        }
+
+        if (i + batchSize < updates.length) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+
+      return { successCount, errorCount }
+    }
+
+    // Process transactions and prepare updates
+    const { updates, skippedCount } = prepareUpdates(transactions, isExecute, isVerbose)
 
     console.log(`\n📈 Summary:`)
     console.log(`   Total transactions found: ${transactions.length}`)
@@ -282,43 +338,7 @@ async function updateTransactionTitles() {
       return
     }
 
-    // Execute updates in batches
-    console.log(`\n🚀 Starting database updates (batch processing)...`)
-    let successCount = 0
-    let errorCount = 0
-    const batchSize = 50
-
-    for (let i = 0; i < updates.length; i += batchSize) {
-      const batch = updates.slice(i, i + batchSize)
-      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(updates.length/batchSize)} (${batch.length} items)...`)
-      
-      for (const update of batch) {
-        try {
-          const { error } = await supabase
-            .from('transactions')
-            .update({ title: update.newTitle })
-            .eq('id', update.id)
-
-          if (error) {
-            console.error(`❌ Failed to update ${update.id}: ${error.message}`)
-            errorCount++
-          } else {
-            successCount++
-            if (isVerbose) {
-              console.log(`✅ Updated ${update.id}`)
-            }
-          }
-        } catch (error) {
-          console.error(`❌ Error updating ${update.id}: ${error.message}`)
-          errorCount++
-        }
-      }
-      
-      // Small delay between batches
-      if (i + batchSize < updates.length) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    }
+    const { successCount, errorCount } = await executeBatchUpdates(updates, supabase, isVerbose)
 
     console.log(`\n📊 Update Results:`)
     console.log(`   Successfully updated: ${successCount}`)
