@@ -1,0 +1,7 @@
+/* Hide horizontal scrollbar smoothly */
+.scrollbarHide {
+  -webkit-overflow-scrolling: touch;
+}
+.scrollbarHide::-webkit-scrollbar {
+  display: none;
+}

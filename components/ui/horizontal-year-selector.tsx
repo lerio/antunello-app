@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import styles from './horizontal-year-selector.module.css'
 
 function getYearButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
   if (isSelected) {
@@ -116,7 +117,7 @@ export function HorizontalYearSelector({
       {/* Scrollable years container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-8"
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} py-2 px-8`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {years.map((yearOption) => {
@@ -141,15 +142,6 @@ export function HorizontalYearSelector({
         })}
       </div>
 
-      {/* Custom scrollbar hide styles */}
-      <style jsx>{`
-        .scrollbar-hide {
-          -webkit-overflow-scrolling: touch;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }

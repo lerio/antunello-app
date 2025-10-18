@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { MonthOption } from '@/hooks/useAvailableMonths'
+import styles from './horizontal-month-selector.module.css'
 
 function getMonthButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
   if (isSelected) {
@@ -108,7 +109,7 @@ export function HorizontalMonthSelector({
       {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-8"
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} py-2 px-8`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {months.map((month) => {
@@ -140,15 +141,6 @@ export function HorizontalMonthSelector({
         })}
       </div>
 
-      {/* Custom scrollbar hide styles */}
-      <style jsx>{`
-        .scrollbar-hide {
-          -webkit-overflow-scrolling: touch;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }

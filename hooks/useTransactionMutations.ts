@@ -184,17 +184,16 @@ export function useTransactionMutations() {
 
   // Helper: build update payload for DB
   const buildUpdateData = async (data: Partial<Transaction>, original: Transaction) => {
-    const needsConversion = !data.eur_amount && (data.amount !== undefined || data.currency !== undefined || data.date !== undefined)
-    return {
-      ...data,
-      ...(needsConversion
-        ? await convertAndUpdateCurrency(
-            data.amount !== undefined ? data.amount : original.amount,
-            data.currency || original.currency,
-            data.date || original.date
-          )
-        : {}),
+    const needsConversion = data.eur_amount === undefined && (data.amount !== undefined || data.currency !== undefined || data.date !== undefined)
+    const amountToUse = data.amount ?? original.amount
+    const currencyToUse = data.currency ?? original.currency
+    const dateToUse = data.date ?? original.date
+
+    if (needsConversion) {
+      const conversion = await convertAndUpdateCurrency(amountToUse, currencyToUse, dateToUse)
+      return { ...data, ...conversion }
     }
+    return { ...data }
   }
 
   // Helper: finalize caches and invalidations after DB update

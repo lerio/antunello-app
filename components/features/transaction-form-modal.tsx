@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
+import styles from "./transaction-form-modal.module.css";
 
 // Helper: button styles for type toggle
 const getTypeButtonColorClass = (type: 'expense' | 'income', isSelected: boolean): string => {
@@ -27,9 +28,9 @@ const getTypeButtonClass = (type: 'expense' | 'income', isSelected: boolean) => 
 
 // Subcomponent: Type selector toggle
 function TypeSelector({ transactionType, setTransactionType, disabled }: {
-  transactionType: 'expense' | 'income';
-  setTransactionType: React.Dispatch<React.SetStateAction<'expense' | 'income'>>;
-  disabled: boolean;
+  readonly transactionType: 'expense' | 'income';
+  readonly setTransactionType: React.Dispatch<React.SetStateAction<'expense' | 'income'>>;
+  readonly disabled: boolean;
 }) {
   return (
     <div>
@@ -59,10 +60,10 @@ function TypeSelector({ transactionType, setTransactionType, disabled }: {
 
 // Subcomponent: Delete section
 function DeleteSection({ initialData, onDelete, showDeleteConfirm, setShowDeleteConfirm }: {
-  initialData?: Transaction;
-  onDelete?: (transaction: Transaction) => Promise<void>;
-  showDeleteConfirm: boolean;
-  setShowDeleteConfirm: (v: boolean) => void;
+  readonly initialData?: Transaction;
+  readonly onDelete?: (transaction: Transaction) => Promise<void>;
+  readonly showDeleteConfirm: boolean;
+  readonly setShowDeleteConfirm: (v: boolean) => void;
 }) {
   if (!onDelete || !initialData) return null;
   return (
@@ -443,83 +444,6 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
         setShowDeleteConfirm={setShowDeleteConfirm}
       />
 
-      <style jsx={true} global={true}>{`
-        .form-select {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 0.5rem center;
-          background-size: 1.5em 1.5em;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-        }
-        
-        .dark .form-select {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-        }
-
-        /* DatePicker Dark Mode Styles */
-        .dark .react-datepicker {
-          background-color: rgb(31 41 55) !important;
-          border-color: rgb(75 85 99) !important;
-          color: rgb(243 244 246) !important;
-        }
-        
-        .dark .react-datepicker__header {
-          background-color: rgb(17 24 39) !important;
-          border-bottom-color: rgb(75 85 99) !important;
-        }
-        
-        .dark .react-datepicker__current-month,
-        .dark .react-datepicker-time__header,
-        .dark .react-datepicker__day-name {
-          color: rgb(243 244 246) !important;
-        }
-        
-        .dark .react-datepicker__day {
-          color: rgb(243 244 246) !important;
-        }
-        
-        .dark .react-datepicker__day:hover {
-          background-color: rgb(55 65 81) !important;
-        }
-        
-        .dark .react-datepicker__day--selected,
-        .dark .react-datepicker__day--in-selecting-range,
-        .dark .react-datepicker__day--in-range {
-          background-color: rgb(99 102 241) !important;
-          color: white !important;
-        }
-        
-        .dark .react-datepicker__time-container {
-          border-left-color: rgb(75 85 99) !important;
-        }
-        
-        .dark .react-datepicker__time-list-item {
-          color: rgb(243 244 246) !important;
-        }
-        
-        .dark .react-datepicker__time-list-item:hover {
-          background-color: rgb(55 65 81) !important;
-        }
-        
-        .dark .react-datepicker__time-list-item--selected {
-          background-color: rgb(99 102 241) !important;
-          color: white !important;
-        }
-        
-        .dark .react-datepicker__navigation {
-          border-color: transparent !important;
-        }
-        
-        .dark .react-datepicker__navigation--previous {
-          border-right-color: rgb(156 163 175) !important;
-        }
-        
-        .dark .react-datepicker__navigation--next {
-          border-left-color: rgb(156 163 175) !important;
-        }
-      `}</style>
     </div>
   );
 }
