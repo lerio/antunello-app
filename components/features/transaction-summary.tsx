@@ -111,6 +111,10 @@ function getMonthlyAmountClass(isBalance: boolean, monthlyAverage?: number): str
   return baseClass;
 }
 
+function inc(map: Record<string, number>, key: string, amount: number) {
+  map[key] = (map[key] || 0) + amount;
+}
+
 function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTotals {
   let expenseTotal = 0;
   let incomeTotal = 0;
@@ -119,26 +123,23 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
   let hiddenExpenseTotal = 0;
   let hiddenTransactionCount = 0;
 
-  for (const transaction of transactions) {
-    if (transaction.eur_amount == null) continue;
-    const eurAmount = transaction.eur_amount;
+  const converted = transactions.filter((t) => t.eur_amount != null);
+  const hidden = converted.filter((t) => t.hide_from_totals);
+  const visible = converted.filter((t) => !t.hide_from_totals);
 
-    if (transaction.hide_from_totals) {
-      hiddenTransactionCount++;
-      if (transaction.type === "expense") {
-        hiddenExpenseTotal += eurAmount;
-      }
-      continue;
-    }
+  hiddenTransactionCount = hidden.length;
+  for (const t of hidden) {
+    if (t.type === "expense") hiddenExpenseTotal += t.eur_amount as number;
+  }
 
-    if (transaction.type === "expense") {
-      expenseTotal += eurAmount;
-      if (!expenseCategoryTotals[transaction.main_category]) expenseCategoryTotals[transaction.main_category] = 0;
-      expenseCategoryTotals[transaction.main_category] += eurAmount;
+  for (const t of visible) {
+    const eur = t.eur_amount as number;
+    if (t.type === "expense") {
+      expenseTotal += eur;
+      inc(expenseCategoryTotals, t.main_category, eur);
     } else {
-      incomeTotal += eurAmount;
-      if (!incomeCategoryTotals[transaction.main_category]) incomeCategoryTotals[transaction.main_category] = 0;
-      incomeCategoryTotals[transaction.main_category] += eurAmount;
+      incomeTotal += eur;
+      inc(incomeCategoryTotals, t.main_category, eur);
     }
   }
 
@@ -152,27 +153,23 @@ function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevY
   const prevYearExpenseCategoryTotals: Record<string, number> = {};
   let prevYearHiddenExpenseTotal = 0;
 
-  if (transactions && transactions.length > 0) {
-    for (const transaction of transactions) {
-      if (transaction.eur_amount == null) continue;
-      const eurAmount = transaction.eur_amount;
+  const list = transactions ?? [];
+  const converted = list.filter((t) => t.eur_amount != null);
+  const hidden = converted.filter((t) => t.hide_from_totals);
+  const visible = converted.filter((t) => !t.hide_from_totals);
 
-      if (transaction.hide_from_totals) {
-        if (transaction.type === "expense") {
-          prevYearHiddenExpenseTotal += eurAmount;
-        }
-        continue;
-      }
+  for (const t of hidden) {
+    if (t.type === "expense") prevYearHiddenExpenseTotal += t.eur_amount as number;
+  }
 
-      if (transaction.type === "expense") {
-        prevYearExpenseTotal += eurAmount;
-        if (!prevYearExpenseCategoryTotals[transaction.main_category]) prevYearExpenseCategoryTotals[transaction.main_category] = 0;
-        prevYearExpenseCategoryTotals[transaction.main_category] += eurAmount;
-      } else {
-        prevYearIncomeTotal += eurAmount;
-        if (!prevYearIncomeCategoryTotals[transaction.main_category]) prevYearIncomeCategoryTotals[transaction.main_category] = 0;
-        prevYearIncomeCategoryTotals[transaction.main_category] += eurAmount;
-      }
+  for (const t of visible) {
+    const eur = t.eur_amount as number;
+    if (t.type === "expense") {
+      prevYearExpenseTotal += eur;
+      inc(prevYearExpenseCategoryTotals, t.main_category, eur);
+    } else {
+      prevYearIncomeTotal += eur;
+      inc(prevYearIncomeCategoryTotals, t.main_category, eur);
     }
   }
 
@@ -226,18 +223,33 @@ function buildCategoriesData(
   return categoriesData;
 }
 
-function createBaseData(
-  balanceTotal: number,
-  incomeTotal: number,
-  expenseTotal: number,
-  hiddenExpenseTotal: number,
-  prevYearBalanceTotal: number,
-  prevYearIncomeTotal: number,
-  prevYearExpenseTotal: number,
-  prevYearHiddenExpenseTotal: number,
-  currentYear?: number,
-  previousYear?: number
-): TotalsItem[] {
+type BaseDataContext = {
+  readonly balanceTotal: number;
+  readonly incomeTotal: number;
+  readonly expenseTotal: number;
+  readonly hiddenExpenseTotal: number;
+  readonly prevYearBalanceTotal: number;
+  readonly prevYearIncomeTotal: number;
+  readonly prevYearExpenseTotal: number;
+  readonly prevYearHiddenExpenseTotal: number;
+  readonly currentYear?: number;
+  readonly previousYear?: number;
+};
+
+function createBaseData(ctx: BaseDataContext): TotalsItem[] {
+  const {
+    balanceTotal,
+    incomeTotal,
+    expenseTotal,
+    hiddenExpenseTotal,
+    prevYearBalanceTotal,
+    prevYearIncomeTotal,
+    prevYearExpenseTotal,
+    prevYearHiddenExpenseTotal,
+    currentYear,
+    previousYear,
+  } = ctx;
+
   const base: TotalsItem[] = [
     {
       category: balanceTotal >= 0 ? 'Gains' : 'Losses',
@@ -328,6 +340,16 @@ function renderComparisonCell(item: TotalsItem): React.ReactNode {
   return formatDifference(item.difference, item.isIncome || item.isBalance);
 }
 
+type TotalsTableProps = {
+  readonly totalsData: TotalsItem[];
+  readonly currentYear?: number;
+  readonly previousYear?: number;
+  readonly isIncomeExpanded: boolean;
+  readonly isExpensesExpanded: boolean;
+  readonly onToggleIncome: () => void;
+  readonly onToggleExpenses: () => void;
+};
+
 function TotalsTable({
   totalsData,
   currentYear,
@@ -336,15 +358,7 @@ function TotalsTable({
   isExpensesExpanded,
   onToggleIncome,
   onToggleExpenses,
-}: {
-  totalsData: TotalsItem[];
-  currentYear?: number;
-  previousYear?: number;
-  isIncomeExpanded: boolean;
-  isExpensesExpanded: boolean;
-  onToggleIncome: () => void;
-  onToggleExpenses: () => void;
-}) {
+}: TotalsTableProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
       <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Totals (€)</h3>
@@ -367,7 +381,12 @@ function TotalsTable({
               const isHiddenExpense = item.isHiddenExpense;
               const isSubCategory = item.isSubCategory;
               const isCollapsible = item.isCollapsible;
-              const isExpanded = item.isIncome ? isIncomeExpanded : item.isExpense ? isExpensesExpanded : false;
+              let isExpanded = false;
+              if (item.isIncome) {
+                isExpanded = isIncomeExpanded;
+              } else if (item.isExpense) {
+                isExpanded = isExpensesExpanded;
+              }
 
               const handleToggleExpand = () => {
                 if (item.isIncome) onToggleIncome();
@@ -424,7 +443,13 @@ function TotalsTable({
   );
 }
 
-function CategoriesTable({ categoriesData, currentYear, previousYear }: { categoriesData: CategoryData[]; currentYear?: number; previousYear?: number }) {
+type CategoriesTableProps = {
+  readonly categoriesData: CategoryData[];
+  readonly currentYear?: number;
+  readonly previousYear?: number;
+};
+
+function CategoriesTable({ categoriesData, currentYear, previousYear }: CategoriesTableProps) {
   if (currentYear == null || categoriesData.length === 0) return null;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
@@ -491,6 +516,28 @@ type TransactionSummaryProps = {
   readonly currentYear?: number;
 };
 
+function LoadingSkeleton() {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+      <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+      </div>
+      <div className="mt-4 space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+            </div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TransactionSummary({
   transactions,
   isLoading = false,
@@ -528,32 +575,12 @@ export default function TransactionSummary({
   const balanceTotal = incomeTotal - expenseTotal;
   const prevYearBalanceTotal = prevYearIncomeTotal - prevYearExpenseTotal;
 
-  const LoadingSkeleton = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
-        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-      </div>
-      <div className="mt-4 space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-16"></div>
-            </div>
-            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   if (isLoading) {
     return <LoadingSkeleton />;
   }
 
   // Prepare totals data with categories for monthly view
-  const baseData = createBaseData(
+  const baseData = createBaseData({
     balanceTotal,
     incomeTotal,
     expenseTotal,
@@ -563,8 +590,8 @@ export default function TransactionSummary({
     prevYearExpenseTotal,
     prevYearHiddenExpenseTotal,
     currentYear,
-    previousYear
-  );
+    previousYear,
+  });
 
   const totalsData = currentYear
     ? baseData

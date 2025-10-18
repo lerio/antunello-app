@@ -67,6 +67,15 @@ type SearchSummaryProps = {
   readonly isLoading?: boolean;
 };
 
+type SummaryCardProps = {
+  readonly balanceTotal: number;
+  readonly hiddenTransactionCount: number;
+  readonly hiddenIncomeTotal: number;
+  readonly hiddenExpenseTotal: number;
+  readonly incomeTotal: number;
+  readonly expenseTotal: number;
+};
+
 function SummaryCard({
   balanceTotal,
   hiddenTransactionCount,
@@ -74,14 +83,7 @@ function SummaryCard({
   hiddenExpenseTotal,
   incomeTotal,
   expenseTotal,
-}: {
-  balanceTotal: number;
-  hiddenTransactionCount: number;
-  hiddenIncomeTotal: number;
-  hiddenExpenseTotal: number;
-  incomeTotal: number;
-  expenseTotal: number;
-}) {
+}: SummaryCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
       <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
