@@ -28,7 +28,7 @@ export const getSwrConfig = (): SWRConfiguration => {
   }
 
 // Only add client-side features when in browser
-  if (typeof globalThis.localStorage !== 'undefined') {
+  if (globalThis.localStorage !== undefined) {
     return {
       ...baseConfig,
       

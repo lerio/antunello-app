@@ -348,8 +348,7 @@ function assembleConversionResults(
     const baseRate = rateResults.get(rateKey);
     const indices = group.indices;
     if (baseRate) {
-      for (let i = 0; i < indices.length; i++) {
-        const idx = indices[i];
+      for (const idx of indices) {
         const originalAmount = transactions[idx].amount;
         finalResults[idx] = {
           eurAmount: Number((originalAmount / baseRate.exchangeRate).toFixed(2)),
@@ -359,8 +358,8 @@ function assembleConversionResults(
         };
       }
     } else {
-      for (let i = 0; i < indices.length; i++) {
-        finalResults[indices[i]] = null;
+      for (const idx of indices) {
+        finalResults[idx] = null;
       }
     }
   }

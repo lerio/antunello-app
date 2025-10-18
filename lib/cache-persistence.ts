@@ -20,7 +20,7 @@ interface SerializedCacheEntry {
  * Save SWR cache to localStorage
  */
 export function saveCacheToStorage(cache: Map<string, any>) {
-  if (typeof globalThis.localStorage === 'undefined') return
+  if (globalThis.localStorage === undefined) return
 
   try {
     const serializedCache: Record<string, SerializedCacheEntry> = {}
@@ -52,7 +52,7 @@ export function saveCacheToStorage(cache: Map<string, any>) {
  * Load SWR cache from localStorage
  */
 export function loadCacheFromStorage(): Map<string, any> | null {
-  if (typeof globalThis.localStorage === 'undefined') return null
+  if (globalThis.localStorage === undefined) return null
 
   try {
     const cached = localStorage.getItem(CACHE_KEY)
@@ -75,11 +75,11 @@ export function loadCacheFromStorage(): Map<string, any> | null {
     const cache = new Map<string, any>()
     for (const [key, entry] of Object.entries(cachedData.data)) {
       // Only restore if data is not too old (6 hours for transactions)
-      const dataAge = Date.now() - entry.timestamp
+      const dataAge = Date.now() - (entry as SerializedCacheEntry).timestamp
       const maxAge = key.startsWith('transactions-') ? 6 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000
       
-      if (dataAge < maxAge && (entry as any).data) {
-        cache.set(key, (entry as any).data)
+      if (dataAge < maxAge && (entry as SerializedCacheEntry).data) {
+        cache.set(key, (entry as SerializedCacheEntry).data)
       }
     }
 
@@ -95,7 +95,7 @@ export function loadCacheFromStorage(): Map<string, any> | null {
  * Clear cached data from localStorage
  */
 export function clearCacheStorage() {
-  if (typeof globalThis.localStorage === 'undefined') return
+  if (globalThis.localStorage === undefined) return
   
   try {
     localStorage.removeItem(CACHE_KEY)
@@ -108,7 +108,7 @@ export function clearCacheStorage() {
  * Get cache storage usage info
  */
 export function getCacheStorageInfo() {
-  if (typeof globalThis.localStorage === 'undefined') return null
+  if (globalThis.localStorage === undefined) return null
 
   try {
     const cached = localStorage.getItem(CACHE_KEY)
