@@ -272,87 +272,106 @@ export default function TransactionSummary({
     return <LoadingSkeleton />;
   }
 
+  // Helper to get difference if years available
+  const getDifferenceIfAvailable = (current: number, previous: number, isBalance: boolean = false) => {
+    return currentYear && previousYear ? getDifferenceFromPrevYear(current, previous, isBalance) : null;
+  };
+
+  // Helper to create base totals data row
+  const createBaseData = () => [
+    {
+      category: balanceTotal >= 0 ? 'Gains' : 'Losses',
+      total: balanceTotal,
+      monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
+      difference: getDifferenceIfAvailable(balanceTotal, prevYearBalanceTotal, true),
+      isBalance: true
+    },
+    {
+      category: 'Income',
+      total: incomeTotal,
+      monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
+      difference: getDifferenceIfAvailable(incomeTotal, prevYearIncomeTotal),
+      isIncome: true,
+      isCollapsible: !currentYear
+    },
+    {
+      category: 'Expenses',
+      total: expenseTotal,
+      monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
+      difference: getDifferenceIfAvailable(expenseTotal, prevYearExpenseTotal),
+      isExpense: true,
+      isCollapsible: !currentYear
+    },
+    ...(hiddenExpenseTotal > 0 ? [{
+      category: 'Hidden',
+      total: hiddenExpenseTotal,
+      monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
+      difference: getDifferenceIfAvailable(hiddenExpenseTotal, prevYearHiddenExpenseTotal),
+      isHiddenExpense: true
+    }] : [])
+  ];
+
+  // Helper to add income categories to extended data
+  const addIncomeCategoryRows = (extendedData: any[]) => {
+    if (!isIncomeExpanded) return;
+    Object.entries(incomeCategoryTotals)
+      .sort(([, a], [, b]) => b - a)
+      .forEach(([category, amount]) => {
+        extendedData.push({
+          category,
+          total: amount,
+          monthlyAverage: getMonthlyAverage(amount, currentYear),
+          difference: null,
+          isSubCategory: true,
+          type: 'income',
+          icon: CATEGORY_ICONS[category]
+        });
+      });
+  };
+
+  // Helper to add expense categories to extended data
+  const addExpenseCategoryRows = (extendedData: any[]) => {
+    if (!isExpensesExpanded) return;
+    Object.entries(expenseCategoryTotals)
+      .sort(([, a], [, b]) => b - a)
+      .forEach(([category, amount]) => {
+        extendedData.push({
+          category,
+          total: amount,
+          monthlyAverage: getMonthlyAverage(amount, currentYear),
+          difference: null,
+          isSubCategory: true,
+          type: 'expense',
+          icon: CATEGORY_ICONS[category]
+        });
+      });
+  };
+
   // Prepare totals data with categories for monthly view
   const createTotalsData = () => {
-    const baseData = [
-      {
-        category: balanceTotal >= 0 ? 'Gains' : 'Losses',
-        total: balanceTotal,
-        monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
-        difference: currentYear && previousYear ? getDifferenceFromPrevYear(balanceTotal, prevYearBalanceTotal, true) : null,
-        isBalance: true
-      },
-      {
-        category: 'Income',
-        total: incomeTotal,
-        monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
-        difference: currentYear && previousYear ? getDifferenceFromPrevYear(incomeTotal, prevYearIncomeTotal) : null,
-        isIncome: true,
-        isCollapsible: !currentYear
-      },
-      {
-        category: 'Expenses',
-        total: expenseTotal,
-        monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
-        difference: currentYear && previousYear ? getDifferenceFromPrevYear(expenseTotal, prevYearExpenseTotal) : null,
-        isExpense: true,
-        isCollapsible: !currentYear
-      },
-      // Add Hidden Expenses row if there are any hidden expenses
-      ...(hiddenExpenseTotal > 0 ? [{
-        category: 'Hidden',
-        total: hiddenExpenseTotal,
-        monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
-        difference: currentYear && previousYear ? getDifferenceFromPrevYear(hiddenExpenseTotal, prevYearHiddenExpenseTotal) : null,
-        isHiddenExpense: true
-      }] : [])
-    ];
+    const baseData = createBaseData();
 
     // In monthly view, add category breakdowns under Income and Expenses
     if (!currentYear) {
       const extendedData: any[] = [];
-      
+
       for (const item of baseData) {
         extendedData.push(item);
-        
+
         // Add income categories after Income row
-        if (item.isIncome && isIncomeExpanded) {
-          Object.entries(incomeCategoryTotals)
-            .sort(([, a], [, b]) => b - a)
-            .forEach(([category, amount]) => {
-              extendedData.push({
-                category,
-                total: amount,
-                monthlyAverage: getMonthlyAverage(amount, currentYear),
-                difference: null,
-                isSubCategory: true,
-                type: 'income',
-                icon: CATEGORY_ICONS[category]
-              });
-            });
+        if (item.isIncome) {
+          addIncomeCategoryRows(extendedData);
         }
-        
+
         // Add expense categories after Expenses row
-        if (item.isExpense && isExpensesExpanded) {
-          Object.entries(expenseCategoryTotals)
-            .sort(([, a], [, b]) => b - a)
-            .forEach(([category, amount]) => {
-              extendedData.push({
-                category,
-                total: amount,
-                monthlyAverage: getMonthlyAverage(amount, currentYear),
-                difference: null,
-                isSubCategory: true,
-                type: 'expense',
-                icon: CATEGORY_ICONS[category]
-              });
-            });
+        if (item.isExpense) {
+          addExpenseCategoryRows(extendedData);
         }
       }
-      
+
       return extendedData;
     }
-    
+
     return baseData;
   };
 
