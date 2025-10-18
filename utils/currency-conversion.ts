@@ -36,8 +36,8 @@ export async function fetchExchangeRateFromAPI(
       }
 
       const data: any = await response.json();
-      
-      if (data.rates && data.rates[targetCurrency]) {
+
+      if (data.rates?.[targetCurrency]) {
         return {
           rate: data.rates[targetCurrency],
           isMissing: false

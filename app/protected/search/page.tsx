@@ -212,7 +212,7 @@ export default function SearchPage() {
         </div>
 
         {/* Search Results */}
-        {searchLoading ? (
+        {searchLoading && (
           <div className="space-y-4 mt-8">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -221,19 +221,22 @@ export default function SearchPage() {
               </div>
             ))}
           </div>
-        ) : searchError ? (
+        )}
+        {searchError && (
           <div className="mt-8 text-center py-8">
             <p className="text-red-600 dark:text-red-400">
               Error searching transactions: {searchError.message}
             </p>
           </div>
-        ) : searchQuery.trim() && searchResults.length === 0 ? (
+        )}
+        {!searchLoading && !searchError && searchQuery.trim() && searchResults.length === 0 && (
           <div className="mt-8 text-center py-8">
             <p className="text-gray-500 dark:text-gray-400">
               No transactions found
             </p>
           </div>
-        ) : searchResults.length > 0 ? (
+        )}
+        {!searchLoading && !searchError && searchResults.length > 0 && (
           <div className="mt-2">
             <SearchSummary transactions={searchResults} />
             <div className="transactions-list">
@@ -244,7 +247,8 @@ export default function SearchPage() {
               />
             </div>
           </div>
-        ) : (
+        )}
+        {!searchLoading && !searchError && !searchQuery.trim() && searchResults.length === 0 && (
           <div className="mt-8 text-center py-8">
             <p className="text-gray-500 dark:text-gray-400">
               Start typing to search transactions...
