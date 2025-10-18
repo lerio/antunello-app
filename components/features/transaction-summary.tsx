@@ -24,7 +24,6 @@ type SummaryTotals = {
   incomeCategoryTotals: Record<string, number>;
   expenseCategoryTotals: Record<string, number>;
   hiddenExpenseTotal: number;
-  hiddenTransactionCount: number;
 };
 
 type PrevYearTotals = {
@@ -121,13 +120,11 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
   const incomeCategoryTotals: Record<string, number> = {};
   const expenseCategoryTotals: Record<string, number> = {};
   let hiddenExpenseTotal = 0;
-  let hiddenTransactionCount = 0;
 
   const converted = transactions.filter((t) => t.eur_amount != null);
   const hidden = converted.filter((t) => t.hide_from_totals);
   const visible = converted.filter((t) => !t.hide_from_totals);
 
-  hiddenTransactionCount = hidden.length;
   for (const t of hidden) {
     if (t.type === "expense") hiddenExpenseTotal += t.eur_amount as number;
   }
@@ -143,7 +140,7 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
     }
   }
 
-  return { expenseTotal, incomeTotal, incomeCategoryTotals, expenseCategoryTotals, hiddenExpenseTotal, hiddenTransactionCount };
+  return { expenseTotal, incomeTotal, incomeCategoryTotals, expenseCategoryTotals, hiddenExpenseTotal };
 }
 
 function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevYearTotals {
@@ -560,7 +557,6 @@ export default function TransactionSummary({
     incomeCategoryTotals,
     expenseCategoryTotals,
     hiddenExpenseTotal,
-    hiddenTransactionCount
   } = computeYearTotals(transactions);
 
   const {
