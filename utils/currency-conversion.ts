@@ -238,10 +238,22 @@ export async function batchConvertToEUR(
   batchSize: number = 20,
   delayMs: number = 200
 ): Promise<Array<CurrencyConversionResult | null>> {
-  // Separate EUR transactions (no conversion needed) from others
+  const { eurTransactions, nonEurTransactions } = splitTransactions(transactions);
+  const uniqueRateKeys = groupByRateKey(nonEurTransactions);
+  const rateResults = await fetchRatesForUniqueKeys(uniqueRateKeys, batchSize, delayMs);
+  return assembleConversionResults(transactions, eurTransactions, uniqueRateKeys, rateResults);
+}
+
+// --- Helper functions to reduce cognitive complexity ---
+function splitTransactions(
+  transactions: Array<{ amount: number; currency: string; date: string }>
+): {
+  eurTransactions: Array<{ index: number; result: CurrencyConversionResult }>;
+  nonEurTransactions: Array<{ index: number; transaction: { amount: number; currency: string; date: string } }>;
+} {
   const eurTransactions: Array<{ index: number; result: CurrencyConversionResult }> = [];
   const nonEurTransactions: Array<{ index: number; transaction: { amount: number; currency: string; date: string } }> = [];
-  
+
   for (let index = 0; index < transactions.length; index++) {
     const transaction = transactions[index];
     if (transaction.currency === 'EUR') {
@@ -251,39 +263,47 @@ export async function batchConvertToEUR(
           eurAmount: transaction.amount,
           exchangeRate: 1,
           rateDate: transaction.date,
-          isMissing: false
-        }
+          isMissing: false,
+        },
       });
     } else {
       nonEurTransactions.push({ index, transaction });
     }
   }
-  
-  // Group non-EUR transactions by unique date/currency combinations
+  return { eurTransactions, nonEurTransactions };
+}
+
+function groupByRateKey(
+  nonEurTransactions: Array<{ index: number; transaction: { amount: number; currency: string; date: string } }>
+): Map<string, { indices: number[]; transaction: { amount: number; currency: string; date: string } }> {
   const uniqueRateKeys = new Map<string, { indices: number[]; transaction: { amount: number; currency: string; date: string } }>();
-  
   for (const { index, transaction } of nonEurTransactions) {
     const rateKey = `${transaction.date}-${transaction.currency}`;
-    if (uniqueRateKeys.has(rateKey)) {
-      uniqueRateKeys.get(rateKey)!.indices.push(index);
+    const existing = uniqueRateKeys.get(rateKey);
+    if (existing) {
+      existing.indices.push(index);
     } else {
       uniqueRateKeys.set(rateKey, { indices: [index], transaction });
     }
   }
-  
-  // Fetch exchange rates for unique combinations only
+  return uniqueRateKeys;
+}
+
+async function fetchRatesForUniqueKeys(
+  uniqueRateKeys: Map<string, { indices: number[]; transaction: { amount: number; currency: string; date: string } }>,
+  batchSize: number,
+  delayMs: number
+): Promise<Map<string, CurrencyConversionResult | null>> {
   const uniqueRateEntries = Array.from(uniqueRateKeys.entries());
   const rateResults = new Map<string, CurrencyConversionResult | null>();
-  
+
   for (let i = 0; i < uniqueRateEntries.length; i += batchSize) {
     const batch = uniqueRateEntries.slice(i, i + batchSize);
-    
+
     const batchPromises = batch.map(async ([rateKey, { transaction }], index) => {
-      // Add small delay for each request within batch
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
-      
       const exchangeRate = await getExchangeRate(transaction.date, transaction.currency);
       if (exchangeRate) {
         return {
@@ -292,55 +312,59 @@ export async function batchConvertToEUR(
             eurAmount: Number((transaction.amount / exchangeRate.exchangeRate).toFixed(2)),
             exchangeRate: exchangeRate.exchangeRate,
             rateDate: exchangeRate.rateDate,
-            isMissing: exchangeRate.isMissing
-          }
+            isMissing: exchangeRate.isMissing,
+          },
         };
       }
       return { rateKey, result: null };
     });
-    
+
     const batchResults = await Promise.all(batchPromises);
     for (const { rateKey, result } of batchResults) {
       rateResults.set(rateKey, result);
     }
-    
-    // Delay between batches
+
     if (i + batchSize < uniqueRateEntries.length) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
-  
-  // Initialize results array with correct length
+
+  return rateResults;
+}
+
+function assembleConversionResults(
+  transactions: Array<{ amount: number; currency: string; date: string }>,
+  eurTransactions: Array<{ index: number; result: CurrencyConversionResult }>,
+  uniqueRateKeys: Map<string, { indices: number[]; transaction: { amount: number; currency: string; date: string } }>,
+  rateResults: Map<string, CurrencyConversionResult | null>
+): Array<CurrencyConversionResult | null> {
   const finalResults: Array<CurrencyConversionResult | null> = Array.from({ length: transactions.length }, () => null);
-  
-  // Fill EUR results
+
   for (const { index, result } of eurTransactions) {
     finalResults[index] = result;
   }
-  
-  // Fill non-EUR results using cached rates
+
   for (const [rateKey, group] of Array.from(uniqueRateKeys.entries())) {
-    const { indices } = group;
     const baseRate = rateResults.get(rateKey);
+    const indices = group.indices;
     if (baseRate) {
       for (let i = 0; i < indices.length; i++) {
-        const index = indices[i];
-        const originalAmount = transactions[index].amount;
-        finalResults[index] = {
+        const idx = indices[i];
+        const originalAmount = transactions[idx].amount;
+        finalResults[idx] = {
           eurAmount: Number((originalAmount / baseRate.exchangeRate).toFixed(2)),
           exchangeRate: baseRate.exchangeRate,
           rateDate: baseRate.rateDate,
-          isMissing: baseRate.isMissing
+          isMissing: baseRate.isMissing,
         };
       }
     } else {
       for (let i = 0; i < indices.length; i++) {
-        const index = indices[i];
-        finalResults[index] = null;
+        finalResults[indices[i]] = null;
       }
     }
   }
-  
+
   return finalResults;
 }
 
