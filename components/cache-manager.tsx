@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { clearCacheStorage } from '@/lib/cache-persistence'
 
 export function CacheManager() {
-  const router = useRouter()
 
   useEffect(() => {
     const supabase = createClient()
@@ -24,7 +22,7 @@ export function CacheManager() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [])
 
   // This component doesn't render anything
   return null

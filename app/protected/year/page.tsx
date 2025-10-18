@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
-import { useAllTransactions } from "@/hooks/useAllTransactions";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +11,6 @@ import TransactionSummary from "@/components/features/transaction-summary";
 import OverallTotals from "@/components/features/overall-totals";
 
 export default function YearSummaryPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const initialYear = useMemo(() => {
