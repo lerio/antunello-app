@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 
 interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
-  children: React.ReactNode
+  readonly isOpen: boolean
+  readonly onClose: () => void
+  readonly children: React.ReactNode
 }
 
 const ANIMATION_DURATION = 300

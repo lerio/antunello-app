@@ -4,17 +4,17 @@ import { useState, useRef, useEffect, ReactNode, createContext, useContext } fro
 import { cn } from "@/lib/utils";
 
 interface DropdownMenuProps {
-  trigger: ReactNode;
-  children: ReactNode;
-  align?: "left" | "right";
-  className?: string;
+  readonly trigger: ReactNode;
+  readonly children: ReactNode;
+  readonly align?: "left" | "right";
+  readonly className?: string;
 }
 
 interface DropdownMenuItemProps {
-  children: ReactNode;
-  onClick?: () => void;
-  asChild?: boolean;
-  className?: string;
+  readonly children: ReactNode;
+  readonly onClick?: () => void;
+  readonly asChild?: boolean;
+  readonly className?: string;
 }
 
 const DropdownContext = createContext<{

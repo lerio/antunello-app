@@ -29,9 +29,10 @@ export function parseCSV(csvContent: string): CSVTransaction[] {
     const values = parseCSVLine(lines[i]);
     if (values.length === headers.length) {
       const transaction = {} as CSVTransaction;
-      headers.forEach((header, index) => {
+      for (let index = 0; index < headers.length; index++) {
+        const header = headers[index];
         (transaction as any)[header] = values[index];
-      });
+      }
       transactions.push(transaction);
     }
   }

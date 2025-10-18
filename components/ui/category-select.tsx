@@ -9,12 +9,12 @@ interface Option {
 }
 
 interface CategorySelectProps {
-  options: Option[]
-  value: string
-  onChange: (value: string) => void
-  placeholder: string
-  disabled?: boolean
-  className?: string
+  readonly options: Option[]
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly placeholder: string
+  readonly disabled?: boolean
+  readonly className?: string
 }
 
 export function CategorySelect({
