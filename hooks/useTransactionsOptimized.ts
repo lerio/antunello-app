@@ -46,6 +46,82 @@ export function useTransactionsOptimized(year: number, month: number) {
     }
   }, [year, month, isLoading, error, prefetchAdjacentMonths])
 
+  // Helper to extract date info from transaction
+  const getDateInfo = (date: string) => {
+    const recordDate = new Date(date)
+    return {
+      year: recordDate.getFullYear(),
+      month: recordDate.getMonth() + 1,
+      key: createMonthKey(recordDate.getFullYear(), recordDate.getMonth() + 1)
+    }
+  }
+
+  // Helper to sort transactions by date
+  const sortByDate = (transactions: Transaction[]): Transaction[] => {
+    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }
+
+  // Helper to handle INSERT event
+  const handleInsert = (newRecord: any) => {
+    const recordInfo = getDateInfo(newRecord.date)
+
+    if (recordInfo.year === year && recordInfo.month === month) {
+      mutate((current: Transaction[] = []) => {
+        // Replace temp transaction or add new one
+        if (current.some(t => t.id === newRecord.id || t.id.startsWith('temp-'))) {
+          return current.map(t => (t.id.startsWith('temp-') ? newRecord : t))
+        }
+        return sortByDate([newRecord, ...current])
+      }, false)
+    }
+
+    invalidateYearCache(newRecord.date)
+    globalMutate('/api/overall-totals', undefined, true)
+  }
+
+  // Helper to handle UPDATE event
+  const handleUpdate = (newRecord: any, oldRecord: any) => {
+    const newDateInfo = getDateInfo(newRecord.date)
+    const oldDateInfo = getDateInfo(oldRecord.date)
+
+    if (newDateInfo.key !== oldDateInfo.key) {
+      // Month changed
+      globalMutate(oldDateInfo.key, (transactions: Transaction[] = []) => {
+        return transactions.filter(t => t.id !== newRecord.id)
+      }, false)
+
+      globalMutate(newDateInfo.key, (transactions: Transaction[] = []) => {
+        return sortByDate([newRecord, ...transactions])
+      }, false)
+    } else if (newDateInfo.key === monthKey) {
+      // Same month, update current view
+      mutate((transactions: Transaction[] = []) => {
+        return sortByDate(transactions.map(t => (t.id === newRecord.id ? newRecord : t)))
+      }, false)
+    }
+
+    // Invalidate year caches
+    invalidateYearCache(oldRecord.date)
+    if (newRecord.date !== oldRecord.date) {
+      invalidateYearCache(newRecord.date)
+    }
+    globalMutate('/api/overall-totals', undefined, true)
+  }
+
+  // Helper to handle DELETE event
+  const handleDelete = (oldRecord: any) => {
+    const recordInfo = getDateInfo(oldRecord.date)
+
+    if (recordInfo.year === year && recordInfo.month === month) {
+      mutate((transactions: Transaction[] = []) => {
+        return transactions.filter(t => t.id !== oldRecord.id)
+      }, false)
+    }
+
+    invalidateYearCache(oldRecord.date)
+    globalMutate('/api/overall-totals', undefined, true)
+  }
+
   // Real-time subscription with simplified logic
   useEffect(() => {
     let channel: any
@@ -62,85 +138,17 @@ export function useTransactionsOptimized(year: number, month: number) {
           table: 'transactions',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          handleRealtimeUpdate(payload)
+          const { eventType, new: newRecord, old: oldRecord } = payload
+
+          if (eventType === 'INSERT') {
+            handleInsert(newRecord)
+          } else if (eventType === 'UPDATE') {
+            handleUpdate(newRecord, oldRecord)
+          } else if (eventType === 'DELETE') {
+            handleDelete(oldRecord)
+          }
         })
         .subscribe()
-    }
-
-    const handleRealtimeUpdate = (payload: any) => {
-      const { eventType, new: newRecord, old: oldRecord } = payload
-      
-      // Handle different event types for better real-time sync
-      if (eventType === 'INSERT' && newRecord) {
-        const recordDate = new Date(newRecord.date)
-        const recordYear = recordDate.getFullYear()
-        const recordMonth = recordDate.getMonth() + 1
-        const recordMonthKey = createMonthKey(recordYear, recordMonth)
-        
-        // Only update if it's for current month and not already in cache (avoid duplicates from optimistic updates)
-        if (recordYear === year && recordMonth === month) {
-          mutate((current: Transaction[] = []) => {
-            // Check if transaction already exists (from optimistic update)
-            if (current.some(t => t.id === newRecord.id || t.id.startsWith('temp-'))) {
-              return current.map(t => t.id.startsWith('temp-') ? newRecord : t)
-            }
-            return [newRecord, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          }, false)
-        }
-        
-        // Invalidate year cache for the affected year
-        invalidateYearCache(newRecord.date)
-        // Revalidate overall totals
-        globalMutate('/api/overall-totals', undefined, true)
-      } else if (eventType === 'UPDATE' && newRecord && oldRecord) {
-        const newRecordDate = new Date(newRecord.date)
-        const oldRecordDate = new Date(oldRecord.date)
-        
-        const newMonthKey = createMonthKey(newRecordDate.getFullYear(), newRecordDate.getMonth() + 1)
-        const oldMonthKey = createMonthKey(oldRecordDate.getFullYear(), oldRecordDate.getMonth() + 1)
-        
-        // Handle month changes
-        if (newMonthKey !== oldMonthKey) {
-          // Remove from old month
-          globalMutate(oldMonthKey, (transactions: Transaction[] = []) => {
-            return transactions.filter(t => t.id !== newRecord.id)
-          }, false)
-          
-          // Add to new month
-          globalMutate(newMonthKey, (transactions: Transaction[] = []) => {
-            return [newRecord, ...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          }, false)
-        } else if (newMonthKey === monthKey) {
-          // Update in current month
-          mutate((transactions: Transaction[] = []) => {
-            return transactions.map(t => t.id === newRecord.id ? newRecord : t)
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          }, false)
-        }
-        
-        // Invalidate year caches for affected years
-        invalidateYearCache(oldRecord.date)
-        if (newRecord.date !== oldRecord.date) {
-          invalidateYearCache(newRecord.date)
-        }
-        // Revalidate overall totals
-        globalMutate('/api/overall-totals', undefined, true)
-      } else if (eventType === 'DELETE' && oldRecord) {
-        const recordDate = new Date(oldRecord.date)
-        const recordYear = recordDate.getFullYear()
-        const recordMonth = recordDate.getMonth() + 1
-        
-        if (recordYear === year && recordMonth === month) {
-          mutate((transactions: Transaction[] = []) => {
-            return transactions.filter(t => t.id !== oldRecord.id)
-          }, false)
-        }
-        
-        // Invalidate year cache for the affected year
-        invalidateYearCache(oldRecord.date)
-        // Revalidate overall totals
-        globalMutate('/api/overall-totals', undefined, true)
-      }
     }
 
     setupRealtime()

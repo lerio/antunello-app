@@ -56,15 +56,12 @@ export default function TransactionFormHtmlDesign({
   }, [mainCategory]);
 
   const defaultDate = useMemo(() => {
-    return initialData?.date
-      ? formatDateTimeLocal(initialData.date)
-      : formatDateTimeLocal(new Date().toISOString());
+    const date = initialData?.date || new Date().toISOString();
+    return formatDateTimeLocal(date);
   }, [initialData?.date]);
 
   const currencySymbol = useMemo(() => {
-    return (
-      CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol || "€"
-    );
+    return CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol || "€";
   }, [selectedCurrency]);
 
   const handleSubmit = useCallback(
@@ -117,6 +114,14 @@ export default function TransactionFormHtmlDesign({
     },
     []
   );
+
+  // Helper to get submit button color class
+  const getSubmitButtonColorClass = (): string => {
+    if (transactionType === "expense") {
+      return "bg-red-600 hover:bg-red-700 focus:ring-red-500";
+    }
+    return "bg-green-600 hover:bg-green-700 focus:ring-green-500";
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12">
@@ -333,11 +338,7 @@ export default function TransactionFormHtmlDesign({
         {/* Submit Button */}
         <div className="mt-12">
           <button
-            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-              transactionType === "expense"
-                ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
-            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${getSubmitButtonColorClass()} ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             type="submit"
             disabled={isLoading}
           >

@@ -180,25 +180,72 @@ export default function TransactionSummary({
     }).format(amount);
   };
 
+  // Helper function to determine color class based on difference and type
+  const getDifferenceColorClass = (difference: number, isIncome: boolean = false): string => {
+    const isPositive = difference > 0;
+    if (isIncome) {
+      return isPositive ? 'text-green-500' : 'text-red-500';
+    }
+    return isPositive ? 'text-red-500' : 'text-green-500';
+  };
+
   // Helper function to format difference with color
   const formatDifference = (difference: number, isIncome: boolean = false) => {
     const isPositive = difference > 0;
-    let colorClass;
-    
-    if (isIncome) {
-      // For income: positive difference is good (green), negative is bad (red)
-      colorClass = isPositive ? 'text-green-500' : 'text-red-500';
-    } else {
-      // For expenses: positive difference is bad (red), negative is good (green)
-      colorClass = isPositive ? 'text-red-500' : 'text-green-500';
-    }
-    
     const sign = isPositive ? '+' : '-';
+    const colorClass = getDifferenceColorClass(difference, isIncome);
+
     return (
       <span className={`${colorClass} text-sm sm:text-sm`}>
         {sign}{formatAmount(Math.abs(difference))}
       </span>
     );
+  };
+
+  // Helper to get category name class
+  const getCategoryNameClass = (isSubCategory: boolean, isHiddenExpense: boolean, isBalance: boolean, isIncome: boolean, total?: number): string => {
+    const baseClass = 'text-sm sm:text-sm';
+
+    if (isSubCategory) {
+      return `${baseClass} ml-4`;
+    }
+    if (isHiddenExpense) {
+      return `${baseClass} text-red-600 dark:text-red-400 ml-2 sm:ml-4`;
+    }
+    if (isBalance) {
+      const colorClass = (total || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+      return `font-medium ${baseClass} ${colorClass}`;
+    }
+    if (isIncome) {
+      return `font-medium ${baseClass} text-green-600 dark:text-green-400`;
+    }
+    return `font-medium ${baseClass} text-red-600 dark:text-red-400`;
+  };
+
+  // Helper to get total amount class
+  const getTotalAmountClass = (isSubCategory: boolean, itemType: string, isHiddenExpense: boolean, isBalance: boolean, total?: number): string => {
+    const baseClass = 'text-sm sm:text-sm';
+
+    if (isSubCategory) {
+      return `${baseClass} ${itemType === 'income' ? 'text-green-500' : 'text-red-500'}`;
+    }
+    if (isHiddenExpense) {
+      return `${baseClass} text-red-500`;
+    }
+    if (isBalance) {
+      return `font-medium ${baseClass} ${(total || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`;
+    }
+    return `font-medium ${baseClass} text-${itemType === 'income' ? 'green' : 'red'}-500`;
+  };
+
+  // Helper to get monthly amount class
+  const getMonthlyAmountClass = (isBalance: boolean, monthlyAverage?: number): string => {
+    const baseClass = 'text-sm sm:text-sm';
+
+    if (isBalance) {
+      return `${baseClass} ${(monthlyAverage || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`;
+    }
+    return baseClass;
   };
 
   const LoadingSkeleton = () => (
@@ -379,84 +426,56 @@ export default function TransactionSummary({
                     const isHiddenExpense = item.isHiddenExpense;
                     const isSubCategory = item.isSubCategory;
                     const isCollapsible = item.isCollapsible;
-                    
+                    const isExpanded = item.isIncome ? isIncomeExpanded : (item.isExpense ? isExpensesExpanded : false);
+
+                    const handleToggleExpand = () => {
+                      if (item.isIncome) {
+                        setIsIncomeExpanded(!isIncomeExpanded);
+                      } else if (item.isExpense) {
+                        setIsExpensesExpanded(!isExpensesExpanded);
+                      }
+                    };
+
                     return (
                       <tr key={`${item.category}-${index}`} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                         <td className="py-2 sm:py-3 px-1 sm:px-2">
                           <div className="flex items-center">
                             {isCollapsible && (
                               <button
-                                onClick={() => {
-                                  if (item.isIncome) {
-                                    setIsIncomeExpanded(!isIncomeExpanded);
-                                  } else if (item.isExpense) {
-                                    setIsExpensesExpanded(!isExpensesExpanded);
-                                  }
-                                }}
+                                onClick={handleToggleExpand}
                                 className="mr-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                               >
-                                {item.isIncome && isIncomeExpanded ? 
-                                  <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" /> : 
-                                  item.isExpense && isExpensesExpanded ?
-                                  <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" /> :
+                                {isExpanded ? (
+                                  <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" />
+                                ) : (
                                   <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
-                                }
+                                )}
                               </button>
                             )}
                             {isSubCategory && item.icon && (
                               <item.icon size={16} className="text-gray-400 dark:text-gray-500 mr-2" />
                             )}
-                            <span className={`${
-                              isSubCategory 
-                                ? `text-sm sm:text-sm ml-4 ${item.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
-                                : isHiddenExpense 
-                                ? 'text-sm sm:text-sm text-red-600 dark:text-red-400 ml-2 sm:ml-4'
-                                : item.isBalance 
-                                ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`
-                                : item.isIncome
-                                ? 'font-medium text-sm sm:text-sm text-green-600 dark:text-green-400'
-                                : 'font-medium text-sm sm:text-sm text-red-600 dark:text-red-400'
-                            }`}>
+                            <span className={getCategoryNameClass(isSubCategory, isHiddenExpense, item.isBalance || false, item.isIncome || false, item.total)}>
                               {item.category}
                             </span>
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                          <span className={`${
-                            isSubCategory
-                              ? `text-sm sm:text-sm ${item.type === 'income' ? 'text-green-500' : 'text-red-500'}`
-                              : isHiddenExpense
-                              ? 'text-sm sm:text-sm text-red-500'
-                              : item.isBalance 
-                              ? `font-medium text-sm sm:text-sm ${item.total >= 0 ? 'text-green-500' : 'text-red-500'}`
-                              : item.isIncome
-                              ? 'font-medium text-sm sm:text-sm text-green-500'
-                              : 'font-medium text-sm sm:text-sm text-red-500'
-                          }`}>
+                          <span className={getTotalAmountClass(isSubCategory, item.type || '', isHiddenExpense, item.isBalance || false, item.total)}>
                             {formatAmount(Math.abs(item.total))}
                           </span>
                         </td>
                         {/* Monthly column only in year view */}
                         {currentYear && (
-                          <>
+                          <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                             {!isHiddenExpense ? (
-                              <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                                <span className={`text-sm sm:text-sm ${
-                                  item.isBalance 
-                                    ? `${item.monthlyAverage >= 0 ? 'text-green-500' : 'text-red-500'}`
-                                    : item.isIncome
-                                    ? 'text-green-500'
-                                    : 'text-red-500'
-                                }`}>
-                                  {formatAmount(Math.abs(item.monthlyAverage))}
-                                </span>
-                              </td>
+                              <span className={getMonthlyAmountClass(item.isBalance || false, item.monthlyAverage)}>
+                                {formatAmount(Math.abs(item.monthlyAverage))}
+                              </span>
                             ) : (
-                              <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                                <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
-                              </td>
+                              <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>
                             )}
-                          </>
+                          </td>
                         )}
                         {/* Comparison column only in year view */}
                         {currentYear && previousYear && !isHiddenExpense && (
