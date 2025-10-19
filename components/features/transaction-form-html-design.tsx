@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import styles from "./transaction-form-html-design.module.css";
 
 type TransactionFormProps = {
   onSubmit: (
@@ -121,6 +122,23 @@ export default function TransactionFormHtmlDesign({
     }
     return "bg-green-600 hover:bg-green-700 focus:ring-green-500";
   };
+
+  // Compute submit button content without nested ternaries
+  let buttonContent: React.ReactNode;
+  if (isLoading) {
+    const text = initialData ? "Saving Changes..." : "Adding Transaction...";
+    buttonContent = (
+      <div className="flex items-center">
+        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+        {text}
+      </div>
+    );
+  } else if (initialData) {
+    buttonContent = "Save Changes";
+  } else {
+    const typeLabel = transactionType === "expense" ? "Expense" : "Income";
+    buttonContent = `Add ${typeLabel}`;
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12">
@@ -251,7 +269,7 @@ export default function TransactionFormHtmlDesign({
               Main Category
             </label>
             <select
-              className="form-select block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm"
+              className={`${styles.formSelect} block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm`}
               id="main-category"
               name="main_category"
               value={mainCategory}
@@ -274,7 +292,7 @@ export default function TransactionFormHtmlDesign({
               Sub Category
             </label>
             <select
-              className="form-select block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm"
+              className={`${styles.formSelect} block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm`}
               id="sub-category"
               name="sub_category"
               defaultValue={initialData?.sub_category}
@@ -341,31 +359,10 @@ export default function TransactionFormHtmlDesign({
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <div className="flex items-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                {initialData ? "Saving Changes..." : "Adding Transaction..."}
-              </div>
-            ) : initialData ? (
-              "Save Changes"
-            ) : (
-              `Add ${transactionType === "expense" ? "Expense" : "Income"}`
-            )}
+            {buttonContent}
           </button>
         </div>
       </form>
-
-      <style jsx={true}>{`
-        .form-select {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 0.5rem center;
-          background-size: 1.5em 1.5em;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-        }
-      `}</style>
     </div>
   );
 }

@@ -22,7 +22,7 @@ const TransactionRow = React.memo(
     readonly transaction: Transaction;
     readonly onClick: (transaction: Transaction) => void;
   }) => {
-    const Icon =
+    const Icon: React.ComponentType<LucideProps> =
       CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"];
     const amount = transaction.eur_amount || transaction.amount;
     const showOriginalCurrency =
@@ -36,12 +36,7 @@ const TransactionRow = React.memo(
         }`}
       >
         <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-          <Icon
-            {...({
-              size: 20,
-              className: "text-gray-500 dark:text-gray-400",
-            } as LucideProps)}
-          />
+          <Icon size={20} className="text-gray-500 dark:text-gray-400" />
         </div>
         <div className="ml-4 flex-1 min-w-0 overflow-hidden">
           <div className="relative">

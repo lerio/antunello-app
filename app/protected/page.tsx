@@ -187,22 +187,11 @@ export default function ProtectedPage() {
       ? "/protected"
       : `/protected?year=${year}&month=${month.toString().padStart(2, "0")}`;
 
-    const win = globalThis as unknown as Window;
-    if (typeof win.history?.pushState === "function") {
-      win.history.pushState(null, "", newUrl);
+    if (typeof globalThis.history?.pushState === "function") {
+      globalThis.history.pushState(null, "", newUrl);
     }
   }, []);
 
-  const monthYearString = useMemo(() => {
-    const displayYear = currentDate.getFullYear();
-    const isCurrentYear = displayYear === new Date().getFullYear();
-
-    // Only show year if it's different from current year
-    return currentDate.toLocaleDateString("en-US", {
-      month: "long",
-      ...(isCurrentYear ? {} : { year: "numeric" }),
-    });
-  }, [currentDate]);
 
   if (error) {
     return (
@@ -212,7 +201,7 @@ export default function ProtectedPage() {
             Error Loading Transactions
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => ((globalThis as unknown as Window).location?.reload?.())} className="mt-4">
+          <Button onClick={() => globalThis.location?.reload?.()} className="mt-4">
             Retry
           </Button>
         </div>

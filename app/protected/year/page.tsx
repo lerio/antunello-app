@@ -41,9 +41,8 @@ export default function YearSummaryPage() {
       ? "/protected/year"
       : `/protected/year?year=${year}`;
 
-    const win = globalThis as unknown as Window;
-    if (typeof win.history?.pushState === "function") {
-      win.history.pushState(null, "", newUrl);
+    if (typeof globalThis.history?.pushState === "function") {
+      globalThis.history.pushState(null, "", newUrl);
     }
   }, []);
 
@@ -55,7 +54,7 @@ export default function YearSummaryPage() {
             Error Loading Year Data
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => ((globalThis as unknown as Window).location?.reload?.())} className="mt-4">
+          <Button onClick={() => globalThis.location?.reload?.()} className="mt-4">
             Retry
           </Button>
         </div>

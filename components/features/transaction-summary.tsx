@@ -333,7 +333,7 @@ function extendWithCategoryRows(
 function renderComparisonCell(item: TotalsItem): React.ReactNode {
   if (item.isHiddenExpense) return <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>;
   if (item.difference === null) return <span className="text-gray-400 dark:text-gray-500 text-sm sm:text-sm">-</span>;
-  return formatDifference(item.difference, item.isIncome || item.isBalance);
+  return formatDifference(item.difference, !!(item.isIncome || item.isBalance));
 }
 
 type TotalsTableProps = {
@@ -466,7 +466,7 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
               <tr key={`${item.type}-${item.category}`} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                 <td className="py-2 sm:py-3 px-1 sm:px-2">
                   <div className="flex items-center min-w-0">
-                    <item.icon {...({ size: 14, className: "text-gray-400 dark:text-gray-500 mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" } as LucideProps)} />
+                    <item.icon size={14} className="text-gray-400 dark:text-gray-500 mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" />
                     <div className={`relative min-w-0 flex-1 ${currentYear !== undefined && previousYear !== undefined ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
                       <span
                         className={`font-medium text-sm sm:text-sm block ${currentYear !== undefined && previousYear !== undefined ? 'overflow-hidden whitespace-nowrap' : ''} ${
