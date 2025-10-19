@@ -79,35 +79,27 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
 
   const maxHeightStyle = 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)'
 
-  // Keyboard support for closing via overlay
-  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  };
-
   return (
     <div 
-      className={`fixed inset-0 z-50 overflow-hidden bg-black/50 flex items-end justify-center transition-opacity duration-300 ease-out ${
+      className={`fixed inset-0 z-50 overflow-hidden flex items-end justify-center transition-opacity duration-300 ease-out ${
         isAnimating ? 'opacity-100' : 'opacity-0'
       }`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      onClick={onClose}
-      role="button"
-      tabIndex={0}
-      aria-label="Close modal"
-      onKeyDown={handleOverlayKeyDown}
     >
-      <div 
-        className={`relative w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 focus:outline-none"
+        aria-label="Close modal"
+        onClick={onClose}
+      />
+      <dialog
+        open
+        className={`relative z-10 w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
           isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
         }`}
         style={{ maxHeight: maxHeightStyle }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
         aria-label="Modal dialog"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Interactive Handle Bar */}
         <button 
@@ -127,7 +119,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
         >
           {children}
         </div>
-      </div>
+      </dialog>
     </div>
   )
 }
