@@ -15,19 +15,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Top-level flow without async wrapper
-console.log('🔍 Getting one transaction with || for testing...')
+// Top-level flow using async IIFE (no promise chain)
+;(async () => {
+  try {
+    console.log('🔍 Getting one transaction with || for testing...')
+    const { data: transactions, error: selectError } = await supabase
+      .from('transactions')
+      .select('id, title')
+      .like('title', '%||%')
+      .limit(1)
 
-supabase
-  .from('transactions')
-  .select('id, title')
-  .like('title', '%||%')
-  .limit(1)
-  .then(({ data: transactions, error: selectError }) => {
     if (selectError) throw new Error(selectError.message)
     if (!transactions || transactions.length === 0) {
       console.log('✅ No transactions with || found')
-      return null
+      return
     }
 
     const transaction = transactions[0]
@@ -38,16 +39,11 @@ supabase
     const newTitle = 'TEST UPDATE - ' + new Date().toISOString()
     console.log(`\n🔄 Attempting to update title to: "${newTitle}"`)
 
-    return supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('transactions')
       .update({ title: newTitle })
       .eq('id', transaction.id)
       .select()
-      .then(({ data: updateData, error: updateError }) => ({ transaction, newTitle, updateData, updateError }))
-  })
-  .then(async (ctx) => {
-    if (!ctx) return
-    const { transaction, newTitle, updateData, updateError } = ctx
 
     console.log('\n📊 Update result:')
     console.log('   Data:', updateData)
@@ -84,8 +80,8 @@ supabase
 
     console.log('   Policy test data:', policyTest)
     console.log('   Policy test error:', policyError)
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ Unexpected error:', error.message || error)
     process.exitCode = 1
-  })
+  }
+})()

@@ -99,7 +99,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
         }`}
         style={{ maxHeight: maxHeightStyle }}
         aria-label="Modal dialog"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Interactive Handle Bar */}
         <button 

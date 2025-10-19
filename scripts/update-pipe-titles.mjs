@@ -5,9 +5,14 @@
  * This script finds transactions with "||" and updates them with cleaned titles
  */
 
-const { createClient } = require('@supabase/supabase-js')
-const dotenv = require('dotenv')
-const path = require('node:path')
+import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createInterface } from 'node:readline'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env.local') })
@@ -30,38 +35,38 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 async function authenticateUser() {
-  const readline = require('node:readline').createInterface({
+  const readline = createInterface({
     input: process.stdin,
     output: process.stdout
-  });
+  })
 
   const question = (prompt) => new Promise((resolve) => {
-    readline.question(prompt, resolve);
-  });
+    readline.question(prompt, resolve)
+  })
 
   try {
-    console.log('🔐 Authentication required to update database');
-    const email = await question('Enter your email: ');
-    const password = await question('Enter your password: ');
+    console.log('🔐 Authentication required to update database')
+    const email = await question('Enter your email: ')
+    const password = await question('Enter your password: ')
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: password.trim()
-    });
+    })
 
-    readline.close();
+    readline.close()
 
     if (error) {
-      console.error('❌ Authentication failed:', error.message);
-      process.exit(1);
+      console.error('❌ Authentication failed:', error.message)
+      process.exit(1)
     }
 
-    console.log('✅ Authentication successful');
-    return data.user;
+    console.log('✅ Authentication successful')
+    return data.user
   } catch (error) {
-    readline.close();
-    console.error('❌ Authentication error:', error.message);
-    process.exit(1);
+    readline.close()
+    console.error('❌ Authentication error:', error.message)
+    process.exit(1)
   }
 }
 
@@ -90,7 +95,7 @@ async function updateTransactionTitles() {
     
     // Authenticate user if executing updates
     if (isExecute) {
-      await authenticateUser();
+      await authenticateUser()
     }
     
     console.log(`🔍 Finding transactions with "||" in titles... (${mode} mode)\n`)
@@ -186,7 +191,7 @@ async function updateTransactionTitles() {
         .replace(/\/\/[^/]+\/[A-Z]{2}$/i, '')
         
         // Remove common purchase/transaction phrases
-        .replace(/\s+Your\s+purchase\s+at\s+(.+)$/i, '') // "SPOTIFY Your purchase at SPOTIFY" -> "SPOTIFY"
+        .replace(/\s+Your\s+purchase\s+at\s+(.+)$/i, '')
         .replace(/\s+purchase\s+at\s+.+$/i, '')
         
         // Remove common German phrases and store codes
@@ -197,20 +202,20 @@ async function updateTransactionTitles() {
         // Remove store/branch codes and patterns
         .replace(/\s+H:\d+/g, '')
         .replace(/\s+FIL\.\d+/g, '')
-        .replace(/\s+R\d{3,}/g, '') // Remove codes like "R358"
+        .replace(/\s+R\d{3,}/g, '')
         .replace(/\s+GIR\s+\d+/g, '')
-        .replace(/\s+\d{8,}/g, '') // Remove long number sequences
+        .replace(/\s+\d{8,}/g, '')
         
-        // Remove alphanumeric transaction/reference codes (like Urban Sports codes)
-        .replace(/\s+[A-Z0-9]{15,}$/g, '') // Remove long alphanumeric codes at the end
-        .replace(/\s+[A-Z0-9]{10,}[A-Z0-9]*$/g, '') // Remove medium-long codes
+        // Remove alphanumeric transaction/reference codes
+        .replace(/\s+[A-Z0-9]{15,}$/g, '')
+        .replace(/\s+[A-Z0-9]{10,}[A-Z0-9]*$/g, '')
         
         // Remove payment method descriptions
         .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung.*$/i, '')
         
         // Clean business name patterns
-        .replace(/\s+U\s+CO\s+KG.*$/, ' & Co KG') // "GMBH U CO KG FIL 1" -> "GMBH & Co KG"
-        .replace(/\s+FIL\s+\d+.*$/, '') // Remove "FIL 1" and everything after
+        .replace(/\s+U\s+CO\s+KG.*$/, ' & Co KG')
+        .replace(/\s+FIL\s+\d+.*$/, '')
         
         // Specific merchant name improvements
         .replace(/^DM\s.*/, 'DM Drogeriemarkt')
@@ -225,13 +230,13 @@ async function updateTransactionTitles() {
         .replace(/^([A-Z][A-Za-z\s&.-]+?)\/\/.*$/, '$1')
         .replace(/^([A-Z][A-Za-z\s&.-]+?)\s+\/\s+.*$/, '$1')
         
-        // Remove trailing business suffixes when they're redundant and normalize case
+        // Normalize business suffixes
         .replace(/\s+GMBH$/i, ' GmbH')
         .replace(/\s+UG$/i, ' UG')
         .replace(/\s+SPA$/i, ' SpA')
         .replace(/\s+SRL$/i, ' SRL')
         
-        // Clean up multiple spaces and trim
+        // Clean up spaces
         .replace(/\s+/g, ' ')
         .trim()
     }
@@ -355,14 +360,11 @@ async function updateTransactionTitles() {
   }
 }
 
-// Run the script without promise chain
-;(async () => {
-  try {
-    await updateTransactionTitles()
-    console.log('\n✅ Script completed successfully')
-    process.exit(0)
-  } catch (error) {
-    console.error('❌ Script failed:', error.message)
-    process.exit(1)
-  }
-})()
+try {
+  await updateTransactionTitles()
+  console.log('\n✅ Script completed successfully')
+  process.exit(0)
+} catch (error) {
+  console.error('❌ Script failed:', error.message)
+  process.exit(1)
+}

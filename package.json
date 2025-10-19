@@ -6,8 +6,8 @@
     "start": "next start",
     "find-pipe-titles": "node scripts/find-pipe-titles.js",
     "find-pipe-titles:verbose": "node scripts/find-pipe-titles.js --verbose",
-    "update-pipe-titles": "node scripts/update-pipe-titles.js",
-    "update-pipe-titles:execute": "node scripts/update-pipe-titles.js --execute"
+    "update-pipe-titles": "node scripts/update-pipe-titles.mjs",
+    "update-pipe-titles:execute": "node scripts/update-pipe-titles.mjs --execute"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",

@@ -22,9 +22,11 @@ function renderSubmitButtonContent(
       </div>
     );
   }
-  return hasInitialData
-    ? "Save Changes"
-    : `Add ${transactionType === "expense" ? "Expense" : "Income"}`;
+  if (hasInitialData) {
+    return "Save Changes";
+  }
+  const typeLabel = transactionType === "expense" ? "Expense" : "Income";
+  return `Add ${typeLabel}`;
 }
 
 // Helper: button styles for type toggle
