@@ -46,9 +46,9 @@ const TransactionForm = dynamic(
 
 export default function EditTransactionPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ id: string }>;
-}) {
+}>) {
   const router = useRouter();
   const resolvedParams = use(params);
   const { updateTransaction, deleteTransaction } = useTransactionMutations();
@@ -172,16 +172,7 @@ export default function EditTransactionPage({
                   action is permanent.
                 </p>
 
-                {!showDeleteConfirm ? (
-                  <Button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    variant="outline"
-                    className="border-red-200 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={16} className="mr-2" />
-                    Delete Transaction
-                  </Button>
-                ) : (
+                {showDeleteConfirm ? (
                   <div className="flex gap-3">
                     <Button
                       onClick={handleDelete}
@@ -197,6 +188,15 @@ export default function EditTransactionPage({
                       Cancel
                     </Button>
                   </div>
+                ) : (
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="outline"
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    Delete Transaction
+                  </Button>
                 )}
               </div>
             </div>

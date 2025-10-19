@@ -141,7 +141,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
     title: ""
   });
 
-  const { subCategories, currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(() => ({
+  const { currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(() => ({
     subCategories: SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [],
     currencySymbol: CURRENCY_OPTIONS.find(c => c.value === selectedCurrency)?.symbol || "€",
     mainCategoryOptions: MAIN_CATEGORIES.map(category => ({

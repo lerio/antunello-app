@@ -54,7 +54,7 @@ $$ LANGUAGE plpgsql;
 
 -- 6. Trigger to refresh summaries automatically (optional - may impact performance)
 -- Uncomment if you want automatic refresh (not recommended for high-frequency apps)
-/*
+/* NOSONAR
 CREATE OR REPLACE FUNCTION refresh_summaries_trigger()
 RETURNS trigger AS $$
 BEGIN

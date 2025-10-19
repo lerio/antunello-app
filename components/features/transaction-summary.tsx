@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Transaction } from "@/types/database";
-import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";

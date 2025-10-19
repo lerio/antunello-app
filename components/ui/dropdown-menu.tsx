@@ -13,7 +13,6 @@ interface DropdownMenuProps {
 interface DropdownMenuItemProps {
   readonly children: ReactNode;
   readonly onClick?: () => void;
-  readonly asChild?: boolean;
   readonly className?: string;
 }
 

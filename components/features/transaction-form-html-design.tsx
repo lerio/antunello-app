@@ -4,7 +4,6 @@ import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
 import {
   ArrowLeft,
-  DollarSign,
   Calendar,
   MinusCircle,
   PlusCircle,

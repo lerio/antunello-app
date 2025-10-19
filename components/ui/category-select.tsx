@@ -62,7 +62,7 @@ export function CategorySelect({
       )
     }
 
-    const IconComponent = selectedOption.isMainCategory !== false ? getCategoryIcon(selectedOption.value) : null
+    const IconComponent = selectedOption.isMainCategory === true ? getCategoryIcon(selectedOption.value) : null
 
     return (
       <div className="flex items-center">
@@ -78,7 +78,7 @@ export function CategorySelect({
   }
 
   const renderOption = (option: Option) => {
-    const IconComponent = option.isMainCategory !== false ? getCategoryIcon(option.value) : null
+    const IconComponent = option.isMainCategory === true ? getCategoryIcon(option.value) : null
     const isSelected = option.value === value
 
     return (
