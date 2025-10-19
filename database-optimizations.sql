@@ -54,18 +54,18 @@ $$ LANGUAGE plpgsql;
 
 -- 6. Trigger to refresh summaries automatically (optional - may impact performance)
 -- Uncomment if you want automatic refresh (not recommended for high-frequency apps)
-/* NOSONAR
-CREATE OR REPLACE FUNCTION refresh_summaries_trigger()
-RETURNS trigger AS $$
-BEGIN
-    PERFORM refresh_monthly_summaries();
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+/*
+CREATE OR REPLACE FUNCTION refresh_summaries_trigger() NOSONAR: kept intentionally for optional auto-refresh example
+RETURNS trigger AS $$ NOSONAR: kept intentionally for optional auto-refresh example
+BEGIN NOSONAR: kept intentionally for optional auto-refresh example
+    PERFORM refresh_monthly_summaries(); NOSONAR: kept intentionally for optional auto-refresh example
+    RETURN NULL; NOSONAR: kept intentionally for optional auto-refresh example
+END; NOSONAR: kept intentionally for optional auto-refresh example
+$$ LANGUAGE plpgsql; NOSONAR: kept intentionally for optional auto-refresh example
 
-DROP TRIGGER IF EXISTS trigger_refresh_summaries ON transactions;
-CREATE TRIGGER trigger_refresh_summaries
-    AFTER INSERT OR UPDATE OR DELETE ON transactions
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION refresh_summaries_trigger();
+DROP TRIGGER IF EXISTS trigger_refresh_summaries ON transactions; NOSONAR: kept intentionally for optional auto-refresh example
+CREATE TRIGGER trigger_refresh_summaries NOSONAR: kept intentionally for optional auto-refresh example
+    AFTER INSERT OR UPDATE OR DELETE ON transactions NOSONAR: kept intentionally for optional auto-refresh example
+    FOR EACH STATEMENT NOSONAR: kept intentionally for optional auto-refresh example
+    EXECUTE FUNCTION refresh_summaries_trigger(); NOSONAR: kept intentionally for optional auto-refresh example
 */

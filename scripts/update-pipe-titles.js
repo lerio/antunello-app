@@ -356,8 +356,7 @@ async function updateTransactionTitles() {
 }
 
 // Delegate to ESM script that uses top-level await
-const { spawnSync } = require('child_process')
-const path = require('path')
+const { spawnSync } = require('node:child_process')
 
 const args = [path.join(__dirname, 'update-pipe-titles.mjs'), ...process.argv.slice(2)]
 const result = spawnSync(process.execPath, args, { stdio: 'inherit' })
