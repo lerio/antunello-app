@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, ReactNode, createContext, useContext } from "react";
+import { useState, useRef, useEffect, ReactNode, createContext, useContext, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 interface DropdownMenuProps {
@@ -59,6 +59,9 @@ export function DropdownMenu({
     }
   }, [isOpen]);
 
+  const close = useCallback(() => setIsOpen(false), []);
+  const contextValue = useMemo(() => ({ close }), [close]);
+
   return (
     <div className={cn("relative inline-block text-left", className)}>
       <button
@@ -72,7 +75,7 @@ export function DropdownMenu({
       </button>
 
       {isOpen && (
-        <DropdownContext.Provider value={{ close: () => setIsOpen(false) }}>
+        <DropdownContext.Provider value={contextValue}>
           <div
             ref={menuRef}
             className={cn(

@@ -355,13 +355,14 @@ async function updateTransactionTitles() {
   }
 }
 
-// Run the script
-updateTransactionTitles()
-  .then(() => {
+// Run the script without promise chain
+;(async () => {
+  try {
+    await updateTransactionTitles()
     console.log('\n✅ Script completed successfully')
     process.exit(0)
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ Script failed:', error.message)
     process.exit(1)
-  })
+  }
+})()

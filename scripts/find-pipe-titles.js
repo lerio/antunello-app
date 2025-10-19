@@ -7,7 +7,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 const dotenv = require('dotenv')
-const path = require('path')
+const path = require('node:path')
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env.local') })
@@ -255,13 +255,14 @@ async function findTransactionsWithPipes() {
   }
 }
 
-// Run the script
-findTransactionsWithPipes()
-  .then(() => {
+// Run the script without promise chain
+(async () => {
+  try {
+    await findTransactionsWithPipes()
     console.log('\n✅ Script completed successfully')
     process.exit(0)
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ Script failed:', error.message)
     process.exit(1)
-  })
+  }
+})()

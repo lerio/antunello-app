@@ -5,8 +5,8 @@
  */
 
 const { createClient } = require('@supabase/supabase-js')
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 const dotenv = require('dotenv')
 
 // Load environment variables
@@ -24,7 +24,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 async function authenticateUser() {
-  const readline = require('readline').createInterface({
+  const readline = require('node:readline').createInterface({
     input: process.stdin,
     output: process.stdout
   });
@@ -59,7 +59,7 @@ async function authenticateUser() {
   }
 }
 
-async function runMigration() {
+(async () => {
   try {
     // Parse command line arguments
     const migrationFile = process.argv[2];
@@ -111,7 +111,7 @@ async function runMigration() {
 
       try {
         // Try to execute raw SQL - this might require service role key
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('transactions')
           .select('*')
           .limit(1);
@@ -150,6 +150,4 @@ async function runMigration() {
     console.error('❌ Migration failed:', error.message);
     process.exit(1);
   }
-}
-
-runMigration()
+})()

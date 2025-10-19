@@ -245,8 +245,21 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
 
   // Reusable class strings
   const inputClass = "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
-
-
+  
+  // Compute submit button content without nested ternaries
+  let buttonContent: React.ReactNode;
+  if (isLoading) {
+    const text = initialData ? "Saving Changes..." : "Adding Transaction...";
+    buttonContent = (
+      <div className="flex items-center">
+        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+        {text}
+      </div>
+    );
+  } else {
+    buttonContent = initialData ? "Save Changes" : "Add Transaction";
+  }
+  
   return (
     <div className={`${styles.root} w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-4 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter`}>
 
@@ -424,14 +437,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
             type="submit"
             disabled={isLoading || disabled}
           >
-            {isLoading ? (
-              <div className="flex items-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                {initialData ? "Saving Changes..." : "Adding Transaction..."}
-              </div>
-            ) : (
-              initialData ? "Save Changes" : "Add Transaction"
-            )}
+            {buttonContent}
           </button>
         </div>
       </form>

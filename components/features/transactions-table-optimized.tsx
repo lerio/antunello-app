@@ -29,9 +29,11 @@ const TransactionRow = React.memo(
       transaction.eur_amount && transaction.currency !== "EUR";
 
     return (
-      <div
+      <button
+        type="button"
         onClick={() => onClick(transaction)}
-        className={`group bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+        aria-label={`Open transaction ${transaction.title}`}
+        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${
           transaction.hide_from_totals ? 'opacity-50' : ''
         }`}
       >
@@ -66,7 +68,7 @@ const TransactionRow = React.memo(
             </p>
           )}
         </div>
-      </div>
+      </button>
     );
   }
 );
