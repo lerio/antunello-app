@@ -24,14 +24,16 @@ function SelectValue({
   return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
+type SelectTriggerProps = Readonly<React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  size?: "sm" | "default"
+}>
+
 function SelectTrigger({
   className,
   size = "default",
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
-  size?: "sm" | "default"
-}) {
+}: SelectTriggerProps) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -50,12 +52,14 @@ function SelectTrigger({
   )
 }
 
+type SelectContentProps = Readonly<React.ComponentProps<typeof SelectPrimitive.Content>>
+
 function SelectContent({
   className,
   children,
   position = "popper",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: SelectContentProps) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -85,10 +89,12 @@ function SelectContent({
   )
 }
 
+type SelectLabelProps = Readonly<React.ComponentProps<typeof SelectPrimitive.Label>>
+
 function SelectLabel({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+}: SelectLabelProps) {
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
@@ -98,11 +104,13 @@ function SelectLabel({
   )
 }
 
+type SelectItemProps = Readonly<React.ComponentProps<typeof SelectPrimitive.Item>>
+
 function SelectItem({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+}: SelectItemProps) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -122,10 +130,12 @@ function SelectItem({
   )
 }
 
+type SelectSeparatorProps = Readonly<React.ComponentProps<typeof SelectPrimitive.Separator>>
+
 function SelectSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+}: SelectSeparatorProps) {
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
@@ -135,10 +145,12 @@ function SelectSeparator({
   )
 }
 
+type SelectScrollUpButtonProps = Readonly<React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>>
+
 function SelectScrollUpButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+}: SelectScrollUpButtonProps) {
   return (
     <SelectPrimitive.ScrollUpButton
       data-slot="select-scroll-up-button"
@@ -153,10 +165,12 @@ function SelectScrollUpButton({
   )
 }
 
+type SelectScrollDownButtonProps = Readonly<React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>>
+
 function SelectScrollDownButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+}: SelectScrollDownButtonProps) {
   return (
     <SelectPrimitive.ScrollDownButton
       data-slot="select-scroll-down-button"

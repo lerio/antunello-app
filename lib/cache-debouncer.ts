@@ -30,16 +30,16 @@ export function setupPeriodicSave(saveFunction: () => void) {
   }, PERIODIC_SAVE_MS)
 
   // Save on page unload as well
-  const handleBeforeUnload = () => {
+  const handleBeforeUnload: EventListener = () => {
     saveFunction()
   }
 
-  globalThis.addEventListener('beforeunload', handleBeforeUnload as any)
+  globalThis.addEventListener('beforeunload', handleBeforeUnload)
 
   // Return cleanup function
   return () => {
     clearInterval(interval)
-    globalThis.removeEventListener('beforeunload', handleBeforeUnload as any)
+    globalThis.removeEventListener('beforeunload', handleBeforeUnload)
     if (saveTimeout) {
       clearTimeout(saveTimeout)
       saveTimeout = null

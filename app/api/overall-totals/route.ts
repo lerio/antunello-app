@@ -15,7 +15,8 @@ export async function GET() {
     if (error) {
       // Detect missing function
       const msg = (error.message || '').toLowerCase()
-      const code = (error as any).code
+      const errObj = error as unknown as Record<string, unknown>
+      const code = (typeof errObj.code === 'string' ? (errObj.code as string) : undefined)
       if (code === '42883' || msg.includes('does not exist') || msg.includes('get_overall_total_eur')) {
         return NextResponse.json({
           error: "Missing RPC get_overall_total_eur. Please run migrations/2025-10-16_replace_overall_totals_function.sql in your Supabase SQL editor.",
@@ -26,9 +27,8 @@ export async function GET() {
     }
 
     // RPC returns a scalar numeric; normalize and return
-    const eurTotal = Array.isArray(data)
-      ? Number((data as any)[0]) || 0
-      : Number(data as any) || 0
+    const first = Array.isArray(data) ? (data as unknown[])[0] : (data as unknown)
+    const eurTotal = Number(first) || 0
 
     return NextResponse.json({ eurTotal })
   } catch (err: any) {

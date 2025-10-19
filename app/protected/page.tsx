@@ -72,19 +72,21 @@ export default function ProtectedPage() {
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop((globalThis as any).scrollY > 300);
+      const win = globalThis as unknown as Window;
+      setShowScrollTop(typeof win.scrollY === "number" && win.scrollY > 300);
     };
 
     if (typeof globalThis.addEventListener === "function") {
-      globalThis.addEventListener("scroll", handleScroll as any);
-      return () => globalThis.removeEventListener("scroll", handleScroll as any);
+      globalThis.addEventListener("scroll", handleScroll as EventListener);
+      return () => globalThis.removeEventListener("scroll", handleScroll as EventListener);
     }
     return undefined;
   }, []);
 
   const scrollToTop = useCallback(() => {
-    if (typeof (globalThis as any).scrollTo === "function") {
-      (globalThis as any).scrollTo({
+    const win = globalThis as unknown as Window;
+    if (typeof win.scrollTo === "function") {
+      win.scrollTo({
         top: 0,
         behavior: "smooth",
       });
@@ -185,8 +187,9 @@ export default function ProtectedPage() {
       ? "/protected"
       : `/protected?year=${year}&month=${month.toString().padStart(2, "0")}`;
 
-    if (typeof (globalThis as any).history?.pushState === "function") {
-      (globalThis as any).history.pushState(null, "", newUrl);
+    const win = globalThis as unknown as Window;
+    if (typeof win.history?.pushState === "function") {
+      win.history.pushState(null, "", newUrl);
     }
   }, []);
 
@@ -209,7 +212,7 @@ export default function ProtectedPage() {
             Error Loading Transactions
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => (globalThis as any).location?.reload?.()} className="mt-4">
+          <Button onClick={() => ((globalThis as unknown as Window).location?.reload?.())} className="mt-4">
             Retry
           </Button>
         </div>
