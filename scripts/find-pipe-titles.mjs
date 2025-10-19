@@ -1,12 +1,33 @@
 #!/usr/bin/env node
 
-const { spawnSync } = require('node:child_process')
-const path = require('path')
+import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-// Delegate to ESM script that uses top-level await
-const mjsPath = path.join(__dirname, 'find-pipe-titles.mjs')
-const result = spawnSync(process.execPath, [mjsPath, ...process.argv.slice(2)], { stdio: 'inherit' })
-process.exit(result.status ?? 0)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '../.env.local') })
+
+// Check for verbose flag
+const isVerbose = process.argv.includes('--verbose') || process.argv.includes('-v')
+
+// Supabase configuration
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Error: Missing Supabase environment variables')
+  console.error('Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env.local')
+  process.exit(1)
+}
+
+// Create Supabase client
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+async function findTransactionsWithPipes() {
   try {
     if (process.argv.includes('--help') || process.argv.includes('-h')) {
       console.log('📋 Find Transactions with Pipe Characters (||)')
@@ -163,8 +184,7 @@ process.exit(result.status ?? 0)
     }
 
     // Display results in a formatted table
-    for (let index = 0; index < transactions.length; index++) {
-      const transaction = transactions[index]
+    transactions.forEach((transaction, index) => {
       const rawTitle = extractNewTitle(transaction.title)
       const newTitle = cleanTitle(rawTitle)
       
@@ -184,7 +204,7 @@ process.exit(result.status ?? 0)
         console.log(`   New Title: "${newTitle}"`)
         console.log('   ' + '-'.repeat(50))
       }
-    }
+    })
 
     console.log(`\n📈 Summary: ${transactions.length} transactions contain "||" in their titles`)
 
@@ -208,10 +228,9 @@ process.exit(result.status ?? 0)
     
     if (sortedTitles.length > 0) {
       console.log(`\n🔝 Top 10 Most Common New Titles:`)
-      for (let i = 0; i < sortedTitles.length; i++) {
-        const [title, count] = sortedTitles[i]
-        console.log(`   ${i + 1}. "${title}" (${count} times)`)
-      }
+      sortedTitles.forEach(([title, count], index) => {
+        console.log(`   ${index + 1}. "${title}" (${count} times)`)
+      })
     }
 
     // Group by user if multiple users
@@ -222,9 +241,9 @@ process.exit(result.status ?? 0)
 
     if (Object.keys(userCounts).length > 1) {
       console.log('\n👥 By User:')
-      for (const [userId, count] of Object.entries(userCounts)) {
+      Object.entries(userCounts).forEach(([userId, count]) => {
         console.log(`   User ${userId}: ${count} transactions`)
-      }
+      })
     }
 
   } catch (error) {
@@ -233,14 +252,6 @@ process.exit(result.status ?? 0)
   }
 }
 
-// Run the script without promise chain
-(async () => {
-  try {
-    await findTransactionsWithPipes()
-    console.log('\n✅ Script completed successfully')
-    process.exit(0)
-  } catch (error) {
-    console.error('❌ Script failed:', error.message)
-    process.exit(1)
-  }
-})()
+await findTransactionsWithPipes()
+console.log('\n✅ Script completed successfully')
+process.exit(0)

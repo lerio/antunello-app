@@ -355,14 +355,10 @@ async function updateTransactionTitles() {
   }
 }
 
-// Run the script without promise chain
-;(async () => {
-  try {
-    await updateTransactionTitles()
-    console.log('\n✅ Script completed successfully')
-    process.exit(0)
-  } catch (error) {
-    console.error('❌ Script failed:', error.message)
-    process.exit(1)
-  }
-})()
+// Delegate to ESM script that uses top-level await
+const { spawnSync } = require('child_process')
+const path = require('path')
+
+const args = [path.join(__dirname, 'update-pipe-titles.mjs'), ...process.argv.slice(2)]
+const result = spawnSync(process.execPath, args, { stdio: 'inherit' })
+process.exit(result.status === null ? 1 : result.status)

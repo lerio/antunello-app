@@ -1,36 +1,9 @@
 #!/usr/bin/env node
 
-const { createClient } = require('@supabase/supabase-js')
-const dotenv = require('dotenv')
+const { spawnSync } = require('node:child_process')
 const path = require('node:path')
 
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env.local') })
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Check a specific transaction that should have been updated, then count titles with "||" (top-level await via async IIFE)
-;(async () => {
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('id, title')
-      .eq('id', '45551899-010d-480c-bbc3-21c008da028a')
-
-    if (error) throw new Error(error.message)
-    console.log('Transaction check:', data)
-
-    const { data: pipeTransactions, error: pipeError } = await supabase
-      .from('transactions')
-      .select('id')
-      .like('title', '%||%')
-
-    if (pipeError) throw new Error(pipeError.message)
-    console.log(`Transactions still containing "||": ${pipeTransactions?.length || 0}`)
-  } catch (e) {
-    console.error('Error:', e.message || e)
-    process.exitCode = 1
-  }
-})()
+// Delegate to ESM script that uses top-level await
+const mjsPath = path.join(__dirname, 'check-update.mjs')
+const result = spawnSync(process.execPath, [mjsPath], { stdio: 'inherit' })
+process.exit(result.status ?? 0)
