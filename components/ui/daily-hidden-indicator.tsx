@@ -2,7 +2,7 @@ import React from 'react'
 import { EyeOff } from 'lucide-react'
 
 interface DailyHiddenIndicatorProps {
-  count: number
+  readonly count: number
 }
 
 export function DailyHiddenIndicator({ count }: DailyHiddenIndicatorProps) {

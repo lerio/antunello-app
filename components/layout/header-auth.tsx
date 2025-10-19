@@ -48,7 +48,7 @@ export default async function AuthButton() {
     );
   }
   return user ? (
-    <UserMenu displayName={displayName!} />
+    <UserMenu displayName={displayName || ""} />
   ) : (
     <div className="flex gap-2">
       <Button asChild size="sm" variant={"outline"}>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { signOutAction } from "@/app/actions";
 
 interface UserMenuProps {
-  displayName: string;
+  readonly displayName: string;
 }
 
 export function UserMenu({ displayName }: UserMenuProps) {

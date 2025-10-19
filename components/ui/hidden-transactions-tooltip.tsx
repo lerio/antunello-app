@@ -3,9 +3,9 @@ import { EyeOff } from 'lucide-react'
 import { formatCurrency } from '@/utils/currency'
 
 interface HiddenTransactionsTooltipProps {
-  count: number
-  hiddenIncomeTotal: number
-  hiddenExpenseTotal: number
+  readonly count: number
+  readonly hiddenIncomeTotal: number
+  readonly hiddenExpenseTotal: number
 }
 
 export function HiddenTransactionsTooltip({ 

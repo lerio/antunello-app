@@ -241,13 +241,14 @@ async function updateTransactionTitles() {
       const updates = []
       let skippedCount = 0
 
-      transactions.forEach((transaction, index) => {
+      for (let index = 0; index < transactions.length; index++) {
+        const transaction = transactions[index]
         const rawTitle = extractNewTitle(transaction.title)
         const newTitle = cleanTitle(rawTitle)
 
         if (newTitle === transaction.title || newTitle === 'N/A' || !newTitle) {
           skippedCount++
-          return
+          continue
         }
 
         updates.push({
@@ -262,7 +263,7 @@ async function updateTransactionTitles() {
           console.log(`   New: "${newTitle}"`)
           console.log('   ' + '-'.repeat(50))
         }
-      })
+      }
 
       return { updates, skippedCount }
     }

@@ -185,7 +185,8 @@ async function findTransactionsWithPipes() {
     }
 
     // Display results in a formatted table
-    transactions.forEach((transaction, index) => {
+    for (let index = 0; index < transactions.length; index++) {
+      const transaction = transactions[index]
       const rawTitle = extractNewTitle(transaction.title)
       const newTitle = cleanTitle(rawTitle)
       
@@ -205,7 +206,7 @@ async function findTransactionsWithPipes() {
         console.log(`   New Title: "${newTitle}"`)
         console.log('   ' + '-'.repeat(50))
       }
-    })
+    }
 
     console.log(`\n📈 Summary: ${transactions.length} transactions contain "||" in their titles`)
 
@@ -229,9 +230,10 @@ async function findTransactionsWithPipes() {
     
     if (sortedTitles.length > 0) {
       console.log(`\n🔝 Top 10 Most Common New Titles:`)
-      sortedTitles.forEach(([title, count], index) => {
-        console.log(`   ${index + 1}. "${title}" (${count} times)`)
-      })
+      for (let i = 0; i < sortedTitles.length; i++) {
+        const [title, count] = sortedTitles[i]
+        console.log(`   ${i + 1}. "${title}" (${count} times)`)
+      }
     }
 
     // Group by user if multiple users
@@ -242,9 +244,9 @@ async function findTransactionsWithPipes() {
 
     if (Object.keys(userCounts).length > 1) {
       console.log('\n👥 By User:')
-      Object.entries(userCounts).forEach(([userId, count]) => {
+      for (const [userId, count] of Object.entries(userCounts)) {
         console.log(`   User ${userId}: ${count} transactions`)
-      })
+      }
     }
 
   } catch (error) {
