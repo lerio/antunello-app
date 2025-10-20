@@ -232,7 +232,7 @@ async function updateTransactionTitles() {
         .replace(/\s+SRL$/i, ' SRL')
         
         // Clean up multiple spaces and trim
-        .replace(/\s+/g, ' ')
+        .replaceAll(/\s+/g, ' ')
         .trim()
     }
 
