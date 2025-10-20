@@ -1,6 +1,9 @@
 import { Transaction } from '@/types/database';
 import { convertToEUR, batchConvertToEUR } from '@/utils/currency-conversion';
 
+// Alias for insertable Transaction shape (omit DB-managed fields)
+type InsertableTransaction = Omit<Transaction, 'id' | 'created_at' | 'updated_at'>;
+
 export interface CSVTransaction {
   account: string;
   amount: string;
@@ -45,9 +48,7 @@ function parseCSVLine(line: string): string[] {
   let current = '';
   let inQuotes = false;
   
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
+  for (const char of line) {
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
@@ -62,7 +63,7 @@ function parseCSVLine(line: string): string[] {
   return values;
 }
 
-export async function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: string): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>> {
+export async function mapCSVToTransaction(csvTransaction: CSVTransaction, userId: string): Promise<InsertableTransaction> {
   // Convert amount to positive number
   const amountValue = Math.abs(Number.parseFloat(csvTransaction.amount));
   
@@ -134,8 +135,8 @@ export async function batchMapCSVToTransactions(
   csvTransactions: CSVTransaction[], 
   userId: string,
   progressCallback?: (processed: number, total: number) => void
-): Promise<Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[]> {
-  const results: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[] = [];
+): Promise<InsertableTransaction[]> {
+  const results: InsertableTransaction[] = [];
   
   // First, prepare basic transaction data without currency conversion
   const basicTransactions = csvTransactions.map((csvTransaction, index) => {
@@ -220,7 +221,7 @@ export async function batchMapCSVToTransactions(
   return results;
 }
 
-export function validateTransactionData(transaction: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>): string[] {
+export function validateTransactionData(transaction: InsertableTransaction): string[] {
   const errors: string[] = [];
   
   if (!transaction.title || transaction.title.trim().length === 0) {

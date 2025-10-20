@@ -16,12 +16,12 @@ import {
 } from '@floating-ui/react';
 import { AlertCircle } from 'lucide-react';
 
-interface ValidationTooltipProps {
+type ValidationTooltipProps = Readonly<{
   message: string;
   isVisible: boolean;
   onClose?: () => void;
   children: React.ReactElement;
-}
+}>;
 
 export function ValidationTooltip({ 
   message, 

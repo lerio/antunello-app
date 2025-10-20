@@ -12,13 +12,13 @@ import {
 } from "lucide-react";
 import styles from "./transaction-form-html-design.module.css";
 
-type TransactionFormProps = {
+type TransactionFormProps = Readonly<{
   onSubmit: (
     data: Omit<Transaction, "id" | "created_at" | "updated_at">
   ) => Promise<void>;
   initialData?: Transaction;
   onBack?: () => void;
-};
+}>;
 
 const CURRENCY_OPTIONS = [
   { value: "USD", label: "USD", symbol: "$" },

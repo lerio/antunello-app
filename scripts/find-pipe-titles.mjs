@@ -129,17 +129,17 @@ async function findTransactionsWithPipes() {
     function cleanTitle(title) {
       return title
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replace(/\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
-        .replace(/\/\/[^/]+\/[A-Z]{2}$/i, '')
+        .replaceAll(/\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
+        .replaceAll(/\/\/[^/]+\/[A-Z]{2}$/i, '')
         
         // Remove common purchase/transaction phrases
-        .replace(/\s+Your\s+purchase\s+at\s+(.+)$/i, '') // "SPOTIFY Your purchase at SPOTIFY" -> "SPOTIFY"
-        .replace(/\s+purchase\s+at\s+.+$/i, '')
+        .replaceAll(/\s+Your\s+purchase\s+at\s+(.+)$/i, '') // "SPOTIFY Your purchase at SPOTIFY" -> "SPOTIFY"
+        .replaceAll(/\s+purchase\s+at\s+.+$/i, '')
         
         // Remove common German phrases and store codes
-        .replace(/\s+SAGT\s+DANKE?\.?\s*\d*$/i, '')
-        .replace(/\s+BEDANKT\s+SICH$/i, '')
-        .replace(/\s+SAGT\s+DANK$/i, '')
+        .replaceAll(/\s+SAGT\s+DANKE?\.?\s*\d*$/i, '')
+        .replaceAll(/\s+BEDANKT\s+SICH$/i, '')
+        .replaceAll(/\s+SAGT\s+DANK$/i, '')
         
         // Remove store/branch codes and patterns
         .replace(/\s+H:\d+/g, '')
@@ -179,12 +179,12 @@ async function findTransactionsWithPipes() {
         .replace(/\s+SRL$/i, ' SRL')
         
         // Clean up multiple spaces and trim
-        .replace(/\s+/g, ' ')
+        .replaceAll(/\s+/g, ' ')
         .trim()
     }
 
     // Display results in a formatted table
-    transactions.forEach((transaction, index) => {
+    for (const [index, transaction] of transactions.entries()) {
       const rawTitle = extractNewTitle(transaction.title)
       const newTitle = cleanTitle(rawTitle)
       
@@ -204,7 +204,7 @@ async function findTransactionsWithPipes() {
         console.log(`   New Title: "${newTitle}"`)
         console.log('   ' + '-'.repeat(50))
       }
-    })
+    }
 
     console.log(`\n📈 Summary: ${transactions.length} transactions contain "||" in their titles`)
 
@@ -228,9 +228,9 @@ async function findTransactionsWithPipes() {
     
     if (sortedTitles.length > 0) {
       console.log(`\n🔝 Top 10 Most Common New Titles:`)
-      sortedTitles.forEach(([title, count], index) => {
+      for (const [index, [title, count]] of sortedTitles.entries()) {
         console.log(`   ${index + 1}. "${title}" (${count} times)`)
-      })
+      }
     }
 
     // Group by user if multiple users
@@ -241,9 +241,9 @@ async function findTransactionsWithPipes() {
 
     if (Object.keys(userCounts).length > 1) {
       console.log('\n👥 By User:')
-      Object.entries(userCounts).forEach(([userId, count]) => {
+      for (const [userId, count] of Object.entries(userCounts)) {
         console.log(`   User ${userId}: ${count} transactions`)
-      })
+      }
     }
 
   } catch (error) {

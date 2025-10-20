@@ -124,7 +124,7 @@ export function useTransactionMutations() {
   // Helper to calculate optimistic EUR amount for updates
   const calculateOptimisticEurAmount = async (transaction: Transaction, updates: Partial<Transaction>): Promise<number | undefined> => {
     const newCurrency = updates.currency || transaction.currency
-    const newAmount = updates.amount !== undefined ? updates.amount : transaction.amount
+    const newAmount = updates.amount ?? transaction.amount
     const newDate = updates.date || transaction.date
 
     if (newCurrency === 'EUR') {
@@ -133,7 +133,7 @@ export function useTransactionMutations() {
 
     if (!['amount', 'currency', 'date'].some(key => key in updates)) {
       // No relevant changes, keep existing EUR amount
-      return updates.eur_amount !== undefined ? updates.eur_amount : transaction.eur_amount
+      return updates.eur_amount ?? transaction.eur_amount
     }
 
     try {
@@ -175,10 +175,10 @@ export function useTransactionMutations() {
 
   // Helper: apply optimistic cache updates depending on month change
   const applyOptimisticUpdate = (oldMonthKey: string, newMonthKey: string, id: string, updated: Transaction) => {
-    if (oldMonthKey !== newMonthKey) {
-      updateCachesOnMonthChange(oldMonthKey, newMonthKey, id, updated)
-    } else {
+    if (oldMonthKey === newMonthKey) {
       updateCachesInSameMonth(oldMonthKey, id, updated)
+    } else {
+      updateCachesOnMonthChange(oldMonthKey, newMonthKey, id, updated)
     }
   }
 
@@ -209,13 +209,13 @@ export function useTransactionMutations() {
 
   // Helper: rollback caches on error
   const rollbackOptimisticUpdate = (oldMonthKey: string, newMonthKey: string, id: string, original: Transaction) => {
-    if (oldMonthKey !== newMonthKey) {
+    if (oldMonthKey === newMonthKey) {
+      const txnToRestore = original
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => transactions.map(t => (t.id === id ? txnToRestore : t)))
+    } else {
       updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => transactions.filter(t => t.id !== id))
       const txnToRestore = original
       updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => sortTransactionsByDate([...transactions, txnToRestore]))
-    } else {
-      const txnToRestore = original
-      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => transactions.map(t => (t.id === id ? txnToRestore : t)))
     }
   }
 

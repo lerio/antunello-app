@@ -1,5 +1,3 @@
-import { Transaction } from '@/types/database'
-
 const CACHE_KEY = 'antunello-swr-cache'
 const CACHE_VERSION = '1.0'
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000 // 24 hours
