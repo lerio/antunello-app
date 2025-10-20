@@ -142,15 +142,15 @@ async function findTransactionsWithPipes() {
         .replaceAll(/\s+SAGT\s+DANK$/i, '')
         
         // Remove store/branch codes and patterns
-        .replace(/\s+H:\d+/g, '')
-        .replace(/\s+FIL\.\d+/g, '')
-        .replace(/\s+R\d{3,}/g, '') // Remove codes like "R358"
-        .replace(/\s+GIR\s+\d+/g, '')
-        .replace(/\s+\d{8,}/g, '') // Remove long number sequences
+        .replaceAll(/\s+H:\d+/g, '')
+        .replaceAll(/\s+FIL\.\d+/g, '')
+        .replaceAll(/\s+R\d{3,}/g, '') // Remove codes like "R358"
+        .replaceAll(/\s+GIR\s+\d+/g, '')
+        .replaceAll(/\s+\d{8,}/g, '') // Remove long number sequences
         
         // Remove alphanumeric transaction/reference codes (like Urban Sports codes)
-        .replace(/\s+[A-Z0-9]{15,}$/g, '') // Remove long alphanumeric codes at the end
-        .replace(/\s+[A-Z0-9]{10,}[A-Z0-9]*$/g, '') // Remove medium-long codes
+        .replaceAll(/\s+[A-Z0-9]{15,}$/g, '') // Remove long alphanumeric codes at the end
+        .replaceAll(/\s+[A-Z0-9]{10,}[A-Z0-9]*$/g, '') // Remove medium-long codes
         
         // Remove payment method descriptions
         .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung.*$/i, '')
