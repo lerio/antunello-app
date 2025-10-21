@@ -95,7 +95,7 @@ async function findTransactionsWithPipes() {
         // Common patterns: "PP.3012.PP . MERCHANTNAME" or ". MERCHANTNAME"
         // Use more specific patterns to avoid catastrophic backtracking
         // Make patterns atomic where possible
-        const match = textAfterSecondPipe.match(/(?:(?:PP\.\d{1,4}\.PP\s*\.\s*)|(?:^\.\s*))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf|$)/)
+        const match = textAfterSecondPipe.match(/(?:(?:PP\.\d{1,4}\.PP\s*\.\s*)|(?:^\.\s*))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf\b|$)/)
         if (match && match[1]) {
           return clampRegexInput(match[1].trim())
         }
@@ -105,8 +105,8 @@ async function findTransactionsWithPipes() {
         const cleaned = textAfterSecondPipe
           .replace(/^PP\.\d{1,4}\.PP\s*\.\s*/, '')
           .replace(/^\.\s*/, '')
-          .replace(/\s+Ihr\s+Einkauf[^\s]*.*$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT[^\s]*.*$/, '')
+          .replace(/\s+Ihr\s+Einkauf\b[^\n]{0,100}$/, '')
+          .replace(/\s+AWV-MELDEPFLICHT\b[^\n]{0,100}$/, '')
           .trim()
         
         return clampRegexInput(cleaned || textAfterSecondPipe)
@@ -121,7 +121,7 @@ async function findTransactionsWithPipes() {
         // Common pattern: "Urban Sports GmbH 100082136  L  01 Nov  2019..."
         // Limit the length of the matched group to prevent ReDoS
         // Use possessive quantifiers where possible (emulated with atomic groups)
-        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=\s+(?:\d{1,10}|L\s|AWV-MELDEPFLICHT))|$)/)
+        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=\s+(?:\d{1,10}\b|L\s\b|AWV-MELDEPFLICHT\b))|$)/)
         if (match && match[1]) {
           return clampRegexInput(match[1].trim())
         }
@@ -129,9 +129,9 @@ async function findTransactionsWithPipes() {
         // Fallback: return first part before numbers or specific keywords
         // Use more specific patterns to avoid excessive backtracking
         const cleaned = textAfterSecondPipe
-          .replace(/\s+\d{1,10}(?:\s+.*)?$/, '')
-          .replace(/\s+L\s(?:\s+.*)?$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT(?:\s+.*)?$/, '')
+          .replace(/\s+\d{1,10}\b[^\n]{0,100}$/, '')
+          .replace(/\s+L\s\b[^\n]{0,100}$/, '')
+          .replace(/\s+AWV-MELDEPFLICHT\b[^\n]{0,100}$/, '')
           .trim()
         
         return clampRegexInput(cleaned || textAfterSecondPipe)
@@ -146,11 +146,10 @@ async function findTransactionsWithPipes() {
       // Apply replacements in a safe manner with bounded quantifiers and atomic groups
       return input
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        // Use more specific patterns to avoid backtracking
-        .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/[^\n]*$/i, '')
+        .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/[^\n]{0,200}$/i, '')
         .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}$/i, '')
         
-        // Remove common purchase/transaction phrases with specific patterns
+        // Remove common purchase/transaction phrases
         .replaceAll(/\s+Your\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
         .replaceAll(/\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
         
@@ -159,42 +158,42 @@ async function findTransactionsWithPipes() {
         .replaceAll(/\s+BEDANKT\s+SICH$/i, '')
         .replaceAll(/\s+SAGT\s+DANK$/i, '')
         
-        // Remove store/branch codes and patterns - these are simple and efficient
+        // Remove store/branch codes and patterns
         .replaceAll(/\s+H:\d{1,10}/g, '')
         .replaceAll(/\s+FIL\.\d{1,10}/g, '')
         .replaceAll(/\s+R\d{3,5}/g, '')
         .replaceAll(/\s+GIR\s+\d{1,10}/g, '')
         .replaceAll(/\s+\d{8,15}/g, '')
         
-        // Remove alphanumeric transaction/reference codes - use specific patterns
+        // Remove alphanumeric transaction/reference codes
         .replaceAll(/\s+[A-Z0-9]{15,30}$/g, '')
-        .replaceAll(/\s+[A-Z0-9]{10,20}(?:[A-Z0-9]*)?$/g, '')
+        .replaceAll(/\s+[A-Z0-9]{10,20}$/g, '')
         
         // Remove payment method descriptions
-        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung[^\n]{0,100}$/i, '')
+        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung\b[^\n]{0,100}$/i, '')
         
         // Clean business name patterns
-        .replace(/\s+U\s+CO\s+KG[^\n]{0,100}$/, ' & Co KG')
-        .replace(/\s+FIL\s+\d{1,10}[^\n]*$/, '')
+        .replace(/\s+U\s+CO\s+KG\b[^\n]{0,100}$/, ' & Co KG')
+        .replace(/\s+FIL\s+\d{1,10}\b[^\n]{0,100}$/, '')
         
         // Specific merchant name improvements
         .replace(/^DM\s[^\n]{0,100}$/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT\s+LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
-        .replace(/^KARSTADT(?:[^\n]{0,100})?$/, 'Karstadt')
+        .replace(/^KARSTADT\s+LEBENSM\.\b[^\n]{0,100}$/, 'Karstadt')
+        .replace(/^KARSTADT\b[^\n]{0,100}$/, 'Karstadt')
         .replace(/^REWE\s+[^\n]{0,100}$/, 'REWE')
         .replace(/^SPOTIFY\s[^\n]{0,100}$/, 'Spotify')
-        .replace(/^UBER\s+BV[^\n]{0,100}$/, 'Uber')
-        .replace(/^APPLE\s+STORE[^\n]{0,100}$/, 'Apple Store')
+        .replace(/^UBER\s+BV\b[^\n]{0,100}$/, 'Uber')
+        .replace(/^APPLE\s+STORE\b[^\n]{0,100}$/, 'Apple Store')
         
-        // Clean up complex patterns - use non-greedy quantifiers and specific character classes
+        // Clean up complex patterns
         .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
         .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+[^\n]{0,100}$/, '$1')
         
-        // Remove trailing business suffixes - these are simple and efficient
-        .replace(/\s+GMBH$/i, ' GmbH')
-        .replace(/\s+UG$/i, ' UG')
-        .replace(/\s+SPA$/i, ' SpA')
-        .replace(/\s+SRL$/i, ' SRL')
+        // Remove trailing business suffixes
+        .replace(/\s+GMBH\b$/i, ' GmbH')
+        .replace(/\s+UG\b$/i, ' UG')
+        .replace(/\s+SPA\b$/i, ' SpA')
+        .replace(/\s+SRL\b$/i, ' SRL')
         
         // Clean up multiple spaces and trim
         .replaceAll(/\s+/g, ' ')
