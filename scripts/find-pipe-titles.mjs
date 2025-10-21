@@ -187,7 +187,7 @@ async function findTransactionsWithPipes() {
         
         // Clean up complex patterns
         .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+[^\n]{0,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100}?)\s+\/\s+[^\n]{0,100}$/, '$1')
         
         // Remove trailing business suffixes
         .replace(/\s+GMBH\b$/i, ' GmbH')
