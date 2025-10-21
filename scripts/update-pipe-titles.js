@@ -126,16 +126,16 @@ async function updateTransactionTitles() {
       // Clamp input to prevent ReDoS
       const clampedDesc = description.length > 512 ? description.slice(0, 512) : description;
       
-      const match = clampedDesc.match(/(?:(?:PP\.\d{1,4}\.PP\s*\.\s*)|(?:^\.\s*))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf|$)/)
-      if (match && match[1]) {
-        return match[1].trim()
+      const match = clampedDesc.match(/(?:(?:PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2)|(?:^\.(?=(\s+))\3))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:(?=(\s+))\4Ihr(?=(\s+))\5Einkauf|$)/)
+      if (match && match[4]) {
+        return match[4].trim()
       }
 
       const cleaned = clampedDesc
-        .replace(/^PP\.\d{1,4}\.PP\s*\.\s*/, '')
-        .replace(/^\.\s*/, '')
-        .replace(/\s+Ihr\s+Einkauf[^\s]*.*$/, '')
-        .replace(/\s+AWV-MELDEPFLICHT[^\s]*.*$/, '')
+        .replace(/^PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2/, '')
+        .replace(/^\.(?=(\s+))\1/, '')
+        .replace(/(?=(\s+))\1Ihr(?=(\s+))\2Einkauf[^\s\n]{0,100}[^\n]{0,100}$/, '')
+        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT[^\s\n]{0,100}[^\n]{0,100}$/, '')
         .trim()
 
       return cleaned || clampedDesc
@@ -146,15 +146,15 @@ async function updateTransactionTitles() {
       // Clamp input to prevent ReDoS
       const clampedDesc = description.length > 512 ? description.slice(0, 512) : description;
       
-      const match = clampedDesc.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=\s+(?:\d{1,10}|L\s|AWV-MELDEPFLICHT))|$)/)
+      const match = clampedDesc.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=(?=(\s+))\2(?:\d{1,10}|L(?=(\s+))\3|AWV-MELDEPFLICHT))|$)/)
       if (match && match[1]) {
         return match[1].trim()
       }
 
       const cleaned = clampedDesc
-        .replace(/\s+\d{1,10}(?:\s+.*)?$/, '')
-        .replace(/\s+L\s(?:\s+.*)?$/, '')
-        .replace(/\s+AWV-MELDEPFLICHT(?:\s+.*)?$/, '')
+        .replace(/(?=(\s+))\1\d{1,10}(?:(?=(\s+))\2[^\n]{0,100})?$/, '')
+        .replace(/(?=(\s+))\1L(?=(\s+))\2(?:(?=(\s+))\3[^\n]{0,100})?$/, '')
+        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT(?:(?=(\s+))\2[^\n]{0,100})?$/, '')
         .trim()
 
       return cleaned || clampedDesc
@@ -191,57 +191,57 @@ async function updateTransactionTitles() {
       
       return clampedTitle
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/[^\n]*$/i, '')
+        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?(?=(\s+))\1\/[^\n]{0,200}$/i, '')
         .replace(/\/\/[^/]{1,50}\/[A-Z]{2}$/i, '')
         
         // Remove common purchase/transaction phrases
-        .replace(/\s+Your\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
-        .replace(/\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
+        .replace(/(?=(\s+))\1Your(?=(\s+))\2purchase(?=(\s+))\3at(?=(\s+))\4[^\n]{1,100}$/i, '')
+        .replace(/(?=(\s+))\1purchase(?=(\s+))\2at(?=(\s+))\3[^\n]{1,100}$/i, '')
         
         // Remove common German phrases and store codes
-        .replace(/\s+SAGT\s+DANKE?\.?\s*\d{0,10}$/i, '')
-        .replace(/\s+BEDANKT\s+SICH$/i, '')
-        .replace(/\s+SAGT\s+DANK$/i, '')
+        .replace(/(?=(\s+))\1SAGT(?=(\s+))\2DANKE?\.?(?=(\s*))\3\d{0,10}$/i, '')
+        .replace(/(?=(\s+))\1BEDANKT(?=(\s+))\2SICH$/i, '')
+        .replace(/(?=(\s+))\1SAGT(?=(\s+))\2DANK$/i, '')
         
         // Remove store/branch codes and patterns
-        .replaceAll(/\s+H:\d{1,10}/g, '')
-        .replaceAll(/\s+FIL\.\d{1,10}/g, '')
-        .replaceAll(/\s+R\d{3,5}/g, '')
-        .replaceAll(/\s+GIR\s+\d{1,10}/g, '')
-        .replaceAll(/\s+\d{8,15}/g, '')
+        .replaceAll(/(?=(\s+))\1H:\d{1,10}/g, '')
+        .replaceAll(/(?=(\s+))\1FIL\.\d{1,10}/g, '')
+        .replaceAll(/(?=(\s+))\1R\d{3,5}/g, '')
+        .replaceAll(/(?=(\s+))\1GIR(?=(\s+))\2\d{1,10}/g, '')
+        .replaceAll(/(?=(\s+))\1\d{8,15}/g, '')
         
         // Remove alphanumeric transaction/reference codes (like Urban Sports codes)
-        .replaceAll(/\s+[A-Z0-9]{15,30}$/g, '')
-        .replaceAll(/\s+[A-Z0-9]{10,20}(?:[A-Z0-9]*)?$/g, '')
+        .replaceAll(/(?=(\s+))\1[A-Z0-9]{15,30}$/g, '')
+        .replaceAll(/(?=(\s+))\1[A-Z0-9]{10,20}(?:[A-Z0-9]{0,10})?$/g, '')
         
         // Remove payment method descriptions
-        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung[^\n]{0,100}$/i, '')
+        .replace(/(?=(\s+))\1Lastschrift(?=(\s+))\2aus(?=(\s+))\3Kartenzahlung[^\n]{0,100}$/i, '')
         
         // Clean business name patterns
-        .replace(/\s+U\s+CO\s+KG[^\n]{0,100}$/, ' & Co KG')
-        .replace(/\s+FIL\s+\d{1,10}[^\n]*$/, '')
+        .replace(/(?=(\s+))\1U(?=(\s+))\2CO(?=(\s+))\3KG[^\n]{0,100}$/, ' & Co KG')
+        .replace(/(?=(\s+))\1FIL(?=(\s+))\2\d{1,10}[^\n]{0,200}$/, '')
         
         // Specific merchant name improvements
-        .replace(/^DM\s[^\n]{0,100}$/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT\s+LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
+        .replace(/^DM(?=(\s+))\1[^\n]{0,100}$/, 'DM Drogeriemarkt')
+        .replace(/^KARSTADT(?=(\s+))\1LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
         .replace(/^KARSTADT(?:[^\n]{0,100})?$/, 'Karstadt')
-        .replace(/^REWE\s+[^\n]{0,100}$/, 'REWE')
-        .replace(/^SPOTIFY\s[^\n]{0,100}$/, 'Spotify')
-        .replace(/^UBER\s+BV[^\n]{0,100}$/, 'Uber')
-        .replace(/^APPLE\s+STORE[^\n]{0,100}$/, 'Apple Store')
+        .replace(/^REWE(?=(\s+))\1[^\n]{0,100}$/, 'REWE')
+        .replace(/^SPOTIFY(?=(\s+))\1[^\n]{0,100}$/, 'Spotify')
+        .replace(/^UBER(?=(\s+))\1BV[^\n]{0,100}$/, 'Uber')
+        .replace(/^APPLE(?=(\s+))\1STORE[^\n]{0,100}$/, 'Apple Store')
         
         // Clean up complex patterns that still have locations/descriptions
         .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+[^\n]{0,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})(?=(\s+))\2\/(?=(\s+))\3[^\n]{0,100}$/, '$1')
         
         // Remove trailing business suffixes when they're redundant and normalize case
-        .replace(/\s+GMBH$/i, ' GmbH')
-        .replace(/\s+UG$/i, ' UG')
-        .replace(/\s+SPA$/i, ' SpA')
-        .replace(/\s+SRL$/i, ' SRL')
+        .replace(/(?=(\s+))\1GMBH$/i, ' GmbH')
+        .replace(/(?=(\s+))\1UG$/i, ' UG')
+        .replace(/(?=(\s+))\1SPA$/i, ' SpA')
+        .replace(/(?=(\s+))\1SRL$/i, ' SRL')
         
         // Clean up multiple spaces and trim
-        .replaceAll(/\s+/g, ' ')
+        .replaceAll(/(?=(\s+))\1/g, ' ')
         .trim()
     }
 
