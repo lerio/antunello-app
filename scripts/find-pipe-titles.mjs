@@ -27,6 +27,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Limit regex input to avoid potential ReDoS on untrusted/long strings
+const MAX_REGEX_INPUT = 512
+const clampRegexInput = (s) => (typeof s === 'string' && s.length > MAX_REGEX_INPUT ? s.slice(0, MAX_REGEX_INPUT) : s)
+
 async function findTransactionsWithPipes() {
   try {
     if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -81,7 +85,8 @@ async function findTransactionsWithPipes() {
       
       // Special handling for PayPal transactions - extract text after second "||"
       if (merchantName.toLowerCase().includes('paypal')) {
-        const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
+        const rawAfter = title.substring(secondIndex + 2).trim()
+        const textAfterSecondPipe = clampRegexInput(rawAfter)
         
         // Extract meaningful part from PayPal transaction description
         // Common patterns: "PP.3012.PP . MERCHANTNAME" or ". MERCHANTNAME"
@@ -103,7 +108,8 @@ async function findTransactionsWithPipes() {
       
       // Special handling for ADYEN transactions - extract text after second "||"
       if (merchantName.toLowerCase().includes('adyen')) {
-        const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
+        const rawAfter = title.substring(secondIndex + 2).trim()
+        const textAfterSecondPipe = clampRegexInput(rawAfter)
         
         // Extract meaningful part from ADYEN transaction description
         // Common pattern: "Urban Sports GmbH 100082136  L  01 Nov  2019..."
@@ -127,7 +133,8 @@ async function findTransactionsWithPipes() {
 
     // Clean the extracted title from common strings and patterns
     function cleanTitle(title) {
-      return title
+      const input = clampRegexInput(title)
+      return input
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
         .replaceAll(/\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
         .replaceAll(/\/\/[^/]+\/[A-Z]{2}$/i, '')
