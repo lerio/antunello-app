@@ -134,8 +134,8 @@ async function updateTransactionTitles() {
       const cleaned = clampedDesc
         .replace(/^PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2/, '')
         .replace(/^\.(?=(\s+))\1/, '')
-        .replace(/(?=(\s+))\1Ihr(?=(\s+))\2Einkauf[^\s\n]{0,100}[^\n]{0,100}$/, '')
-        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT[^\s\n]{0,100}[^\n]{0,100}$/, '')
+        .replace(/(?=(\s+))\1Ihr(?=(\s+))\2Einkauf[^\s\n]{1,100}[^\n]{1,100}$/, '')
+        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT[^\s\n]{1,100}[^\n]{1,100}$/, '')
         .trim()
 
       return cleaned || clampedDesc
@@ -212,27 +212,27 @@ async function updateTransactionTitles() {
         
         // Remove alphanumeric transaction/reference codes (like Urban Sports codes)
         .replaceAll(/(?=(\s+))\1[A-Z0-9]{15,30}$/g, '')
-        .replaceAll(/(?=(\s+))\1[A-Z0-9]{10,20}(?:[A-Z0-9]{0,10})?$/g, '')
+        .replaceAll(/(?=(\s+))\1[A-Z0-9]{10,20}(?:[A-Z0-9]{1,10})?$/g, '')
         
         // Remove payment method descriptions
         .replace(/(?=(\s+))\1Lastschrift(?=(\s+))\2aus(?=(\s+))\3Kartenzahlung[^\n]{0,100}$/i, '')
         
         // Clean business name patterns
         .replace(/(?=(\s+))\1U(?=(\s+))\2CO(?=(\s+))\3KG[^\n]{0,100}$/, ' & Co KG')
-        .replace(/(?=(\s+))\1FIL(?=(\s+))\2\d{1,10}[^\n]{0,200}$/, '')
+        .replace(/(?=(\s+))\1FIL(?=(\s+))\2\d{1,10}[^\n]{1,200}$/, '')
         
         // Specific merchant name improvements
-        .replace(/^DM(?=(\s+))\1[^\n]{0,100}$/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT(?=(\s+))\1LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
-        .replace(/^KARSTADT(?:[^\n]{0,100})?$/, 'Karstadt')
-        .replace(/^REWE(?=(\s+))\1[^\n]{0,100}$/, 'REWE')
-        .replace(/^SPOTIFY(?=(\s+))\1[^\n]{0,100}$/, 'Spotify')
-        .replace(/^UBER(?=(\s+))\1BV[^\n]{0,100}$/, 'Uber')
-        .replace(/^APPLE(?=(\s+))\1STORE[^\n]{0,100}$/, 'Apple Store')
+        .replace(/^DM(?=(\s+))\1[^\n]{1,100}$/, 'DM Drogeriemarkt')
+        .replace(/^KARSTADT(?=(\s+))\1LEBENSM\.[^\n]{1,100}$/, 'Karstadt')
+        .replace(/^KARSTADT(?:[^\n]{1,100})?$/, 'Karstadt')
+        .replace(/^REWE(?=(\s+))\1[^\n]{1,100}$/, 'REWE')
+        .replace(/^SPOTIFY(?=(\s+))\1[^\n]{1,100}$/, 'Spotify')
+        .replace(/^UBER(?=(\s+))\1BV[^\n]{1,100}$/, 'Uber')
+        .replace(/^APPLE(?=(\s+))\1STORE[^\n]{1,100}$/, 'Apple Store')
         
         // Clean up complex patterns that still have locations/descriptions
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})(?=(\s+))\2\/(?=(\s+))\3[^\n]{0,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{1,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})(?=(\s+))\2\/(?=(\s+))\3[^\n]{1,100}$/, '$1')
         
         // Remove trailing business suffixes when they're redundant and normalize case
         .replace(/(?=(\s+))\1GMBH$/i, ' GmbH')
