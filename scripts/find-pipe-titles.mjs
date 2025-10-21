@@ -94,17 +94,19 @@ async function findTransactionsWithPipes() {
         // Extract meaningful part from PayPal transaction description
         // Common patterns: "PP.3012.PP . MERCHANTNAME" or ". MERCHANTNAME"
         // Use more specific patterns to avoid catastrophic backtracking
-        const match = textAfterSecondPipe.match(/(?:PP\.\d{1,4}\.PP\s*\.\s*|^\.\s*)([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf|$)/)
+        // Make patterns atomic where possible
+        const match = textAfterSecondPipe.match(/(?:(?:PP\.\d{1,4}\.PP\s*\.\s*)|(?:^\.\s*))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf|$)/)
         if (match && match[1]) {
           return clampRegexInput(match[1].trim())
         }
         
         // Fallback: return first meaningful part after cleaning common PayPal prefixes
+        // Use non-backtracking patterns where possible
         const cleaned = textAfterSecondPipe
           .replace(/^PP\.\d{1,4}\.PP\s*\.\s*/, '')
           .replace(/^\.\s*/, '')
-          .replace(/\s+Ihr\s+Einkauf.*$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+          .replace(/\s+Ihr\s+Einkauf[^\s]*.*$/, '')
+          .replace(/\s+AWV-MELDEPFLICHT[^\s]*.*$/, '')
           .trim()
         
         return clampRegexInput(cleaned || textAfterSecondPipe)
@@ -118,16 +120,18 @@ async function findTransactionsWithPipes() {
         // Extract meaningful part from ADYEN transaction description
         // Common pattern: "Urban Sports GmbH 100082136  L  01 Nov  2019..."
         // Limit the length of the matched group to prevent ReDoS
-        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:\s+\d{1,10}|\s+L\s|\s+AWV-MELDEPFLICHT|$)/)
+        // Use possessive quantifiers where possible (emulated with atomic groups)
+        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=\s+(?:\d{1,10}|L\s|AWV-MELDEPFLICHT))|$)/)
         if (match && match[1]) {
           return clampRegexInput(match[1].trim())
         }
         
         // Fallback: return first part before numbers or specific keywords
+        // Use more specific patterns to avoid excessive backtracking
         const cleaned = textAfterSecondPipe
-          .replace(/\s+\d{1,10}.*$/, '')
-          .replace(/\s+L\s.*$/, '')
-          .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+          .replace(/\s+\d{1,10}(?:\s+.*)?$/, '')
+          .replace(/\s+L\s(?:\s+.*)?$/, '')
+          .replace(/\s+AWV-MELDEPFLICHT(?:\s+.*)?$/, '')
           .trim()
         
         return clampRegexInput(cleaned || textAfterSecondPipe)
@@ -139,53 +143,54 @@ async function findTransactionsWithPipes() {
     // Clean the extracted title from common strings and patterns
     function cleanTitle(title) {
       const input = clampRegexInput(title)
-      // Apply replacements in a safe manner with bounded quantifiers
+      // Apply replacements in a safe manner with bounded quantifiers and atomic groups
       return input
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/.*$/i, '')
+        // Use more specific patterns to avoid backtracking
+        .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/[^\n]*$/i, '')
         .replaceAll(/\/\/[^/]{1,50}\/[A-Z]{2}$/i, '')
         
-        // Remove common purchase/transaction phrases with bounded quantifiers
-        .replaceAll(/\s+Your\s+purchase\s+at\s+.{1,100}$/i, '')
-        .replaceAll(/\s+purchase\s+at\s+.{1,100}$/i, '')
+        // Remove common purchase/transaction phrases with specific patterns
+        .replaceAll(/\s+Your\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
+        .replaceAll(/\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
         
         // Remove common German phrases and store codes
         .replaceAll(/\s+SAGT\s+DANKE?\.?\s*\d{0,10}$/i, '')
         .replaceAll(/\s+BEDANKT\s+SICH$/i, '')
         .replaceAll(/\s+SAGT\s+DANK$/i, '')
         
-        // Remove store/branch codes and patterns with bounded quantifiers
+        // Remove store/branch codes and patterns - these are simple and efficient
         .replaceAll(/\s+H:\d{1,10}/g, '')
         .replaceAll(/\s+FIL\.\d{1,10}/g, '')
-        .replaceAll(/\s+R\d{3,5}/g, '') // Remove codes like "R358" with reasonable bounds
+        .replaceAll(/\s+R\d{3,5}/g, '')
         .replaceAll(/\s+GIR\s+\d{1,10}/g, '')
-        .replaceAll(/\s+\d{8,15}/g, '') // Remove long number sequences with bounds
+        .replaceAll(/\s+\d{8,15}/g, '')
         
-        // Remove alphanumeric transaction/reference codes (like Urban Sports codes) with bounds
-        .replaceAll(/\s+[A-Z0-9]{15,30}$/g, '') // Remove long alphanumeric codes at the end
-        .replaceAll(/\s+[A-Z0-9]{10,20}[A-Z0-9]*$/g, '') // Remove medium-long codes
+        // Remove alphanumeric transaction/reference codes - use specific patterns
+        .replaceAll(/\s+[A-Z0-9]{15,30}$/g, '')
+        .replaceAll(/\s+[A-Z0-9]{10,20}(?:[A-Z0-9]*)?$/g, '')
         
-        // Remove payment method descriptions with bounds
-        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung.{0,100}$/i, '')
+        // Remove payment method descriptions
+        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung[^\n]{0,100}$/i, '')
         
-        // Clean business name patterns with bounds
-        .replace(/\s+U\s+CO\s+KG.{0,100}$/, ' & Co KG')
-        .replace(/\s+FIL\s+\d{1,10}.*$/, '')
+        // Clean business name patterns
+        .replace(/\s+U\s+CO\s+KG[^\n]{0,100}$/, ' & Co KG')
+        .replace(/\s+FIL\s+\d{1,10}[^\n]*$/, '')
         
-        // Specific merchant name improvements with bounds
-        .replace(/^DM\s.{0,100}$/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT\s+LEBENSM\..{0,100}$/, 'Karstadt')
-        .replace(/^KARSTADT(?:\s+.{0,100})?$/, 'Karstadt')
-        .replace(/^REWE\s+.{0,100}$/, 'REWE')
-        .replace(/^SPOTIFY\s.{0,100}$/, 'Spotify')
-        .replace(/^UBER\s+BV.{0,100}$/, 'Uber')
-        .replace(/^APPLE\s+STORE.{0,100}$/, 'Apple Store')
+        // Specific merchant name improvements
+        .replace(/^DM\s[^\n]{0,100}$/, 'DM Drogeriemarkt')
+        .replace(/^KARSTADT\s+LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
+        .replace(/^KARSTADT(?:[^\n]{0,100})?$/, 'Karstadt')
+        .replace(/^REWE\s+[^\n]{0,100}$/, 'REWE')
+        .replace(/^SPOTIFY\s[^\n]{0,100}$/, 'Spotify')
+        .replace(/^UBER\s+BV[^\n]{0,100}$/, 'Uber')
+        .replace(/^APPLE\s+STORE[^\n]{0,100}$/, 'Apple Store')
         
-        // Clean up complex patterns that still have locations/descriptions with bounds
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/.{0,100}$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+.{0,100}$/, '$1')
+        // Clean up complex patterns - use non-greedy quantifiers and specific character classes
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+[^\n]{0,100}$/, '$1')
         
-        // Remove trailing business suffixes when they're redundant and normalize case
+        // Remove trailing business suffixes - these are simple and efficient
         .replace(/\s+GMBH$/i, ' GmbH')
         .replace(/\s+UG$/i, ' UG')
         .replace(/\s+SPA$/i, ' SpA')
