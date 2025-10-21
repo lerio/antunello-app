@@ -105,7 +105,7 @@ async function findTransactionsWithPipes() {
         const cleaned = textAfterSecondPipe
           .replace(/^PP\.\d{1,4}\.PP\s*\.\s*/, '')
           .replace(/^\.\s*/, '')
-          .replace(/\s+Ihr\s+Einkauf\b[^\n]{0,100}$/, '')
+          .replace(/(?=(\s+))\1Ihr\s+Einkauf\b[^\n]{0,100}$/, '')
           .replace(/\s+AWV-MELDEPFLICHT\b[^\n]{0,100}$/, '')
           .trim()
         
