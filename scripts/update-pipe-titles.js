@@ -123,35 +123,41 @@ async function updateTransactionTitles() {
 
     // Extract PayPal transaction name from description
     function extractPayPalTitle(description) {
-      const match = description.match(/(?:PP\.\d+\.PP\s*\.\s*|^\.\s*)([A-Z][A-Za-z0-9\s&.-]+?)(?:\s+Ihr\s+Einkauf|$)/)
+      // Clamp input to prevent ReDoS
+      const clampedDesc = description.length > 512 ? description.slice(0, 512) : description;
+      
+      const match = clampedDesc.match(/(?:(?:PP\.\d{1,4}\.PP\s*\.\s*)|(?:^\.\s*))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf|$)/)
       if (match && match[1]) {
         return match[1].trim()
       }
 
-      const cleaned = description
-        .replace(/^PP\.\d+\.PP\s*\.\s*/, '')
+      const cleaned = clampedDesc
+        .replace(/^PP\.\d{1,4}\.PP\s*\.\s*/, '')
         .replace(/^\.\s*/, '')
-        .replace(/\s+Ihr\s+Einkauf.*$/, '')
-        .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+        .replace(/\s+Ihr\s+Einkauf[^\s]*.*$/, '')
+        .replace(/\s+AWV-MELDEPFLICHT[^\s]*.*$/, '')
         .trim()
 
-      return cleaned || description
+      return cleaned || clampedDesc
     }
 
     // Extract ADYEN transaction name from description
     function extractAdyenTitle(description) {
-      const match = description.match(/^([A-Za-z0-9\s&.-]+?)(?:\s+\d+|\s+L\s|\s+AWV-MELDEPFLICHT|$)/)
+      // Clamp input to prevent ReDoS
+      const clampedDesc = description.length > 512 ? description.slice(0, 512) : description;
+      
+      const match = clampedDesc.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=\s+(?:\d{1,10}|L\s|AWV-MELDEPFLICHT))|$)/)
       if (match && match[1]) {
         return match[1].trim()
       }
 
-      const cleaned = description
-        .replace(/\s+\d+.*$/, '')
-        .replace(/\s+L\s.*$/, '')
-        .replace(/\s+AWV-MELDEPFLICHT.*$/, '')
+      const cleaned = clampedDesc
+        .replace(/\s+\d{1,10}(?:\s+.*)?$/, '')
+        .replace(/\s+L\s(?:\s+.*)?$/, '')
+        .replace(/\s+AWV-MELDEPFLICHT(?:\s+.*)?$/, '')
         .trim()
 
-      return cleaned || description
+      return cleaned || clampedDesc
     }
 
     // Extract new title from transaction with special provider handling
@@ -180,50 +186,53 @@ async function updateTransactionTitles() {
 
     // Clean the extracted title from common strings and patterns
     function cleanTitle(title) {
-      return title
+      // Clamp input to prevent ReDoS
+      const clampedTitle = title.length > 512 ? title.slice(0, 512) : title;
+      
+      return clampedTitle
         // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replace(/\/\/[^/]+\/[A-Z]{2}(?:\/\d+)?\s*\/.*$/i, '')
-        .replace(/\/\/[^/]+\/[A-Z]{2}$/i, '')
+        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?\s*\/[^\n]*$/i, '')
+        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}$/i, '')
         
         // Remove common purchase/transaction phrases
-        .replace(/\s+Your\s+purchase\s+at\s+(.+)$/i, '') // "SPOTIFY Your purchase at SPOTIFY" -> "SPOTIFY"
-        .replace(/\s+purchase\s+at\s+.+$/i, '')
+        .replace(/\s+Your\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
+        .replace(/\s+purchase\s+at\s+[^\n]{1,100}$/i, '')
         
         // Remove common German phrases and store codes
-        .replace(/\s+SAGT\s+DANKE?\.?\s*\d*$/i, '')
+        .replace(/\s+SAGT\s+DANKE?\.?\s*\d{0,10}$/i, '')
         .replace(/\s+BEDANKT\s+SICH$/i, '')
         .replace(/\s+SAGT\s+DANK$/i, '')
         
         // Remove store/branch codes and patterns
-        .replaceAll(/\s+H:\d+/g, '')
-        .replaceAll(/\s+FIL\.\d+/g, '')
-        .replaceAll(/\s+R\d{3,}/g, '') // Remove codes like "R358"
-        .replaceAll(/\s+GIR\s+\d+/g, '')
-        .replaceAll(/\s+\d{8,}/g, '') // Remove long number sequences
+        .replaceAll(/\s+H:\d{1,10}/g, '')
+        .replaceAll(/\s+FIL\.\d{1,10}/g, '')
+        .replaceAll(/\s+R\d{3,5}/g, '')
+        .replaceAll(/\s+GIR\s+\d{1,10}/g, '')
+        .replaceAll(/\s+\d{8,15}/g, '')
         
         // Remove alphanumeric transaction/reference codes (like Urban Sports codes)
-        .replaceAll(/\s+[A-Z0-9]{15,}$/g, '') // Remove long alphanumeric codes at the end
-        .replaceAll(/\s+[A-Z0-9]{10,}[A-Z0-9]*$/g, '') // Remove medium-long codes
+        .replaceAll(/\s+[A-Z0-9]{15,30}$/g, '')
+        .replaceAll(/\s+[A-Z0-9]{10,20}(?:[A-Z0-9]*)?$/g, '')
         
         // Remove payment method descriptions
-        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung.*$/i, '')
+        .replace(/\s+Lastschrift\s+aus\s+Kartenzahlung[^\n]{0,100}$/i, '')
         
         // Clean business name patterns
-        .replace(/\s+U\s+CO\s+KG.*$/, ' & Co KG') // "GMBH U CO KG FIL 1" -> "GMBH & Co KG"
-        .replace(/\s+FIL\s+\d+.*$/, '') // Remove "FIL 1" and everything after
+        .replace(/\s+U\s+CO\s+KG[^\n]{0,100}$/, ' & Co KG')
+        .replace(/\s+FIL\s+\d{1,10}[^\n]*$/, '')
         
         // Specific merchant name improvements
-        .replace(/^DM\s.*/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT\s+LEBENSM\..*/, 'Karstadt')
-        .replace(/^KARSTADT(?:\s+.*)?$/, 'Karstadt')
-        .replace(/^REWE\s+.*/, 'REWE')
-        .replace(/^SPOTIFY\s.*/, 'Spotify')
-        .replace(/^UBER\s+BV.*/, 'Uber')
-        .replace(/^APPLE\s+STORE.*/, 'Apple Store')
+        .replace(/^DM\s[^\n]{0,100}$/, 'DM Drogeriemarkt')
+        .replace(/^KARSTADT\s+LEBENSM\.[^\n]{0,100}$/, 'Karstadt')
+        .replace(/^KARSTADT(?:[^\n]{0,100})?$/, 'Karstadt')
+        .replace(/^REWE\s+[^\n]{0,100}$/, 'REWE')
+        .replace(/^SPOTIFY\s[^\n]{0,100}$/, 'Spotify')
+        .replace(/^UBER\s+BV[^\n]{0,100}$/, 'Uber')
+        .replace(/^APPLE\s+STORE[^\n]{0,100}$/, 'Apple Store')
         
         // Clean up complex patterns that still have locations/descriptions
-        .replace(/^([A-Z][A-Za-z\s&.-]+?)\/\/.*$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]+?)\s+\/\s+.*$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
+        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\s+\/\s+[^\n]{0,100}$/, '$1')
         
         // Remove trailing business suffixes when they're redundant and normalize case
         .replace(/\s+GMBH$/i, ' GmbH')
