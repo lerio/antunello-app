@@ -94,9 +94,9 @@ async function findTransactionsWithPipes() {
         // Extract meaningful part from PayPal transaction description
         // Common patterns: "PP.3012.PP . MERCHANTNAME" or ". MERCHANTNAME"
         // Use more specific patterns to avoid catastrophic backtracking
-        const match = textAfterSecondPipe.match(/(?:(?:PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2)|(?:^\.(?=(\s+))\3))([A-Z][A-Za-z0-9\s&.-]{1,100})(?:(?=(\s+))\4Ihr(?=(\s+))\5Einkauf\b|$)/)
-        if (match && match[4]) {
-          return clampRegexInput(match[4].trim())
+        const match = textAfterSecondPipe.match(/^(?:\.|PP\.\d{1,4}\.PP\.\s+)?([A-Z][A-Za-z0-9\s&.-]{1,100})(?:\s+Ihr\s+Einkauf\b)?$/)
+        if (match && match[1]) {
+          return clampRegexInput(match[1].trim())
         }
         
         // Fallback: return first meaningful part after cleaning common PayPal prefixes
