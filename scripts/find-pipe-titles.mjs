@@ -117,16 +117,16 @@ async function findTransactionsWithPipes() {
         
         // Extract meaningful part from ADYEN transaction description
         // Use possessive quantifiers where possible (emulated with atomic groups)
-        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=(?=(\s+))\2(?:\d{1,10}\b|L(?=(\s+))\3\b|AWV-MELDEPFLICHT\b))|$)/)
+        const match = textAfterSecondPipe.match(/^([A-Za-z0-9\s&.-]{1,100})(?:\s+(?:\d{1,10}|L|AWV-MELDEPFLICHT)\b|$)/)
         if (match && match[1]) {
           return clampRegexInput(match[1].trim())
         }
         
         // Fallback: return first part before numbers or specific keywords
         const cleaned = textAfterSecondPipe
-          .replace(/(?=(\s+))\1\d{1,10}\b[^\n]{0,100}$/, '')
-          .replace(/(?=(\s+))\1L(?=(\s+))\2\b[^\n]{0,100}$/, '')
-          .replace(/(?=(\s+))\1AWV-MELDEPFLICHT\b[^\n]{0,100}$/, '')
+          .replace(/\s+\d{1,10}\b.*$/, '')
+          .replace(/\s+L\b.*$/, '')
+          .replace(/\s+AWV-MELDEPFLICHT\b.*$/, '')
           .trim()
         
         return clampRegexInput(cleaned || textAfterSecondPipe)
