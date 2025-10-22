@@ -28,6 +28,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+function printManualExecution(sql) {
+  console.log(`\n⚠️  This migration requires database admin access.`)
+  console.log(`Please run this SQL manually in your Supabase dashboard:`)
+  console.log(`\n--- SQL to run manually ---`)
+  console.log(sql)
+  console.log(`--- End of SQL ---\n`)
+}
+
 async function authenticateUser() {
   const readline = createInterface({
     input: process.stdin,
@@ -122,20 +130,13 @@ try {
 
       if (error) {
         console.error(`❌ Cannot execute raw SQL with current permissions:`, error.message)
-        console.log(`\n⚠️  This migration requires database admin access.`)
-        console.log(`Please run this SQL manually in your Supabase dashboard:`)
-        console.log(`\n--- SQL to run manually ---`)
-        console.log(migrationSQL)
-        console.log(`--- End of SQL ---\n`)
+        printManualExecution(migrationSQL)
         process.exit(1)
       }
 
       console.log(`✅ Basic database access confirmed`)
       console.log(`\n⚠️  Automatic SQL execution not supported with current permissions.`)
-      console.log(`Please run this SQL manually in your Supabase dashboard:`)
-      console.log(`\n--- SQL to run manually ---`)
-      console.log(migrationSQL)
-      console.log(`--- End of SQL ---\n`)
+      printManualExecution(migrationSQL)
       break
     } catch (error) {
       console.error(`❌ Unexpected error:`, error.message)

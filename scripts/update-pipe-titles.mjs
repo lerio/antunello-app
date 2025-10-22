@@ -10,6 +10,7 @@ import dotenv from 'dotenv'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline'
+import { extractNewTitle, cleanTitle } from './lib/pipe-title-utils.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -126,120 +127,6 @@ async function updateTransactionTitles() {
       console.log('   Use --execute flag to actually update the database\n')
     }
 
-    // Extract PayPal transaction name from description
-    function extractPayPalTitle(description) {
-      const match = description.match(/(?:PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2|^\.(?=(\s+))\3)([A-Z][A-Za-z0-9\s&.-]{1,100})(?:(?=(\s+))\4Ihr(?=(\s+))\5Einkauf|$)/)
-      if (match && match[4]) {
-        return match[4].trim()
-      }
-
-      const cleaned = description
-        .replace(/^PP\.\d{1,4}\.PP(?=(\s+))\1\.(?=(\s+))\2/, '')
-        .replace(/^\.(?=(\s+))\1/, '')
-        .replace(/(?=(\s+))\1Ihr(?=(\s+))\2Einkauf[^\n]{0,100}$/, '')
-        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT[^\n]{0,100}$/, '')
-        .trim()
-
-      return cleaned || description
-    }
-
-    // Extract ADYEN transaction name from description
-    function extractAdyenTitle(description) {
-      const match = description.match(/^([A-Za-z0-9\s&.-]{1,100})(?:(?=(\s+))\2\d{1,10}|(?=(\s+))\3L(?=(\s+))\4|(?=(\s+))\5AWV-MELDEPFLICHT|$)/)
-      if (match && match[1]) {
-        return match[1].trim()
-      }
-
-      const cleaned = description
-        .replace(/(?=(\s+))\1\d{1,10}[^\n]{0,100}$/, '')
-        .replace(/(?=(\s+))\1L(?=(\s+))\2[^\n]{0,100}$/, '')
-        .replace(/(?=(\s+))\1AWV-MELDEPFLICHT[^\n]{0,100}$/, '')
-        .trim()
-
-      return cleaned || description
-    }
-
-    // Extract new title from transaction with special provider handling
-    function extractNewTitle(title) {
-      const firstIndex = title.indexOf('||')
-      if (firstIndex === -1) return 'N/A'
-
-      const secondIndex = title.indexOf('||', firstIndex + 2)
-      if (secondIndex === -1) {
-        return title.substring(firstIndex + 2).trim()
-      }
-
-      const merchantName = title.substring(firstIndex + 2, secondIndex).trim()
-      const textAfterSecondPipe = title.substring(secondIndex + 2).trim()
-
-      if (merchantName.toLowerCase().includes('paypal')) {
-        return extractPayPalTitle(textAfterSecondPipe)
-      }
-
-      if (merchantName.toLowerCase().includes('adyen')) {
-        return extractAdyenTitle(textAfterSecondPipe)
-      }
-
-      return merchantName
-    }
-
-    // Clean the extracted title from common strings and patterns
-    function cleanTitle(title) {
-      return title
-        // Remove location patterns like "//BERLIN/DE" or "//Berlin Wedding/DE"
-        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}(?:\/\d{1,10})?(?=(\s+))\1\/[^\n]{0,200}$/i, '')
-        .replace(/\/\/[^/]{1,50}\/[A-Z]{2}$/i, '')
-        
-        // Remove common purchase/transaction phrases
-        .replace(/(?=(\s+))\1Your(?=(\s+))\2purchase(?=(\s+))\3at(?=(\s+))\4[^\n]{1,100}$/i, '')
-        .replace(/(?=(\s+))\1purchase(?=(\s+))\2at(?=(\s+))\3[^\n]{1,100}$/i, '')
-        
-        // Remove common German phrases and store codes
-        .replace(/(?=(\s+))\1SAGT(?=(\s+))\2DANKE?\.?(?=(\s*))\3\d{0,10}$/i, '')
-        .replace(/(?=(\s+))\1BEDANKT(?=(\s+))\2SICH$/i, '')
-        .replace(/(?=(\s+))\1SAGT(?=(\s+))\2DANK$/i, '')
-        
-        // Remove store/branch codes and patterns
-        .replaceAll(/(?=(\s+))\1H:\d{1,10}/g, '')
-        .replaceAll(/(?=(\s+))\1FIL\.\d{1,10}/g, '')
-        .replaceAll(/(?=(\s+))\1R\d{3,5}/g, '')
-        .replaceAll(/(?=(\s+))\1GIR(?=(\s+))\2\d{1,10}/g, '')
-        .replaceAll(/(?=(\s+))\1\d{8,15}/g, '')
-        
-        // Remove alphanumeric transaction/reference codes
-        .replaceAll(/(?=(\s+))\1[A-Z0-9]{15,30}$/g, '')
-        .replaceAll(/(?=(\s+))\1[A-Z0-9]{10,20}[A-Z0-9]*$/g, '')
-        
-        // Remove payment method descriptions
-        .replace(/(?=(\s+))\1Lastschrift(?=(\s+))\2aus(?=(\s+))\3Kartenzahlung[^\n]{0,100}$/i, '')
-        
-        // Clean business name patterns
-        .replace(/(?=(\s+))\1U(?=(\s+))\2CO(?=(\s+))\3KG[^\n]{0,100}$/, ' & Co KG')
-        .replace(/(?=(\s+))\1FIL(?=(\s+))\2\d{1,10}[^\n]{0,100}$/, '')
-        
-        // Specific merchant name improvements
-        .replace(/^DM(?=(\s+))\1[^\n]{0,100}/, 'DM Drogeriemarkt')
-        .replace(/^KARSTADT(?=(\s+))\1LEBENSM\.[^\n]{0,100}/, 'Karstadt')
-        .replace(/^KARSTADT(?:(?=(\s+))\1[^\n]{0,100})?$/, 'Karstadt')
-        .replace(/^REWE(?=(\s+))\1[^\n]{0,100}/, 'REWE')
-        .replace(/^SPOTIFY(?=(\s+))\1[^\n]{0,100}/, 'Spotify')
-        .replace(/^UBER(?=(\s+))\1BV[^\n]{0,100}/, 'Uber')
-        .replace(/^APPLE(?=(\s+))\1STORE[^\n]{0,100}/, 'Apple Store')
-        
-        // Clean up complex patterns that still have locations/descriptions
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100})\/\/[^\n]{0,100}$/, '$1')
-        .replace(/^([A-Z][A-Za-z\s&.-]{1,100}?)(?=(\s+))\2\/(?=(\s+))\3[^\n]{0,100}$/, '$1')
-        
-        // Normalize business suffixes
-        .replace(/(?=(\s+))\1GMBH$/i, ' GmbH')
-        .replace(/(?=(\s+))\1UG$/i, ' UG')
-        .replace(/(?=(\s+))\1SPA$/i, ' SpA')
-        .replace(/(?=(\s+))\1SRL$/i, ' SRL')
-        
-        // Clean up spaces
-        .replaceAll(/(?=(\s+))\1/g, ' ')
-        .trim()
-    }
 
     // Prepare updates from transactions
     function prepareUpdates(transactions, isExecute, isVerbose) {
