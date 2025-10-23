@@ -344,6 +344,8 @@ type TotalsTableProps = {
   readonly isExpensesExpanded: boolean;
   readonly onToggleIncome: () => void;
   readonly onToggleExpenses: () => void;
+  readonly isDetailsExpanded: boolean;
+  readonly onToggleDetails: () => void;
 };
 
 function TotalsTable({
@@ -354,10 +356,34 @@ function TotalsTable({
   isExpensesExpanded,
   onToggleIncome,
   onToggleExpenses,
+  isDetailsExpanded,
+  onToggleDetails,
 }: TotalsTableProps) {
+  // Find the balance item to determine if it's gains or losses
+  const balanceItem = totalsData.find(item => item.isBalance);
+  const balanceTotal = balanceItem?.total || 0;
+  const isGains = balanceTotal >= 0;
+  const title = isGains ? `Gains (€${formatAmount(Math.abs(balanceTotal))})` : `Losses (€${formatAmount(Math.abs(balanceTotal))})`;
+
+  // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
+  const filteredData = isDetailsExpanded ? totalsData.filter(item => !item.isBalance) : [];
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
-      <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4">Totals (€)</h3>
+      <div className="flex items-center justify-between">
+        <h3 className={`text-base sm:text-lg font-semibold ${isGains ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{title}</h3>
+        <button
+          onClick={onToggleDetails}
+          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          aria-label={isDetailsExpanded ? 'Collapse details' : 'Expand details'}
+        >
+          {isDetailsExpanded ? (
+            <ChevronDown size={18} className="text-gray-600 dark:text-gray-400" />
+          ) : (
+            <ChevronRight size={18} className="text-gray-600 dark:text-gray-400" />
+          )}
+        </button>
+      </div>
       <div className="overflow-hidden">
         <table className="w-full">
           {currentYear !== undefined && (
@@ -373,7 +399,7 @@ function TotalsTable({
             </thead>
           )}
           <tbody>
-            {totalsData.map((item) => {
+            {filteredData.map((item) => {
               const isHiddenExpense = item.isHiddenExpense;
               const isSubCategory = item.isSubCategory;
               const isCollapsible = item.isCollapsible;
@@ -544,6 +570,7 @@ export default function TransactionSummary({
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   // Fetch previous year data for comparison if currentYear is provided
   const previousYear = currentYear ? currentYear - 1 : undefined;
@@ -624,6 +651,8 @@ export default function TransactionSummary({
             isExpensesExpanded={isExpensesExpanded}
             onToggleIncome={() => setIsIncomeExpanded(!isIncomeExpanded)}
             onToggleExpenses={() => setIsExpensesExpanded(!isExpensesExpanded)}
+            isDetailsExpanded={isDetailsExpanded}
+            onToggleDetails={() => setIsDetailsExpanded(!isDetailsExpanded)}
           />
 
           <CategoriesTable categoriesData={categoriesData} currentYear={currentYear} previousYear={previousYear} />
