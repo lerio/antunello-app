@@ -386,7 +386,7 @@ function TotalsTable({
       </div>
       <div className="overflow-hidden">
         <table className="w-full">
-          {currentYear !== undefined && (
+          {currentYear !== undefined && isDetailsExpanded && (
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-600 dark:text-gray-400 text-sm sm:text-sm"></th>

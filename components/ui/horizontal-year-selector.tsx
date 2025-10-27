@@ -117,7 +117,7 @@ export function HorizontalYearSelector({
       {/* Scrollable years container */}
       <div
         ref={scrollContainerRef}
-        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} py-2 px-8`}
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pt-1 pb-5 px-8`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {years.map((yearOption) => {
