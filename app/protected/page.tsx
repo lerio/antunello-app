@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
-import OverallTotals from "@/components/features/overall-totals";
+import Balance from "@/components/features/balance";
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
   { ssr: false }
@@ -244,8 +244,8 @@ export default function ProtectedPage() {
           </div>
         </div>
 
-        {/* Overall Totals */}
-        <OverallTotals />
+        {/* Balance */}
+        <Balance />
 
         {/* Sticky Horizontal Month Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">

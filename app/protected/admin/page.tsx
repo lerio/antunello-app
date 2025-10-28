@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { deleteAllUserTransactions, getUserTransactionCount, importTransactions } from '@/utils/supabase/database-utils';
 import { parseCSV, batchMapCSVToTransactions, ImportResult } from '@/utils/csv-import';
 import { retryMissingExchangeRates } from '@/utils/currency-conversion';
+import FundCategoriesManager from '@/components/features/fund-categories-manager';
 
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -158,6 +159,9 @@ export default function AdminPage() {
   return (
     <div className="fixed-width-container py-6">
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* Fund Categories Management Section */}
+        <FundCategoriesManager />
+
         {/* Import CSV Section */}
         <Card>
           <CardHeader>
