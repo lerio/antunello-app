@@ -16,6 +16,8 @@ export type Transaction = {
   rate_date?: string
   // Hide from monthly totals
   hide_from_totals?: boolean
+  // Link to fund category
+  fund_category_id?: string | null
 }
 
 export type ExchangeRate = {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { MinusCircle, PlusCircle, Calendar, Trash2, Eye, EyeOff } from "lucide-react";
@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
+import { useFundCategories } from "@/hooks/useFundCategories";
 import styles from "./transaction-form-html-design.module.css";
 
 function renderSubmitButtonContent(
@@ -135,6 +136,9 @@ const CURRENCY_OPTIONS = [
 ] as const;
 
 export default function TransactionFormModal({ onSubmit, initialData, disabled = false, onDelete }: TransactionFormModalProps) {
+  // Get fund categories for the Source dropdown
+  const { fundCategories, isLoading: fundCategoriesLoading } = useFundCategories();
+
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mainCategory, setMainCategory] = useState(initialData?.main_category || "");
@@ -144,7 +148,9 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
   const [selectedDate, setSelectedDate] = useState<Date>(
     initialData?.date ? new Date(initialData.date) : new Date()
   );
-  
+  const [selectedFundCategoryId, setSelectedFundCategoryId] = useState<string | null>(initialData?.fund_category_id || null);
+
+
   // Validation state for tooltips
   const [hideFromTotals, setHideFromTotals] = useState(initialData?.hide_from_totals || false);
   const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
@@ -233,7 +239,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
       
       if (!user?.id) throw new Error("User not authenticated");
 
-      await onSubmit({
+      const submitData = {
         user_id: user.id,
         amount: Number(formData.get("amount")),
         currency: selectedCurrency,
@@ -243,13 +249,17 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
         title: formData.get("title") as string,
         date: selectedDate.toISOString(),
         hide_from_totals: hideFromTotalsRef.current,
-      });
+        fund_category_id: selectedFundCategoryId,
+      };
+
+
+      await onSubmit(submitData);
     } catch (error) {
       console.error("Form submission failed:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory, subCategory]);
+  }, [onSubmit, transactionType, selectedCurrency, selectedDate, mainCategory, subCategory, selectedFundCategoryId]);
 
   const handleCategoryChange = useCallback((value: string) => {
     setMainCategory(value);
@@ -435,6 +445,27 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
                 <Calendar size={20} className="text-gray-400 dark:text-gray-500" />
               </div>
             </div>
+          </div>
+
+          {/* Source (Fund Category) */}
+          <div>
+            <select
+              className={`${inputClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              id="fund_category_id"
+              name="fund_category_id"
+              value={selectedFundCategoryId || ""}
+              onChange={(e) => setSelectedFundCategoryId(e.target.value || null)}
+              disabled={disabled || fundCategoriesLoading}
+            >
+              <option value="">No Source (Doesn't affect balance)</option>
+              {fundCategories
+                .filter(fund => fund.is_active)
+                .map((fund) => (
+                  <option key={fund.id} value={fund.id}>
+                    {fund.name} ({fund.currency})
+                  </option>
+                ))}
+            </select>
           </div>
 
         </div>

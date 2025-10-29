@@ -30,7 +30,7 @@ export default function Balance() {
         <div className="flex items-center gap-2">
           <div className={`text-base sm:text-lg font-semibold ${amountColorClass}`}>
             {isLoading ? (
-              <span className="inline-block w-20 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <span className="inline-block w-20 h-[1.375rem] bg-gray-200 dark:bg-gray-700 rounded animate-pulse align-middle" />
             ) : (
               <>€{formatAmount(Math.abs(totalBalanceEUR))}</>
             )}
@@ -69,7 +69,7 @@ export default function Balance() {
             <div className="space-y-2">
               {fundCategories
                 .filter(fund => fund.is_active)
-                .sort((a, b) => a.order_index - b.order_index)
+                .sort((a, b) => (b.eur_amount || 0) - (a.eur_amount || 0))
                 .map((fund) => (
                   <div
                     key={fund.id}
@@ -86,7 +86,7 @@ export default function Balance() {
                       )}
                     </div>
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {formatCurrency(fund.amount, fund.currency)}
+                      {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
                     </div>
                   </div>
                 ))}

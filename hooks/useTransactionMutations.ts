@@ -77,6 +77,7 @@ export function useTransactionMutations() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       eur_amount: optimisticEurAmount,
+      fund_category_id: data.fund_category_id || undefined
     }
 
     // Optimistically update the cache immediately
@@ -88,8 +89,10 @@ export function useTransactionMutations() {
       // Prepare transaction data with currency conversion
       const transactionData = {
         ...data,
-        ...(data.eur_amount === undefined ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {})
+        ...(data.eur_amount === undefined ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {}),
+        fund_category_id: data.fund_category_id || undefined
       }
+
 
       const { data: newTransaction, error } = await supabase
         .from('transactions')
@@ -98,6 +101,7 @@ export function useTransactionMutations() {
         .single()
 
       if (error) throw error
+
 
       // Replace optimistic transaction with real one
       updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
@@ -110,6 +114,8 @@ export function useTransactionMutations() {
       invalidateYearCache(data.date)
       // Revalidate overall totals
       mutate('/api/overall-totals', undefined, true)
+      // Revalidate fund categories to update balance
+      mutate('fund-categories', undefined, true)
 
       return newTransaction
     } catch (error) {
@@ -191,9 +197,16 @@ export function useTransactionMutations() {
 
     if (needsConversion) {
       const conversion = await convertAndUpdateCurrency(amountToUse, currencyToUse, dateToUse)
-      return { ...data, ...conversion }
+      return {
+        ...data,
+        ...conversion,
+        fund_category_id: data.fund_category_id
+      }
     }
-    return { ...data }
+    return {
+      ...data,
+      fund_category_id: data.fund_category_id
+    }
   }
 
   // Helper: finalize caches and invalidations after DB update
@@ -205,6 +218,7 @@ export function useTransactionMutations() {
     invalidateYearCache(oldDate)
     if (newDate && newDate !== oldDate) invalidateYearCache(newDate)
     mutate('/api/overall-totals', undefined, true)
+    mutate('fund-categories', undefined, true)
   }
 
   // Helper: rollback caches on error
@@ -232,12 +246,14 @@ export function useTransactionMutations() {
       ...data,
       updated_at: new Date().toISOString(),
       ...(optimisticEurAmount !== undefined && { eur_amount: optimisticEurAmount }),
+      fund_category_id: data.fund_category_id
     }
 
     applyOptimisticUpdate(oldMonthKey, newMonthKey, id, optimisticUpdated)
 
     try {
       const updateData = await buildUpdateData(data, originalTransaction)
+
 
       const { data: persisted, error } = await supabase
         .from('transactions')
@@ -247,6 +263,7 @@ export function useTransactionMutations() {
         .single()
 
       if (error) throw error
+
 
       const targetMonthKey = oldMonthKey === newMonthKey ? oldMonthKey : newMonthKey
       finalizeUpdate(targetMonthKey, id, persisted, oldDate, data.date)
@@ -282,6 +299,8 @@ export function useTransactionMutations() {
       invalidateYearCache(transaction.date)
       // Revalidate overall totals
       mutate('/api/overall-totals', undefined, true)
+      // Revalidate fund categories to update balance
+      mutate('fund-categories', undefined, true)
       
       return transaction
     } catch (error) {
