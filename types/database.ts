@@ -41,6 +41,7 @@ export type FundCategory = {
   amount: number
   is_active: boolean
   order_index: number
+  top_level_category?: string
   created_at: string
   updated_at: string
 }
@@ -87,4 +88,14 @@ export const SUB_CATEGORIES: Record<string, string[]> = CATEGORIES_WITH_TYPES.re
 export function getCategoryType(category: string): 'income' | 'expense' {
   const categoryData = CATEGORIES_WITH_TYPES.find(cat => cat.category === category);
   return categoryData?.type || 'expense';
-} 
+}
+
+// Top-level fund categories
+export const TOP_LEVEL_FUND_CATEGORIES = [
+  "Bank Accounts",
+  "Savings Accounts",
+  "Investments",
+  "P2P Lending",
+  "Financial Services",
+  "Cash"
+] as const; 

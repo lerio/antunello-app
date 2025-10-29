@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { FundCategory, Transaction } from "@/types/database";
 import { convertToEUR } from "@/utils/currency-conversion";
 
-interface FundCategoryWithBalance extends FundCategory {
+export interface FundCategoryWithBalance extends FundCategory {
   eur_amount?: number;
   current_amount: number;
   current_eur_amount: number;

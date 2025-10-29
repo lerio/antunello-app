@@ -416,7 +416,7 @@ function TotalsTable({
               };
 
               return (
-                <tr key={`${item.category}`} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                <tr key={`${item.category}`}>
                   <td className="py-2 sm:py-3 px-1 sm:px-2">
                     <div className="flex items-center">
                       {isCollapsible && (

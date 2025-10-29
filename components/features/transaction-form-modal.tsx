@@ -252,6 +252,7 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
         fund_category_id: selectedFundCategoryId,
       };
 
+      console.log("Form submitting data:", submitData);
 
       await onSubmit(submitData);
     } catch (error) {
@@ -454,7 +455,10 @@ export default function TransactionFormModal({ onSubmit, initialData, disabled =
               id="fund_category_id"
               name="fund_category_id"
               value={selectedFundCategoryId || ""}
-              onChange={(e) => setSelectedFundCategoryId(e.target.value || null)}
+              onChange={(e) => {
+                console.log("Dropdown onChange triggered:", e.target.value);
+                setSelectedFundCategoryId(e.target.value || null);
+              }}
               disabled={disabled || fundCategoriesLoading}
             >
               <option value="">No Source (Doesn't affect balance)</option>

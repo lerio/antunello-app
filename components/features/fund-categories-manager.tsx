@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/utils/supabase/client";
-import { FundCategory } from "@/types/database";
+import { FundCategory, TOP_LEVEL_FUND_CATEGORIES } from "@/types/database";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 
@@ -23,6 +23,7 @@ export default function FundCategoriesManager() {
     amount: 0,
     is_active: true,
     order_index: 0,
+    top_level_category: "",
   });
 
   const supabase = createClient();
@@ -42,6 +43,7 @@ export default function FundCategoriesManager() {
         amount: newFund.amount || 0,
         is_active: newFund.is_active !== false,
         order_index: fundCategories.length,
+        top_level_category: newFund.top_level_category || null,
       });
 
       if (error) throw error;
@@ -53,6 +55,7 @@ export default function FundCategoriesManager() {
         amount: 0,
         is_active: true,
         order_index: 0,
+        top_level_category: "",
       });
       setIsAdding(false);
       mutate();
@@ -71,6 +74,7 @@ export default function FundCategoriesManager() {
           currency: fund.currency,
           amount: fund.amount,
           is_active: fund.is_active,
+          top_level_category: fund.top_level_category || null,
         })
         .eq("id", fund.id);
 
@@ -150,6 +154,22 @@ export default function FundCategoriesManager() {
                 />
               </div>
               <div>
+                <Label htmlFor="top_level_category">Top Level Category</Label>
+                <select
+                  id="top_level_category"
+                  value={newFund.top_level_category || ""}
+                  onChange={(e) => setNewFund({ ...newFund, top_level_category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                >
+                  <option value="">No Category</option>
+                  {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <Label htmlFor="currency">Currency</Label>
                 <select
                   id="currency"
@@ -175,7 +195,7 @@ export default function FundCategoriesManager() {
                   placeholder="0.00"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="description">Description</Label>
                 <Input
                   id="description"
@@ -251,6 +271,25 @@ export default function FundCategoriesManager() {
                             }
                             placeholder="Name"
                           />
+                          <select
+                            value={fund.top_level_category || ""}
+                            onChange={(e) =>
+                              mutate(
+                                fundCategories.map((f) =>
+                                  f.id === fund.id ? { ...f, top_level_category: e.target.value } : f
+                                ),
+                                false
+                              )
+                            }
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                          >
+                            <option value="">No Category</option>
+                            {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
+                            ))}
+                          </select>
                           <select
                             value={fund.currency}
                             onChange={(e) =>
@@ -334,8 +373,13 @@ export default function FundCategoriesManager() {
                             {fund.description}
                           </div>
                         )}
-                        <div className="text-sm text-gray-600 dark:text-gray-300">
-                          {fund.amount.toFixed(2)} {fund.currency}
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                          <span>{fund.amount.toFixed(2)} {fund.currency}</span>
+                          {fund.top_level_category && (
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                              {fund.top_level_category}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
