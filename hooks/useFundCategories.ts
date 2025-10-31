@@ -45,13 +45,13 @@ export function useFundCategories() {
           // Calculate current amount (base amount + transaction adjustments)
           let currentAmount = fund.amount;
 
-          fundTransactions.forEach((tx: Transaction) => {
+          for (const tx of fundTransactions) {
             if (tx.type === "income") {
               currentAmount += tx.amount;
             } else if (tx.type === "expense") {
               currentAmount -= tx.amount;
             }
-          });
+          }
 
           // Convert current amount to EUR
           let currentEurAmount = 0;

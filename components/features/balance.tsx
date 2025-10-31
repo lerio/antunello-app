@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
-import { useFundCategories } from "@/hooks/useFundCategories";
-import { FundCategoryWithBalance } from "@/hooks/useFundCategories";
+import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
 
 export default function Balance() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -83,84 +82,100 @@ export default function Balance() {
       {/* Expanded Content */}
       {isExpanded && (
         <div>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex justify-between items-center">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : fundCategories.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              No fund categories configured. Add some in the admin settings.
-            </p>
-          ) : (
-            <div className="space-y-1">
-              {sortedCategories.map(([category, { totalEUR, funds }]) => {
-                const isCategoryExpanded = expandedCategories.has(category);
-                const sortedFunds = funds.sort((a, b) => (b.current_eur_amount || 0) - (a.current_eur_amount || 0));
-
-                return (
-                  <div key={category}>
-                    {/* Category Header */}
-                    <div
-                      className="flex justify-between items-center py-2 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded cursor-pointer"
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
-                          {isCategoryExpanded ? (
-                            <ChevronDown size={16} className="text-gray-500" />
-                          ) : (
-                            <ChevronRight size={16} className="text-gray-500" />
-                          )}
-                        </button>
-                        <div>
-                          <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            {category}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {funds.length} fund{funds.length !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        €{formatAmount(Math.abs(totalEUR))}
-                      </div>
+          {(() => {
+            if (isLoading) {
+              return (
+                <div className="space-y-2">
+                  {['s1','s2','s3'].map((k) => (
+                    <div key={k} className="flex justify-between items-center">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
                     </div>
+                  ))}
+                </div>
+              );
+            }
+            if (fundCategories.length === 0) {
+              return (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                  No fund categories configured. Add some in the admin settings.
+                </p>
+              );
+            }
+            return (
+              <div className="space-y-1">
+                {sortedCategories.map(([category, { totalEUR, funds }]) => {
+                  const isCategoryExpanded = expandedCategories.has(category);
+                  const sortedFunds = funds.sort((a, b) => (b.current_eur_amount || 0) - (a.current_eur_amount || 0));
 
-                    {/* Individual Funds */}
-                    {isCategoryExpanded && (
-                      <div className="ml-6 space-y-1">
-                        {sortedFunds.map((fund) => (
-                          <div
-                            key={fund.id}
-                            className="flex justify-between items-center py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded"
+                  return (
+                    <div key={category}>
+                      {/* Category Header */}
+                      {(() => {
+                        const contentId = `category-${category.toLowerCase().replace(/[^a-z0-9_-]/gi, "-")}`;
+                        return (
+                          <button
+                            type="button"
+                            className="w-full flex justify-between items-center py-2 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded transition-colors text-left"
+                            onClick={() => toggleCategory(category)}
+                            aria-expanded={isCategoryExpanded}
+                            aria-controls={contentId}
                           >
-                            <div className="flex-1">
-                              <div className="text-sm text-gray-700 dark:text-gray-300">
-                                {fund.name}
-                              </div>
-                              {fund.description && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {fund.description}
+                            <div className="flex items-center gap-2">
+                              <span className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors" aria-hidden="true">
+                                {isCategoryExpanded ? (
+                                  <ChevronDown size={16} className="text-gray-500" />
+                                ) : (
+                                  <ChevronRight size={16} className="text-gray-500" />
+                                )}
+                              </span>
+                              <div>
+                                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                  {category}
                                 </div>
-                              )}
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {funds.length} fund{funds.length === 1 ? '' : 's'}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
+                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              €{formatAmount(Math.abs(totalEUR))}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                          </button>
+                        );
+                      })()}
+
+                      {/* Individual Funds */}
+                      {isCategoryExpanded && (
+                        <div id={`category-${category.toLowerCase().replace(/[^a-z0-9_-]/gi, "-")}`} className="ml-6 space-y-1">
+                          {sortedFunds.map((fund) => (
+                            <div
+                              key={fund.id}
+                              className="flex justify-between items-center py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded"
+                            >
+                              <div className="flex-1">
+                                <div className="text-sm text-gray-700 dark:text-gray-300">
+                                  {fund.name}
+                                </div>
+                                {fund.description && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {fund.description}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

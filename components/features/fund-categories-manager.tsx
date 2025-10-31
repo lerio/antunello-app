@@ -103,32 +103,6 @@ export default function FundCategoriesManager() {
     }
   };
 
-  const handleReorder = async (id: string, direction: "up" | "down") => {
-    const currentIndex = fundCategories.findIndex((f) => f.id === id);
-    if (currentIndex === -1) return;
-
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= fundCategories.length) return;
-
-    const updatedCategories = [...fundCategories];
-    const [moved] = updatedCategories.splice(currentIndex, 1);
-    updatedCategories.splice(targetIndex, 0, moved);
-
-    // Update order indices
-    const updatePromises = updatedCategories.map((fund, index) =>
-      supabase
-        .from("fund_categories")
-        .update({ order_index: index })
-        .eq("id", fund.id)
-    );
-
-    try {
-      await Promise.all(updatePromises);
-      mutate();
-    } catch (error) {
-      console.error("Error reordering funds:", error);
-    }
-  };
 
   return (
     <Card>
@@ -191,7 +165,7 @@ export default function FundCategoriesManager() {
                   type="number"
                   step="0.01"
                   value={newFund.amount}
-                  onChange={(e) => setNewFund({ ...newFund, amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setNewFund({ ...newFund, amount: Number.parseFloat(e.target.value) || 0 })}
                   placeholder="0.00"
                 />
               </div>
@@ -234,197 +208,205 @@ export default function FundCategoriesManager() {
 
         {/* Fund Categories List */}
         <div className="space-y-2">
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
-                />
-              ))}
-            </div>
-          ) : fundCategories.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No fund categories configured yet.
-            </p>
-          ) : (
-            fundCategories
-              .sort((a, b) => a.order_index - b.order_index)
-              .map((fund, index) => (
-                <div
-                  key={fund.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                >
-                  <div className="flex-1">
-                    {editingId === fund.id ? (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <Input
-                            value={fund.name}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id ? { ...f, name: e.target.value } : f
-                                ),
-                                false
-                              )
-                            }
-                            placeholder="Name"
-                          />
-                          <select
-                            value={fund.top_level_category || ""}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id ? { ...f, top_level_category: e.target.value } : f
-                                ),
-                                false
-                              )
-                            }
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
-                          >
-                            <option value="">No Category</option>
-                            {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
-                              <option key={category} value={category}>
-                                {category}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={fund.currency}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id ? { ...f, currency: e.target.value } : f
-                                ),
-                                false
-                              )
-                            }
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
-                          >
-                            {CURRENCIES.map((currency) => (
-                              <option key={currency} value={currency}>
-                                {currency}
-                              </option>
-                            ))}
-                          </select>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={fund.amount}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id
-                                    ? { ...f, amount: parseFloat(e.target.value) || 0 }
-                                    : f
-                                ),
-                                false
-                              )
-                            }
-                            placeholder="Amount"
-                          />
-                          <Input
-                            value={fund.description || ""}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id
-                                    ? { ...f, description: e.target.value }
-                                    : f
-                                ),
-                                false
-                              )
-                            }
-                            placeholder="Description"
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={fund.is_active}
-                            onChange={(e) =>
-                              mutate(
-                                fundCategories.map((f) =>
-                                  f.id === fund.id ? { ...f, is_active: e.target.checked } : f
-                                ),
-                                false
-                              )
-                            }
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                          />
-                          <Label>Active</Label>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-800 dark:text-gray-200">
-                            {fund.name}
-                          </span>
-                          {!fund.is_active && (
-                            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
-                              Inactive
-                            </span>
-                          )}
-                        </div>
-                        {fund.description && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {fund.description}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                          <span>{fund.amount.toFixed(2)} {fund.currency}</span>
-                          {fund.top_level_category && (
-                            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                              {fund.top_level_category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {editingId === fund.id ? (
-                      <>
-                        <Button
-                          onClick={() => handleUpdateFund(fund)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Save className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => setEditingId(null)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => setEditingId(fund.id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteFund(fund.id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+          {(() => {
+            if (isLoading) {
+              return (
+                <div className="space-y-2">
+                  {['s1','s2','s3'].map((k) => (
+                    <div
+                      key={k}
+                      className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                    />
+                  ))}
                 </div>
-              ))
-          )}
+              );
+            }
+            if (fundCategories.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No fund categories configured yet.
+                </p>
+              );
+            }
+            return (
+              fundCategories
+                .sort((a, b) => a.order_index - b.order_index)
+                .map((fund, index) => (
+                  <div
+                    key={fund.id}
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                  >
+                    <div className="flex-1">
+                      {editingId === fund.id ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Input
+                              value={fund.name}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id ? { ...f, name: e.target.value } : f
+                                  ),
+                                  false
+                                )
+                              }
+                              placeholder="Name"
+                            />
+                            <select
+                              value={fund.top_level_category || ""}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id ? { ...f, top_level_category: e.target.value } : f
+                                  ),
+                                  false
+                                )
+                              }
+                              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                            >
+                              <option value="">No Category</option>
+                              {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              value={fund.currency}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id ? { ...f, currency: e.target.value } : f
+                                  ),
+                                  false
+                                )
+                              }
+                              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                            >
+                              {CURRENCIES.map((currency) => (
+                                <option key={currency} value={currency}>
+                                  {currency}
+                                </option>
+                              ))}
+                            </select>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={fund.amount}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id
+                                      ? { ...f, amount: Number.parseFloat(e.target.value) || 0 }
+                                      : f
+                                  ),
+                                  false
+                                )
+                              }
+                              placeholder="Amount"
+                            />
+                            <Input
+                              value={fund.description || ""}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id
+                                      ? { ...f, description: e.target.value }
+                                      : f
+                                  ),
+                                  false
+                                )
+                              }
+                              placeholder="Description"
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={fund.is_active}
+                              onChange={(e) =>
+                                mutate(
+                                  fundCategories.map((f) =>
+                                    f.id === fund.id ? { ...f, is_active: e.target.checked } : f
+                                  ),
+                                  false
+                                )
+                              }
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            />
+                            <Label>Active</Label>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {fund.name}
+                            </span>
+                            {!fund.is_active && (
+                              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          {fund.description && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {fund.description}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                            <span>{fund.amount.toFixed(2)} {fund.currency}</span>
+                            {fund.top_level_category && (
+                              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                                {fund.top_level_category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {editingId === fund.id ? (
+                        <>
+                          <Button
+                            onClick={() => handleUpdateFund(fund)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Save className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => setEditingId(null)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={() => setEditingId(fund.id)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteFund(fund.id)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+            );
+          })()}
         </div>
 
         {/* Add New Button */}
