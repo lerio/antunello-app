@@ -8,7 +8,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import { Toaster } from "react-hot-toast";
 import { SWRConfig } from "swr";
-import { swrConfig } from "@/lib/swr-config";
+import { getClientSwrConfig } from "@/lib/swr-config";
 import { CacheManager } from "@/components/cache-manager";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -69,7 +69,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SWRConfig value={swrConfig}>
+            <SWRConfig value={getClientSwrConfig()}>
               <CacheManager />
               <div className="min-h-screen flex flex-col">
                 <Toaster position="top-right" />
