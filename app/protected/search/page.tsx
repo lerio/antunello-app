@@ -278,7 +278,7 @@ export default function SearchPage() {
 
       {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={closeAddModal}>
-        <TransactionFormModal onSubmit={handleAddSubmit} />
+        <TransactionFormModal onSubmit={handleAddSubmit} onClose={closeAddModal} />
       </Modal>
 
       {/* Edit Entry Modal */}
@@ -288,6 +288,7 @@ export default function SearchPage() {
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
+            onClose={closeEditModal}
           />
         )}
       </Modal>

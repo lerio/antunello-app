@@ -95,12 +95,12 @@ function getCategoryNameClass(isSubCategory: boolean, isHiddenExpense: boolean, 
   return `font-medium ${baseClass} text-red-600 dark:text-red-400`;
 }
 
-function getTotalAmountClass(isSubCategory: boolean, itemType: string, isHiddenExpense: boolean, isBalance: boolean, total?: number): string {
+function getTotalAmountClass(isSubCategory: boolean, itemType: string, isHiddenExpense: boolean, isBalance: boolean, isIncome: boolean, total?: number): string {
   const baseClass = 'text-sm sm:text-sm';
   if (isSubCategory) return `${baseClass} ${itemType === 'income' ? 'text-green-500' : 'text-red-500'}`;
   if (isHiddenExpense) return `${baseClass} text-red-500`;
   if (isBalance) return `font-medium ${baseClass} ${(total || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`;
-  return `font-medium ${baseClass} text-${itemType === 'income' ? 'green' : 'red'}-500`;
+  return `font-medium ${baseClass} ${isIncome ? 'text-green-500' : 'text-red-500'}`;
 }
 
 function getMonthlyAmountClass(isBalance: boolean, monthlyAverage?: number): string {
@@ -437,7 +437,7 @@ function TotalsTable({
                     </div>
                   </td>
                   <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                    <span className={getTotalAmountClass(!!isSubCategory, item.type || '', !!isHiddenExpense, item.isBalance || false, item.total)}>
+                    <span className={getTotalAmountClass(!!isSubCategory, item.type || '', !!isHiddenExpense, item.isBalance || false, item.isIncome || false, item.total)}>
                       {formatAmount(Math.abs(item.total))}
                     </span>
                   </td>

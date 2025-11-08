@@ -308,7 +308,7 @@ export default function ProtectedPage() {
 
       {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={closeAddModal}>
-        <TransactionFormModal onSubmit={handleAddSubmit} />
+        <TransactionFormModal onSubmit={handleAddSubmit} onClose={closeAddModal} />
       </Modal>
 
       {/* Edit Entry Modal */}
@@ -318,6 +318,7 @@ export default function ProtectedPage() {
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
+            onClose={closeEditModal}
           />
         )}
       </Modal>

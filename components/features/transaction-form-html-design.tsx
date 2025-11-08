@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
 import styles from "./transaction-form-html-design.module.css";
 
 type TransactionFormProps = Readonly<{
@@ -45,6 +46,35 @@ export default function TransactionFormHtmlDesign({
     initialData?.hide_from_totals || false
   );
   const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
+
+  // Protect amount field from browser extension errors
+  useFormFieldProtection('amount');
+
+  // Additional aggressive protection for 1Password
+  useEffect(() => {
+    const amountField = document.getElementById('amount') as HTMLInputElement;
+    if (!amountField) return;
+
+    // Add a more aggressive protection by wrapping the field in a proxy
+    const originalFocus = amountField.focus;
+    amountField.focus = function(options?: FocusOptions) {
+      // Add defensive properties before calling focus
+      try {
+        Object.defineProperty(this, 'control', { value: this, writable: false, configurable: true });
+        Object.defineProperty(this, 'form', { value: this.closest('form'), writable: false, configurable: true });
+        Object.defineProperty(this, 'ownerDocument', { value: document, writable: false, configurable: true });
+      } catch (error) {
+        // Ignore errors
+      }
+
+      return originalFocus.call(this, options);
+    };
+
+    return () => {
+      if (amountField.focus === originalFocus) return;
+      amountField.focus = originalFocus;
+    };
+  }, []);
   
   const updateHideFromTotals = useCallback((value: boolean) => {
     setHideFromTotals(value);
@@ -182,9 +212,11 @@ export default function TransactionFormHtmlDesign({
                     name="amount"
                     type="number"
                     step="0.01"
+                    inputMode="decimal"
                     required
                     defaultValue={initialData?.amount}
-                    autoComplete="off"
+                    autoComplete="transaction-amount"
+                    data-lpignore="true"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center">
                     <select
