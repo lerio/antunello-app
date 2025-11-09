@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
+import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction, CATEGORIES_WITH_TYPES, getCategoryType, TitleSuggestion } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseNumber, isValidPositiveNumber } from "@/utils/number";
 import {
@@ -14,6 +14,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
+import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
 import styles from "./transaction-form-modal.module.css";
@@ -192,6 +193,14 @@ export default function TransactionFormModal({
   const [transactionType, setTransactionType] = useState<"expense" | "income">(
     initialData?.type || "expense"
   );
+
+  // Reset main category when transaction type changes if current category is not valid for the new type
+  useEffect(() => {
+    if (mainCategory && getCategoryType(mainCategory) !== transactionType) {
+      setMainCategory("");
+      setSubCategory("");
+    }
+  }, [transactionType, mainCategory]);
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
   );
@@ -201,6 +210,54 @@ export default function TransactionFormModal({
   const [selectedFundCategoryId, setSelectedFundCategoryId] = useState<
     string | null
   >(initialData?.fund_category_id || null);
+
+  // Title suggestion state
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [autoFilledFields, setAutoFilledFields] = useState<{
+    type: boolean;
+    mainCategory: boolean;
+    subCategory: boolean;
+  }>({
+    type: false,
+    mainCategory: false,
+    subCategory: false
+  });
+
+  // Handle title suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: TitleSuggestion) => {
+    // Auto-fill the fields from the suggestion
+    setTransactionType(suggestion.type);
+    setMainCategory(suggestion.main_category);
+    setSubCategory(suggestion.sub_category || "");
+
+    // Mark fields as auto-filled for visual feedback
+    setAutoFilledFields({
+      type: true,
+      mainCategory: true,
+      subCategory: !!suggestion.sub_category
+    });
+  }, []);
+
+  // Reset auto-fill indicators when user manually changes fields
+  const handleTypeChange = useCallback((type: React.SetStateAction<"expense" | "income">) => {
+    setTransactionType(type);
+    setAutoFilledFields(prev => ({ ...prev, type: false }));
+  }, []);
+
+  const handleCategoryChange = useCallback((value: string) => {
+    setMainCategory(value);
+    setSubCategory(""); // Reset sub category when main category changes
+    setAutoFilledFields(prev => ({
+      ...prev,
+      mainCategory: false,
+      subCategory: false
+    }));
+  }, []);
+
+  const handleSubCategoryChange = useCallback((value: string) => {
+    setSubCategory(value);
+    setAutoFilledFields(prev => ({ ...prev, subCategory: false }));
+  }, []);
 
   // Protect amount field from browser extension errors
   useFormFieldProtection('amount');
@@ -257,11 +314,13 @@ export default function TransactionFormModal({
       currencySymbol:
         CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol ||
         "€",
-      mainCategoryOptions: MAIN_CATEGORIES.map((category) => ({
-        value: category,
-        label: category,
-        isMainCategory: true,
-      })),
+      mainCategoryOptions: CATEGORIES_WITH_TYPES
+        .filter(cat => cat.type === transactionType)
+        .map((category) => ({
+          value: category.category,
+          label: category.category,
+          isMainCategory: true,
+        })),
       subCategoryOptions: (
         SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || []
       ).map((category) => ({
@@ -270,7 +329,7 @@ export default function TransactionFormModal({
         isMainCategory: false,
       })),
     }),
-    [mainCategory, selectedCurrency]
+    [mainCategory, selectedCurrency, transactionType]
   );
 
   // Helper to validate form fields
@@ -389,14 +448,6 @@ export default function TransactionFormModal({
     ]
   );
 
-  const handleCategoryChange = useCallback((value: string) => {
-    setMainCategory(value);
-    setSubCategory(""); // Reset sub category when main category changes
-  }, []);
-
-  const handleSubCategoryChange = useCallback((value: string) => {
-    setSubCategory(value);
-  }, []);
 
   const handleCurrencyChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -496,15 +547,48 @@ export default function TransactionFormModal({
             </div>
           </div>
 
+          {/* Title with Suggestions */}
+          <div className="md:col-span-2">
+            <ValidationTooltip
+              message={validationErrors.title}
+              isVisible={!!validationErrors.title}
+              onClose={() =>
+                setValidationErrors((prev) => ({ ...prev, title: "" }))
+              }
+            >
+              <div>
+                <TitleSuggestionInput
+                  value={title}
+                  onChange={setTitle}
+                  onSuggestionSelect={handleSuggestionSelect}
+                  placeholder="Enter transaction title..."
+                  disabled={disabled}
+                  minLength={2}
+                />
+                {/* Hidden input for form submission */}
+                <input
+                  type="hidden"
+                  name="title"
+                  value={title}
+                />
+              </div>
+            </ValidationTooltip>
+          </div>
+
           {/* Transaction Type */}
-          <TypeSelector
-            transactionType={transactionType}
-            setTransactionType={setTransactionType}
-            disabled={disabled}
-          />
+          <div className="relative">
+            <TypeSelector
+              transactionType={transactionType}
+              setTransactionType={handleTypeChange}
+              disabled={disabled}
+            />
+            {autoFilledFields.type && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
+            )}
+          </div>
 
           {/* Main Category */}
-          <div>
+          <div className="relative">
             <ValidationTooltip
               message={validationErrors.mainCategory}
               isVisible={!!validationErrors.mainCategory}
@@ -528,10 +612,13 @@ export default function TransactionFormModal({
                 />
               </div>
             </ValidationTooltip>
+            {autoFilledFields.mainCategory && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
+            )}
           </div>
 
           {/* Sub Category */}
-          <div>
+          <div className="relative">
             <ValidationTooltip
               message={validationErrors.subCategory}
               isVisible={!!validationErrors.subCategory}
@@ -552,30 +639,9 @@ export default function TransactionFormModal({
                 <input type="hidden" name="sub_category" value={subCategory} />
               </div>
             </ValidationTooltip>
-          </div>
-
-          {/* Title */}
-          <div className="md:col-span-2">
-            <ValidationTooltip
-              message={validationErrors.title}
-              isVisible={!!validationErrors.title}
-              onClose={() =>
-                setValidationErrors((prev) => ({ ...prev, title: "" }))
-              }
-            >
-              <input
-                className={`${inputClass} ${
-                  disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                id="title"
-                name="title"
-                placeholder="Title"
-                type="text"
-                defaultValue={initialData?.title}
-                autoComplete="off"
-                disabled={disabled}
-              />
-            </ValidationTooltip>
+            {autoFilledFields.subCategory && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
+            )}
           </div>
 
           {/* Date */}

@@ -98,4 +98,20 @@ export const TOP_LEVEL_FUND_CATEGORIES = [
   "P2P Lending",
   "Financial Services",
   "Cash"
-] as const; 
+] as const;
+
+// Title suggestion types
+export type TitleSuggestion = {
+  id: string
+  user_id: string
+  title: string
+  type: 'expense' | 'income'
+  main_category: string
+  sub_category?: string
+  frequency: number
+  last_used_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type TitleSuggestionInput = Omit<TitleSuggestion, 'id' | 'user_id' | 'created_at' | 'updated_at'> 

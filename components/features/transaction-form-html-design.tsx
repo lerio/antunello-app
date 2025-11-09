@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
+import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction, CATEGORIES_WITH_TYPES, getCategoryType } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
 import { parseNumber } from "@/utils/number";
@@ -40,6 +40,14 @@ export default function TransactionFormHtmlDesign({
   const [transactionType, setTransactionType] = useState<"expense" | "income">(
     initialData?.type || "expense"
   );
+
+  // Reset main category when transaction type changes if current category is not valid for the new type
+  useEffect(() => {
+    if (mainCategory && getCategoryType(mainCategory) !== transactionType) {
+      setMainCategory(MAIN_CATEGORIES[0]);
+    }
+  }, [transactionType, mainCategory]);
+
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
   );
@@ -85,6 +93,12 @@ export default function TransactionFormHtmlDesign({
   const subCategories = useMemo(() => {
     return SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [];
   }, [mainCategory]);
+
+  const filteredMainCategories = useMemo(() => {
+    return CATEGORIES_WITH_TYPES
+      .filter(cat => cat.type === transactionType)
+      .map(cat => cat.category);
+  }, [transactionType]);
 
   const defaultDate = useMemo(() => {
     const date = initialData?.date || new Date().toISOString();
@@ -260,6 +274,26 @@ export default function TransactionFormHtmlDesign({
             </div>
           </div>
 
+          {/* Title */}
+          <div className="md:col-span-2">
+            <label
+              className="block text-sm font-medium text-gray-700 mb-2"
+              htmlFor="title"
+            >
+              Title
+            </label>
+            <input
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12 px-4"
+              id="title"
+              name="title"
+              placeholder="e.g., Monthly groceries at the supermarket"
+              type="text"
+              required
+              defaultValue={initialData?.title}
+              autoComplete="off"
+            />
+          </div>
+
           {/* Transaction Type */}
           <div>
             <div className="block text-sm font-medium text-gray-700 mb-2">
@@ -308,7 +342,7 @@ export default function TransactionFormHtmlDesign({
               value={mainCategory}
               onChange={handleCategoryChange}
             >
-              {MAIN_CATEGORIES.map((category) => (
+              {filteredMainCategories.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
@@ -338,26 +372,6 @@ export default function TransactionFormHtmlDesign({
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Title */}
-          <div className="md:col-span-2">
-            <label
-              className="block text-sm font-medium text-gray-700 mb-2"
-              htmlFor="title"
-            >
-              Title
-            </label>
-            <input
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12 px-4"
-              id="title"
-              name="title"
-              placeholder="e.g., Monthly groceries at the supermarket"
-              type="text"
-              required
-              defaultValue={initialData?.title}
-              autoComplete="off"
-            />
           </div>
 
           {/* Date */}
