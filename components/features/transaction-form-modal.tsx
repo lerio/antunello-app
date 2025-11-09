@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
+import { parseNumber, isValidPositiveNumber } from "@/utils/number";
 import {
   MinusCircle,
   PlusCircle,
@@ -286,7 +287,7 @@ export default function TransactionFormModal({
       title: "",
     };
 
-    if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+    if (!isValidPositiveNumber(amount)) {
       newErrors.amount = "Please enter a valid amount";
     }
 
@@ -358,7 +359,7 @@ export default function TransactionFormModal({
 
         const submitData = {
           user_id: user.id,
-          amount: Number(formData.get("amount")),
+          amount: parseNumber(formData.get("amount") as string),
           currency: selectedCurrency,
           type: transactionType,
           main_category: mainCategory,
@@ -369,7 +370,6 @@ export default function TransactionFormModal({
           fund_category_id: selectedFundCategoryId,
         };
 
-        console.log("Form submitting data:", submitData);
 
         await onSubmit(submitData);
       } catch (error) {
@@ -442,9 +442,9 @@ export default function TransactionFormModal({
                     )} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                     id="amount"
                     name="amount"
-                    type="number"
-                    step="0.01"
+                    type="text"
                     inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     placeholder="Amount"
                     defaultValue={initialData?.amount}
                     autoComplete="transaction-amount"
@@ -620,7 +620,6 @@ export default function TransactionFormModal({
               name="fund_category_id"
               value={selectedFundCategoryId || ""}
               onChange={(e) => {
-                console.log("Dropdown onChange triggered:", e.target.value);
                 setSelectedFundCategoryId(e.target.value || null);
               }}
               disabled={disabled || fundCategoriesLoading}

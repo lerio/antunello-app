@@ -82,8 +82,6 @@ export default function AdminPage() {
       setMessage(`Currency conversion complete. Importing ${dbTransactions.length} transactions to database...`);
       setImportProgress(null);
       
-      console.log('About to import transactions:', dbTransactions.length);
-      console.log('First transaction sample:', dbTransactions[0]);
       
       // Add a timeout to prevent infinite hanging
       const importPromise = importTransactions(dbTransactions);
@@ -92,7 +90,6 @@ export default function AdminPage() {
       );
       
       const result = await Promise.race([importPromise, timeoutPromise]) as ImportResult;
-      console.log('Import result:', result);
       
       setImportResult(result);
       

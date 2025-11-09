@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
+import { parseNumber } from "@/utils/number";
 import {
   ArrowLeft,
   Calendar,
@@ -110,7 +111,7 @@ export default function TransactionFormHtmlDesign({
 
         const data = {
           user_id: user.id,
-          amount: Number(formData.get("amount")),
+          amount: parseNumber(formData.get("amount") as string),
           currency: selectedCurrency,
           type: transactionType,
           main_category: formData.get("main_category") as string,
@@ -210,9 +211,9 @@ export default function TransactionFormHtmlDesign({
                     className="pl-10 pr-20 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12"
                     id="amount"
                     name="amount"
-                    type="number"
-                    step="0.01"
+                    type="text"
                     inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     required
                     defaultValue={initialData?.amount}
                     autoComplete="transaction-amount"

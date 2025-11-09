@@ -14,7 +14,6 @@ export function CacheManager() {
       if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
         // Clear cache when user signs out or session expires
         clearCacheStorage()
-        console.log('Cache cleared due to authentication change')
       }
     })
 
