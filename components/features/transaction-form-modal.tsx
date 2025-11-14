@@ -472,78 +472,106 @@ export default function TransactionFormModal({
     >
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-          {/* Amount with Currency and Hide Toggle */}
-          <div className="flex gap-3">
-            <div className="flex-1" style={{ width: "75%" }}>
-              <ValidationTooltip
-                message={validationErrors.amount}
-                isVisible={!!validationErrors.amount}
-                onClose={() =>
-                  setValidationErrors((prev) => ({ ...prev, amount: "" }))
-                }
-              >
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
-                    {currencySymbol}
-                  </span>
-                  <input
-                    className={`${inputClass.replaceAll(
-                      "px-4",
-                      "pl-10 pr-20"
-                    )} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    id="amount"
-                    name="amount"
-                    type="text"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.,]?[0-9]*"
-                    placeholder="Amount"
-                    defaultValue={initialData?.amount}
-                    autoComplete="transaction-amount"
-                    data-lpignore="true"
-                    disabled={disabled}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center">
-                    <select
-                      className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${
-                        disabled ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
-                      id="currency"
-                      name="currency"
-                      value={selectedCurrency}
-                      onChange={handleCurrencyChange}
-                      aria-label="Currency selection"
+          {/* Amount and Source - Side by side on desktop */}
+          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
+            {/* Amount with Currency and Hide Toggle */}
+            <div className="flex gap-3 flex-1">
+              <div className="flex-1" style={{ width: "75%" }}>
+                <ValidationTooltip
+                  message={validationErrors.amount}
+                  isVisible={!!validationErrors.amount}
+                  onClose={() =>
+                    setValidationErrors((prev) => ({ ...prev, amount: "" }))
+                  }
+                >
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400">
+                      {currencySymbol}
+                    </span>
+                    <input
+                      className={`${inputClass.replaceAll(
+                        "px-4",
+                        "pl-10 pr-20"
+                      )} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                      id="amount"
+                      name="amount"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
+                      placeholder="Amount"
+                      defaultValue={initialData?.amount}
+                      autoComplete="transaction-amount"
+                      data-lpignore="true"
                       disabled={disabled}
-                    >
-                      {CURRENCY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center">
+                      <select
+                        className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${
+                          disabled ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        id="currency"
+                        name="currency"
+                        value={selectedCurrency}
+                        onChange={handleCurrencyChange}
+                        aria-label="Currency selection"
+                        disabled={disabled}
+                      >
+                        {CURRENCY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
-              </ValidationTooltip>
+                </ValidationTooltip>
+              </div>
+
+              {/* Hide Toggle Eye Icon */}
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => updateHideFromTotals(!hideFromTotals)}
+                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
+                    hideFromTotals
+                      ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
+                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={disabled}
+                  title={
+                    hideFromTotals
+                      ? "Hidden from monthly totals"
+                      : "Visible in monthly totals"
+                  }
+                >
+                  {hideFromTotals ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
-            {/* Hide Toggle Eye Icon */}
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={() => updateHideFromTotals(!hideFromTotals)}
-                className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
-                  hideFromTotals
-                    ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                disabled={disabled}
-                title={
-                  hideFromTotals
-                    ? "Hidden from monthly totals"
-                    : "Visible in monthly totals"
-                }
+            {/* Source (Fund Category) */}
+            <div className="flex-1">
+              <select
+                className={`${inputClass} ${
+                  disabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                id="fund_category_id"
+                name="fund_category_id"
+                value={selectedFundCategoryId || ""}
+                onChange={(e) => {
+                  setSelectedFundCategoryId(e.target.value || null);
+                }}
+                disabled={disabled || fundCategoriesLoading}
               >
-                {hideFromTotals ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                <option value="">No Source</option>
+                {fundCategories
+                  .filter((fund) => fund.is_active)
+                  .map((fund) => (
+                    <option key={fund.id} value={fund.id}>
+                      {fund.name} ({fund.currency})
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
 
@@ -674,31 +702,6 @@ export default function TransactionFormModal({
                 />
               </div>
             </div>
-          </div>
-
-          {/* Source (Fund Category) */}
-          <div>
-            <select
-              className={`${inputClass} ${
-                disabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              id="fund_category_id"
-              name="fund_category_id"
-              value={selectedFundCategoryId || ""}
-              onChange={(e) => {
-                setSelectedFundCategoryId(e.target.value || null);
-              }}
-              disabled={disabled || fundCategoriesLoading}
-            >
-              <option value="">No Source (Doesn't affect balance)</option>
-              {fundCategories
-                .filter((fund) => fund.is_active)
-                .map((fund) => (
-                  <option key={fund.id} value={fund.id}>
-                    {fund.name} ({fund.currency})
-                  </option>
-                ))}
-            </select>
           </div>
         </div>
 
