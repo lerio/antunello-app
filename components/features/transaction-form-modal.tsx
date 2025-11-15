@@ -592,12 +592,8 @@ export default function TransactionFormModal({
                   placeholder="Enter transaction title..."
                   disabled={disabled}
                   minLength={2}
-                />
-                {/* Hidden input for form submission */}
-                <input
-                  type="hidden"
+                  id="title"
                   name="title"
-                  value={title}
                 />
               </div>
             </ValidationTooltip>

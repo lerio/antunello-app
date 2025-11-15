@@ -13,6 +13,8 @@ interface TitleSuggestionInputProps {
   readonly disabled?: boolean
   readonly className?: string
   readonly minLength?: number
+  readonly id?: string
+  readonly name?: string
 }
 
 export function TitleSuggestionInput({
@@ -22,7 +24,9 @@ export function TitleSuggestionInput({
   placeholder = "Enter transaction title...",
   disabled = false,
   className = "",
-  minLength = 2
+  minLength = 2,
+  id,
+  name
 }: TitleSuggestionInputProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -150,9 +154,11 @@ export function TitleSuggestionInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
+          id={id}
+          name={name}
           className={`
-            w-full px-4 py-3 border border-gray-300 rounded-lg
-            bg-white text-gray-900 placeholder-gray-500
+            w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg
+            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
             disabled:opacity-50 disabled:cursor-not-allowed
             ${className}

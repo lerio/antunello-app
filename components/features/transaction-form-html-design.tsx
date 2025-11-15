@@ -283,7 +283,7 @@ export default function TransactionFormHtmlDesign({
               Title
             </label>
             <input
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12 px-4"
+              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12 px-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               id="title"
               name="title"
               placeholder="e.g., Monthly groceries at the supermarket"
