@@ -168,22 +168,8 @@ export default function TransactionFormHtmlDesign({
     return "bg-green-600 hover:bg-green-700 focus:ring-green-500";
   };
 
-  // Compute submit button content without nested ternaries
-  let buttonContent: React.ReactNode;
-  if (isLoading) {
-    const text = initialData ? "Saving Changes..." : "Adding Transaction...";
-    buttonContent = (
-      <div className="flex items-center">
-        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-        {text}
-      </div>
-    );
-  } else if (initialData) {
-    buttonContent = "Save Changes";
-  } else {
-    const typeLabel = transactionType === "expense" ? "Expense" : "Income";
-    buttonContent = `Add ${typeLabel}`;
-  }
+  // Compute submit button content
+  const buttonContent = initialData ? "Save" : "Add";
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-12">

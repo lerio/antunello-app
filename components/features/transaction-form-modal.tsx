@@ -24,20 +24,7 @@ function renderSubmitButtonContent(
   hasInitialData: boolean,
   transactionType: "expense" | "income"
 ): React.ReactNode {
-  if (isLoading) {
-    const text = hasInitialData ? "Saving Changes..." : "Adding Transaction...";
-    return (
-      <div className="flex items-center">
-        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-        {text}
-      </div>
-    );
-  }
-  if (hasInitialData) {
-    return "Save";
-  }
-  const typeLabel = transactionType === "expense" ? "Expense" : "Income";
-  return `Add ${typeLabel}`;
+  return hasInitialData ? "Save" : "Add";
 }
 
 // Helper: button styles for type toggle
