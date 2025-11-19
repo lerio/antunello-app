@@ -111,33 +111,15 @@ function DeleteSection({
   if (!onDelete || !initialData) return null;
   return (
     <div className="pt-1 pb-1">
-      {showDeleteConfirm ? (
-        <div className="flex gap-3">
-          <button
-            onClick={async () => {
-              await onDelete(initialData);
-              setShowDeleteConfirm(false);
-            }}
-            className="flex-1 flex items-center justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
-          >
-            <Trash2 size={20} className="mr-2 flex-shrink-0" />
-            Confirm
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(false)}
-            className="flex-1 flex items-center justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none"
-        >
-          Delete Transaction
-        </button>
-      )}
+      <button
+        onClick={() => setShowDeleteConfirm(true)}
+        className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${showDeleteConfirm ? "invisible pointer-events-none" : ""
+          }`}
+        tabIndex={showDeleteConfirm ? -1 : 0}
+        aria-hidden={showDeleteConfirm}
+      >
+        Delete Transaction
+      </button>
     </div>
   );
 }
@@ -256,7 +238,7 @@ export default function TransactionFormModal({
 
     // Add a more aggressive protection by wrapping the field in a proxy
     const originalFocus = amountField.focus;
-    amountField.focus = function(options?: FocusOptions) {
+    amountField.focus = function (options?: FocusOptions) {
       // Add defensive properties before calling focus
       try {
         Object.defineProperty(this, 'control', { value: this, writable: false, configurable: true });
@@ -493,9 +475,8 @@ export default function TransactionFormModal({
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center">
                       <select
-                        className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${
-                          disabled ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
+                        className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
                         id="currency"
                         name="currency"
                         value={selectedCurrency}
@@ -519,11 +500,10 @@ export default function TransactionFormModal({
                 <button
                   type="button"
                   onClick={() => updateHideFromTotals(!hideFromTotals)}
-                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
-                    hideFromTotals
-                      ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${hideFromTotals
+                    ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
+                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                   disabled={disabled}
                   title={
                     hideFromTotals
@@ -539,9 +519,8 @@ export default function TransactionFormModal({
             {/* Source (Fund Category) */}
             <div className="flex-1">
               <select
-                className={`${inputClass} ${
-                  disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 id="fund_category_id"
                 name="fund_category_id"
                 value={selectedFundCategoryId || ""}
@@ -667,9 +646,8 @@ export default function TransactionFormModal({
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 dateFormat="dd/MM/yyyy HH:mm"
-                className={`${inputClass} ${
-                  disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 placeholderText="Date"
                 popperClassName="z-50"
                 calendarClassName="shadow-lg border border-gray-200 dark:border-gray-600 rounded-lg"
@@ -691,25 +669,50 @@ export default function TransactionFormModal({
         {/* Submit and Cancel Buttons */}
         <div className="mt-3 sm:mt-6 md:mt-8 pb-2">
           <div className="flex gap-3">
-            <button
-              className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${
-                isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              type="button"
-              onClick={onClose}
-              disabled={isLoading || disabled}
-            >
-              Cancel
-            </button>
-            <button
-              className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${
-                isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              type="submit"
-              disabled={isLoading || disabled}
-            >
-              {buttonContent}
-            </button>
+            {showDeleteConfirm ? (
+              <>
+                <button
+                  className="flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 flex justify-center items-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                  type="button"
+                  onClick={async () => {
+                    if (onDelete && initialData) {
+                      await onDelete(initialData);
+                      setShowDeleteConfirm(false);
+                    }
+                  }}
+                >
+                  <Trash2 size={20} className="mr-2 flex-shrink-0" />
+                  Confirm
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading || disabled}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  type="submit"
+                  disabled={isLoading || disabled}
+                >
+                  {buttonContent}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </form>
