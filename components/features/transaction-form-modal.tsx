@@ -646,8 +646,6 @@ export default function TransactionFormModal({
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 dateFormat="dd/MM/yyyy HH:mm"
-                className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
                 placeholderText="Date"
                 popperClassName="z-50"
                 calendarClassName="shadow-lg border border-gray-200 dark:border-gray-600 rounded-lg"
@@ -655,6 +653,13 @@ export default function TransactionFormModal({
                 id="date-picker"
                 name="date-picker"
                 disabled={disabled}
+                customInput={
+                  <input
+                    inputMode="none"
+                    className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                  />
+                }
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <Calendar
