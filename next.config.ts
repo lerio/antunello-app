@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
   },
+  // Allow development on local network
+  allowedDevOrigins: ["localhost:3000", "192.168.1.130:3000"],
   // Explicitly set tracing root to this project to avoid incorrect workspace inference
   outputFileTracingRoot: __dirname,
 

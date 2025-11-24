@@ -40,26 +40,27 @@ export const getClientSwrConfig = (): SWRConfiguration => {
 
       // Cache persistence configuration
       provider: () => {
-        // Initialize cache from localStorage on startup
-        const persistedCache = loadCacheFromStorage()
-        if (persistedCache) {
-          console.log('Loaded persisted cache with', persistedCache.size, 'entries')
-          globalCache = persistedCache
-
-          // Setup periodic saves for this cache instance
-          setTimeout(() => {
-            setupPeriodicSave(() => globalCache && saveCacheToStorage(globalCache))
-          }, 1000) // Setup after initial load
-
-          return persistedCache
-        }
-
+        // Initialize with empty cache to avoid blocking main thread
+        // Cache will be hydrated asynchronously
         const newCache = new Map()
         globalCache = newCache
-        // Setup periodic saves for new cache
+
+        // Hydrate cache asynchronously
         setTimeout(() => {
+          const persistedCache = loadCacheFromStorage()
+          if (persistedCache && globalCache) {
+            console.log('Hydrating cache asynchronously with', persistedCache.size, 'entries')
+            for (const [key, value] of Array.from(persistedCache.entries())) {
+              globalCache.set(key, value)
+              // Trigger revalidation for hydrated keys if needed
+              // mutate(key) - optional, SWR might handle this if we use the cache provider correctly
+            }
+            // Notify SWR that cache has changed (this is tricky with Map, but SWR polls it)
+          }
+
+          // Setup periodic saves
           setupPeriodicSave(() => globalCache && saveCacheToStorage(globalCache))
-        }, 1000)
+        }, 0)
 
         return newCache
       },
