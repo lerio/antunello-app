@@ -9,6 +9,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  ChevronDown,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -17,7 +18,6 @@ import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
-import styles from "./transaction-form-modal.module.css";
 
 function renderSubmitButtonContent(
   isLoading: boolean,
@@ -437,7 +437,7 @@ export default function TransactionFormModal({
 
   return (
     <div
-      className={`${styles.root} w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-2 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter`}
+      className={`w-full bg-white dark:bg-gray-900 px-4 pt-2 pb-2 sm:px-6 sm:pt-3 sm:pb-6 md:px-8 md:pt-4 md:pb-8 lg:px-12 lg:pt-6 lg:pb-12 font-inter`}
     >
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
@@ -473,23 +473,26 @@ export default function TransactionFormModal({
                       data-lpignore="true"
                       disabled={disabled}
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center">
-                      <select
-                        className={`h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md form-select ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                        id="currency"
-                        name="currency"
-                        value={selectedCurrency}
-                        onChange={handleCurrencyChange}
-                        aria-label="Currency selection"
-                        disabled={disabled}
-                      >
-                        {CURRENCY_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                      <div className="relative">
+                        <select
+                          className={`h-full py-0 pl-2 pr-6 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md appearance-none cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                          id="currency"
+                          name="currency"
+                          value={selectedCurrency}
+                          onChange={handleCurrencyChange}
+                          aria-label="Currency selection"
+                          disabled={disabled}
+                        >
+                          {CURRENCY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                 </ValidationTooltip>

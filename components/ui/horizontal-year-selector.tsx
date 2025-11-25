@@ -65,7 +65,7 @@ export function HorizontalYearSelector({
           behavior: 'smooth'
         });
       }, 50); // Small delay to allow DOM updates to complete
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [selectedYear]);
@@ -117,7 +117,7 @@ export function HorizontalYearSelector({
       {/* Scrollable years container */}
       <div
         ref={scrollContainerRef}
-        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pt-1 pb-5 px-8`}
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pb-4 px-8`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {years.map((yearOption) => {

@@ -20,11 +20,11 @@ const DropdownContext = createContext<{
   close: () => void;
 } | null>(null);
 
-export function DropdownMenu({ 
-  trigger, 
-  children, 
+export function DropdownMenu({
+  trigger,
+  children,
   align = "right",
-  className 
+  className
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,7 +51,7 @@ export function DropdownMenu({
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleEscape);
-      
+
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
         document.removeEventListener("keydown", handleEscape);
@@ -79,7 +79,7 @@ export function DropdownMenu({
           <div
             ref={menuRef}
             className={cn(
-              "absolute z-[70] mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700",
+              "absolute z-[70] mt-2 w-56 origin-top-right rounded-md bg-popover text-popover-foreground shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-border",
               align === "left" ? "left-0" : "right-0",
               // Mobile responsive positioning
               "sm:w-56 w-48 max-w-xs"
@@ -97,25 +97,25 @@ export function DropdownMenu({
   );
 }
 
-export function DropdownMenuItem({ 
-  children, 
-  onClick, 
-  className 
+export function DropdownMenuItem({
+  children,
+  onClick,
+  className
 }: DropdownMenuItemProps) {
   const context = useContext(DropdownContext);
-  
+
   const handleClick = () => {
     if (onClick) {
       onClick();
     }
     context?.close();
   };
-  
+
   return (
     <button
       onClick={handleClick}
       className={cn(
-        "w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 transition-colors active:bg-gray-200 dark:active:bg-gray-600 touch-manipulation",
+        "w-full text-left px-4 py-3 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors active:bg-accent/80 touch-manipulation",
         // Better mobile touch targets
         "min-h-[44px] flex items-center",
         className
@@ -128,5 +128,5 @@ export function DropdownMenuItem({
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="my-1 h-px bg-gray-200 dark:bg-gray-600" />;
+  return <div className="my-1 h-px bg-border" />;
 }

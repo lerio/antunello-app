@@ -213,7 +213,7 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year and Actions Row */}
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-4 pb-4">
           <div className="flex-1"></div>
 
           <button
@@ -222,11 +222,11 @@ export default function ProtectedPage() {
               const year = currentDate.getFullYear();
               const currentYear = new Date().getFullYear();
               const isCurrentYear = year === currentYear;
-              
+
               const newUrl = isCurrentYear
                 ? "/protected/year"
                 : `/protected/year?year=${year}`;
-              
+
               router.push(newUrl);
             }}
           >
@@ -248,7 +248,7 @@ export default function ProtectedPage() {
         <Balance />
 
         {/* Sticky Horizontal Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6">
           {monthsLoading ? (
             <div className="flex justify-center">
               <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
@@ -269,7 +269,7 @@ export default function ProtectedPage() {
 
         {isLoading ? (
           <div className="space-y-4 mt-8">
-            {["s1","s2","s3"].map((id) => (
+            {["s1", "s2", "s3"].map((id) => (
               <div key={id} className="animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
                 <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>

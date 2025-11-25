@@ -10,9 +10,9 @@ import {
   PlusCircle,
   Eye,
   EyeOff,
+  ChevronDown,
 } from "lucide-react";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
-import styles from "./transaction-form-html-design.module.css";
 
 type TransactionFormProps = Readonly<{
   onSubmit: (
@@ -66,7 +66,7 @@ export default function TransactionFormHtmlDesign({
 
     // Add a more aggressive protection by wrapping the field in a proxy
     const originalFocus = amountField.focus;
-    amountField.focus = function(options?: FocusOptions) {
+    amountField.focus = function (options?: FocusOptions) {
       // Add defensive properties before calling focus
       try {
         Object.defineProperty(this, 'control', { value: this, writable: false, configurable: true });
@@ -84,7 +84,7 @@ export default function TransactionFormHtmlDesign({
       amountField.focus = originalFocus;
     };
   }, []);
-  
+
   const updateHideFromTotals = useCallback((value: boolean) => {
     setHideFromTotals(value);
     hideFromTotalsRef.current = value;
@@ -128,8 +128,8 @@ export default function TransactionFormHtmlDesign({
           amount: parseNumber(formData.get("amount") as string),
           currency: selectedCurrency,
           type: transactionType,
-          main_category: formData.get("main_category") as string,
-          sub_category: formData.get("sub_category") as string,
+          main_category: formData.get("main-category") as string,
+          sub_category: formData.get("sub-category") as string,
           title: formData.get("title") as string,
           date: parseDateTime(formData.get("date") as string),
           hide_from_totals: hideFromTotalsRef.current,
@@ -237,17 +237,16 @@ export default function TransactionFormHtmlDesign({
                   </div>
                 </div>
               </div>
-              
+
               {/* Hide Toggle Eye Icon */}
               <div className="flex items-end">
                 <button
                   type="button"
                   onClick={() => updateHideFromTotals(!hideFromTotals)}
-                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${
-                    hideFromTotals
+                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${hideFromTotals
                       ? 'bg-gray-100 border-gray-300 text-gray-600'
                       : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                   title={hideFromTotals ? 'Hidden from monthly totals' : 'Visible in monthly totals'}
                 >
                   {hideFromTotals ? (
@@ -287,11 +286,10 @@ export default function TransactionFormHtmlDesign({
             </div>
             <div className="flex space-x-4">
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-                  transactionType === "expense"
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${transactionType === "expense"
                     ? "bg-red-100 text-red-700 border-red-500"
                     : "bg-red-50 text-red-700 border-gray-200 hover:bg-red-100 hover:border-red-400"
-                }`}
+                  }`}
                 type="button"
                 onClick={() => setTransactionType("expense")}
               >
@@ -299,11 +297,10 @@ export default function TransactionFormHtmlDesign({
                 Expense
               </button>
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-                  transactionType === "income"
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${transactionType === "income"
                     ? "bg-green-100 text-green-700 border-green-500"
                     : "bg-green-50 text-green-700 border-gray-200 hover:bg-green-100 hover:border-green-400"
-                }`}
+                  }`}
                 type="button"
                 onClick={() => setTransactionType("income")}
               >
@@ -321,19 +318,22 @@ export default function TransactionFormHtmlDesign({
             >
               Main Category
             </label>
-            <select
-              className={`${styles.formSelect} block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm`}
-              id="main-category"
-              name="main_category"
-              value={mainCategory}
-              onChange={handleCategoryChange}
-            >
-              {filteredMainCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                className="block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm appearance-none"
+                id="main-category"
+                name="main-category"
+                value={mainCategory}
+                onChange={handleCategoryChange}
+              >
+                {filteredMainCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           {/* Sub Category */}
@@ -344,20 +344,23 @@ export default function TransactionFormHtmlDesign({
             >
               Sub Category
             </label>
-            <select
-              className={`${styles.formSelect} block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm`}
-              id="sub-category"
-              name="sub_category"
-              defaultValue={initialData?.sub_category}
-              key={mainCategory}
-            >
-              <option value="">Select sub category</option>
-              {subCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                className="block w-full pl-3 pr-10 py-3 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-lg shadow-sm appearance-none"
+                id="sub-category"
+                name="sub-category"
+                defaultValue={initialData?.sub_category}
+                key={mainCategory}
+              >
+                <option value="">Select sub category</option>
+                {subCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           {/* Date */}

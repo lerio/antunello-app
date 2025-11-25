@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   },
   {
     label: "Transactions",
-    href: "/protected/transactions", 
+    href: "/protected/transactions",
     icon: Banknote,
   },
   {
@@ -32,7 +32,12 @@ export function MobileNavigation() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  if (!pathname?.startsWith("/protected")) return null;
+  // Hide mobile navigation on add/edit transaction pages
+  if (!pathname?.startsWith("/protected") ||
+    pathname?.startsWith("/protected/add") ||
+    pathname?.startsWith("/protected/edit")) {
+    return null;
+  }
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
@@ -58,7 +63,7 @@ export function MobileNavigation() {
               className={cn(
                 "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
                 isActive
-                  ? "text-blue-600 dark:text-blue-400"
+                  ? "text-gray-900 dark:text-gray-100"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
               )}
             >
@@ -85,27 +90,27 @@ export function DesktopNavigation() {
         let isActive = false;
 
         if (item.label === "Home") {
-            isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
+          isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
         } else if (item.label === "Transactions") {
-            isActive = pathname?.startsWith(item.href) || false;
+          isActive = pathname?.startsWith(item.href) || false;
         } else { // For Budgets, Settings
-            isActive = pathname?.startsWith(item.href);
+          isActive = pathname?.startsWith(item.href);
         }
 
         return (
-            <Link
+          <Link
             key={item.label}
             href={item.href}
             className={cn(
-                "flex items-center space-x-2 text-sm font-medium transition-colors px-3 py-2 rounded-md",
-                isActive
+              "flex items-center space-x-2 text-sm font-medium transition-colors px-3 py-2 rounded-md",
+              isActive
                 ? "text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
             )}
-            >
+          >
             <item.icon size={16} />
             <span>{item.label}</span>
-            </Link>
+          </Link>
         );
       })}
     </nav>

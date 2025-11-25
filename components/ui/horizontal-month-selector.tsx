@@ -31,7 +31,7 @@ export function HorizontalMonthSelector({
 }: HorizontalMonthSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLButtonElement>(null)
-  
+
   // Determine if we should show navigation arrows based on selected month
   const today = new Date()
   const currentYear = today.getFullYear()
@@ -47,23 +47,23 @@ export function HorizontalMonthSelector({
     if (selectedRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const selectedElement = selectedRef.current
-      
+
       // Use setTimeout to delay centering until after React has completed DOM updates
       const timeoutId = setTimeout(() => {
         const containerWidth = container.clientWidth
         const elementLeft = selectedElement.offsetLeft
         const elementWidth = selectedElement.clientWidth
-        
+
         // Calculate scroll position to center the element
         const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
-        
+
         // Use smooth scrolling animation
         container.scrollTo({
           left: scrollLeft,
           behavior: 'smooth'
         })
       }, 50) // Small delay to allow DOM updates to complete
-      
+
       return () => clearTimeout(timeoutId)
     }
   }, [selectedMonth])
@@ -109,12 +109,12 @@ export function HorizontalMonthSelector({
       {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pt-1 pb-5 px-8`}
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pb-4 px-8`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {months.map((month) => {
           const isSelected = month.year === selectedMonth.year && month.month === selectedMonth.month
-          
+
           return (
             <button
               key={`${month.year}-${month.month}`}

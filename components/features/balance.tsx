@@ -53,27 +53,27 @@ export default function Balance() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-3 sm:p-4 mb-2 mt-4 sm:mb-3">
+    <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-4 mb-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 m-0">Balance</h3>
+        <h3 className="text-lg font-semibold m-0">Balance</h3>
         <div className="flex items-center gap-2">
-          <div className={`text-base sm:text-lg font-semibold ${amountColorClass}`}>
+          <div className={`text-lg font-semibold ${amountColorClass}`}>
             {isLoading ? (
-              <span className="inline-block w-20 h-[1.375rem] bg-gray-200 dark:bg-gray-700 rounded animate-pulse align-middle" />
+              <span className="inline-block w-20 h-[1.375rem] bg-muted rounded animate-pulse align-middle" />
             ) : (
               <>€{formatAmount(Math.abs(totalBalanceEUR))}</>
             )}
           </div>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
             aria-label={isExpanded ? "Collapse balance details" : "Expand balance details"}
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-500" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
         </div>
@@ -81,15 +81,15 @@ export default function Balance() {
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div>
+        <div className="mt-4">
           {(() => {
             if (isLoading) {
               return (
                 <div className="space-y-2">
-                  {['s1','s2','s3'].map((k) => (
+                  {['s1', 's2', 's3'].map((k) => (
                     <div key={k} className="flex justify-between items-center">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
+                      <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                      <div className="h-4 bg-muted rounded w-16 animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -97,7 +97,7 @@ export default function Balance() {
             }
             if (fundCategories.length === 0) {
               return (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                <p className="text-sm text-muted-foreground text-center py-2">
                   No fund categories configured. Add some in the admin settings.
                 </p>
               );
@@ -116,29 +116,29 @@ export default function Balance() {
                         return (
                           <button
                             type="button"
-                            className="w-full flex justify-between items-center py-2 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded transition-colors text-left"
+                            className="w-full flex justify-between items-center py-2 px-2 hover:bg-muted/50 rounded transition-colors text-left"
                             onClick={() => toggleCategory(category)}
                             aria-expanded={isCategoryExpanded}
                             aria-controls={contentId}
                           >
                             <div className="flex items-center gap-2">
-                              <span className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors" aria-hidden="true">
+                              <span className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors" aria-hidden="true">
                                 {isCategoryExpanded ? (
-                                  <ChevronDown size={16} className="text-gray-500" />
+                                  <ChevronDown size={16} className="text-muted-foreground" />
                                 ) : (
-                                  <ChevronRight size={16} className="text-gray-500" />
+                                  <ChevronRight size={16} className="text-muted-foreground" />
                                 )}
                               </span>
                               <div>
-                                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                <div className="text-sm font-medium">
                                   {category}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted-foreground">
                                   {funds.length} fund{funds.length === 1 ? '' : 's'}
                                 </div>
                               </div>
                             </div>
-                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <div className="text-sm font-medium text-muted-foreground">
                               €{formatAmount(Math.abs(totalEUR))}
                             </div>
                           </button>
@@ -151,19 +151,19 @@ export default function Balance() {
                           {sortedFunds.map((fund) => (
                             <div
                               key={fund.id}
-                              className="flex justify-between items-center py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-750 rounded"
+                              className="flex justify-between items-center py-1 px-2 hover:bg-muted/50 rounded"
                             >
                               <div className="flex-1">
-                                <div className="text-sm text-gray-700 dark:text-gray-300">
+                                <div className="text-sm">
                                   {fund.name}
                                 </div>
                                 {fund.description && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="text-xs text-muted-foreground">
                                     {fund.description}
                                   </div>
                                 )}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                              <div className="text-sm text-muted-foreground">
                                 {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
                               </div>
                             </div>

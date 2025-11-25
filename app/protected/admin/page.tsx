@@ -13,8 +13,8 @@ export default function AdminPage() {
   const [transactionCount, setTransactionCount] = useState<number | null>(null);
   const [message, setMessage] = useState<string>('');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [exchangeRateResult, setExchangeRateResult] = useState<{success: number; failed: number; total: number} | null>(null);
-  const [importProgress, setImportProgress] = useState<{current: number; total: number} | null>(null);
+  const [exchangeRateResult, setExchangeRateResult] = useState<{ success: number; failed: number; total: number } | null>(null);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGetCount = async () => {
@@ -62,37 +62,37 @@ export default function AdminPage() {
       setImportResult(null);
       setImportProgress(null);
       setMessage('Reading CSV file...');
-      
+
       const csvContent = await file.text();
       const csvTransactions = parseCSV(csvContent);
-      
+
       setMessage(`Parsed ${csvTransactions.length} transactions. Converting currencies...`);
       setImportProgress({ current: 0, total: csvTransactions.length });
-      
+
       // Use batched processing with progress updates
       const dbTransactions = await batchMapCSVToTransactions(
-        csvTransactions, 
+        csvTransactions,
         'placeholder-user-id', // user_id will be set correctly in importTransactions
         (processed, total) => {
           setImportProgress({ current: processed, total });
           setMessage(`Converting currencies... ${processed}/${total} transactions processed`);
         }
       );
-      
+
       setMessage(`Currency conversion complete. Importing ${dbTransactions.length} transactions to database...`);
       setImportProgress(null);
-      
-      
+
+
       // Add a timeout to prevent infinite hanging
       const importPromise = importTransactions(dbTransactions);
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Import timeout after 2 minutes')), 120000)
       );
-      
+
       const result = await Promise.race([importPromise, timeoutPromise]) as ImportResult;
-      
+
       setImportResult(result);
-      
+
       if (result.success) {
         setMessage(`✅ Successfully imported ${result.imported} transactions!`);
         // Refresh count
@@ -102,7 +102,7 @@ export default function AdminPage() {
         setMessage(`❌ Import failed. Check errors below.`);
         console.error('Import failed with errors:', result.errors);
       }
-      
+
     } catch (error) {
       setMessage(`❌ Error importing CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -118,26 +118,26 @@ export default function AdminPage() {
     try {
       setIsLoading(true);
       setMessage('Fetching missing exchange rates...');
-      
+
       // Try for the most common currencies in your data
       const currencies = ['JPY', 'USD'];
       let totalSuccess = 0;
       let totalFailed = 0;
       let totalTotal = 0;
-      
+
       for (const currency of currencies) {
         const result = await retryMissingExchangeRates(currency);
         totalSuccess += result.success;
         totalFailed += result.failed;
         totalTotal += result.total;
       }
-      
+
       setExchangeRateResult({
         success: totalSuccess,
         failed: totalFailed,
         total: totalTotal
       });
-      
+
       if (totalSuccess > 0) {
         setMessage(`✅ Successfully fetched ${totalSuccess} missing exchange rates!`);
       } else if (totalTotal === 0) {
@@ -145,7 +145,7 @@ export default function AdminPage() {
       } else {
         setMessage(`❌ Failed to fetch ${totalFailed} exchange rates`);
       }
-      
+
     } catch (error) {
       setMessage(`❌ Error fetching exchange rates: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -154,7 +154,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="fixed-width-container py-6">
+    <div className="w-full max-w-[800px] mx-auto px-3 sm:px-6 lg:px-8 min-w-0 py-6">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Fund Categories Management Section */}
         <FundCategoriesManager />
@@ -184,8 +184,8 @@ export default function AdminPage() {
                 <div className="font-medium text-blue-800 dark:text-blue-200">Processing...</div>
                 <div className="mt-2">
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
                     ></div>
                   </div>
@@ -206,7 +206,7 @@ export default function AdminPage() {
                     <li>❌ Errors: {importResult.errors.length}</li>
                   </ul>
                 </div>
-                
+
                 {importResult.errors.length > 0 && (
                   <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-sm">
                     <div className="font-medium text-red-800 dark:text-red-200">Errors:</div>
@@ -240,7 +240,7 @@ export default function AdminPage() {
               >
                 {isLoading ? 'Loading...' : 'Check Transaction Count'}
               </Button>
-              
+
               {transactionCount !== null && (
                 <p className="text-sm text-muted-foreground">
                   You have {transactionCount} transactions
@@ -271,7 +271,7 @@ export default function AdminPage() {
               >
                 {isLoading ? 'Fetching...' : 'Fetch Missing Exchange Rates'}
               </Button>
-              
+
               <p className="text-xs text-muted-foreground">
                 Retry fetching exchange rates for dates that previously failed
               </p>

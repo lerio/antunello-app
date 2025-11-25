@@ -66,7 +66,7 @@ export default function YearSummaryPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year Title Row */}
-        <div className="flex items-center justify-center pt-4">
+        <div className="flex items-center justify-center pt-4 pb-4">
           <h1 className="px-6 py-1 text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
             {currentYear}
           </h1>
@@ -76,7 +76,7 @@ export default function YearSummaryPage() {
         <Balance />
 
         {/* Sticky Horizontal Year Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6">
           {yearsLoading ? (
             <div className="flex justify-center">
               <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
@@ -91,9 +91,9 @@ export default function YearSummaryPage() {
         </div>
 
         {/* Year Summary - Using TransactionSummary component with yearly data */}
-        <TransactionSummary 
-          transactions={transactions} 
-          isLoading={isLoading} 
+        <TransactionSummary
+          transactions={transactions}
+          isLoading={isLoading}
           includeHiddenInTotals={true}
           currentYear={currentYear}
         />

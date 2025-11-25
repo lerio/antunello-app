@@ -56,7 +56,7 @@ export function CategorySelect({
   const renderSelectedValue = () => {
     if (!selectedOption) {
       return (
-        <span className="text-gray-500 dark:text-gray-400">
+        <span className="text-muted-foreground">
           {placeholder}
         </span>
       )
@@ -67,9 +67,9 @@ export function CategorySelect({
     return (
       <div className="flex items-center">
         {IconComponent && (
-          <IconComponent 
-            size={18} 
-            className="mr-3 text-gray-600 dark:text-gray-400 flex-shrink-0" 
+          <IconComponent
+            size={18}
+            className="mr-3 text-muted-foreground flex-shrink-0"
           />
         )}
         <span className="truncate">{selectedOption.label}</span>
@@ -85,26 +85,24 @@ export function CategorySelect({
       <button
         key={option.value}
         type="button"
-        className={`w-full text-left px-4 py-3 flex items-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-          isSelected ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-gray-100'
-        } ${option.isMainCategory === false ? 'pl-12' : ''}`}
+        className={`w-full text-left px-4 py-3 flex items-center hover:bg-accent hover:text-accent-foreground transition-colors ${isSelected ? 'bg-primary/10 text-primary' : 'text-foreground'
+          } ${option.isMainCategory === false ? 'pl-12' : ''}`}
         onClick={() => handleSelect(option.value)}
       >
         {IconComponent && (
-          <IconComponent 
-            size={18} 
-            className={`mr-3 flex-shrink-0 ${
-              isSelected 
-                ? 'text-indigo-600 dark:text-indigo-400' 
-                : 'text-gray-600 dark:text-gray-400'
-            }`} 
+          <IconComponent
+            size={18}
+            className={`mr-3 flex-shrink-0 ${isSelected
+                ? 'text-primary'
+                : 'text-muted-foreground'
+              }`}
           />
         )}
         <span className="flex-1 truncate">{option.label}</span>
         {isSelected && (
-          <Check 
-            size={16} 
-            className="ml-2 text-indigo-600 dark:text-indigo-400 flex-shrink-0" 
+          <Check
+            size={16}
+            className="ml-2 text-primary flex-shrink-0"
           />
         )}
       </button>
@@ -116,9 +114,8 @@ export function CategorySelect({
       <button
         ref={buttonRef}
         type="button"
-        className={`w-full px-4 py-3 text-left bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none text-base ${
-          disabled ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : 'cursor-pointer'
-        }`}
+        className={`w-full px-4 py-3 text-left bg-background border border-input rounded-lg shadow-sm focus:outline-none text-base ${disabled ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer'
+          }`}
         onClick={toggleOpen}
         disabled={disabled}
         aria-haspopup="listbox"
@@ -128,17 +125,16 @@ export function CategorySelect({
           <div className="flex-1 min-w-0">
             {renderSelectedValue()}
           </div>
-          <ChevronDown 
-            size={20} 
-            className={`ml-2 text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0 ${
-              isOpen ? 'transform rotate-180' : ''
-            }`} 
+          <ChevronDown
+            size={20}
+            className={`ml-2 text-muted-foreground transition-transform flex-shrink-0 ${isOpen ? 'transform rotate-180' : ''
+              }`}
           />
         </div>
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
           <div className="py-1">
             {options.map(renderOption)}
           </div>

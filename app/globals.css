@@ -39,14 +39,17 @@
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
     }
@@ -58,11 +61,13 @@
     margin-inline: auto;
     padding-inline: 2rem;
   }
+
   @media (min-width: 640px) {
     .container {
       max-width: none;
     }
   }
+
   @media (min-width: 1400px) {
     .container {
       max-width: 1400px;
@@ -79,6 +84,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -145,83 +151,76 @@
   }
 }
 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden;
-  }
-  html {
-    overflow-x: hidden;
   }
 }
 
-/* Fixed width container to prevent layout shifts */
-.fixed-width-container {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 0.75rem;
-  min-width: 0;
+
+/* DatePicker Dark Mode Styles */
+.dark .react-datepicker {
+  background-color: rgb(31 41 55) !important;
+  border-color: rgb(75 85 99) !important;
+  color: rgb(243 244 246) !important;
 }
 
-@media (min-width: 640px) {
-  .fixed-width-container {
-    padding: 0 1.5rem;
-  }
+.dark .react-datepicker__header {
+  background-color: rgb(17 24 39) !important;
+  border-bottom-color: rgb(75 85 99) !important;
 }
 
-@media (min-width: 1024px) {
-  .fixed-width-container {
-    padding: 0 2rem;
-  }
+.dark .react-datepicker__current-month,
+.dark .react-datepicker-time__header,
+.dark .react-datepicker__day-name {
+  color: rgb(243 244 246) !important;
 }
 
-/* Layout utilities */
-.transactions-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 200px; /* Minimum height to prevent collapse */
+.dark .react-datepicker__day {
+  color: rgb(243 244 246) !important;
 }
 
-/* Prevent horizontal scrolling on iOS */
-.prevent-horizontal-scroll {
-  overflow-x: hidden;
-  max-width: 100vw;
+.dark .react-datepicker__day:hover {
+  background-color: rgb(55 65 81) !important;
 }
 
-.category-breakdown {
-  width: 100%;
-  margin-top: 0.75rem;
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--in-selecting-range,
+.dark .react-datepicker__day--in-range {
+  background-color: rgb(99 102 241) !important;
+  color: white !important;
 }
 
-.transactions-table {
-  width: 100%;
-  min-height: 200px;
-  overflow: visible; /* Ensure sticky headers can work */
+.dark .react-datepicker__time-container {
+  border-left-color: rgb(75 85 99) !important;
 }
 
-/* Sticky date headers */
-.sticky-date-header {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 80px; /* Match the header height exactly */
-  z-index: 40;
-  border: 1px solid hsl(var(--border));
-  backdrop-filter: blur(8px);
-  background: rgb(249 250 251 / 0.95); /* Light mode with transparency */
+.dark .react-datepicker__time-list-item {
+  color: rgb(243 244 246) !important;
 }
 
-.dark .sticky-date-header {
-  background: rgb(17 24 39 / 0.95); /* Dark mode with transparency */
+.dark .react-datepicker__time-list-item:hover {
+  background-color: rgb(55 65 81) !important;
 }
 
-/* Ensure transactions list allows sticky positioning */
-.transactions-list {
-  position: relative;
+.dark .react-datepicker__time-list-item--selected {
+  background-color: rgb(99 102 241) !important;
+  color: white !important;
 }
 
+.dark .react-datepicker__navigation {
+  border-color: transparent !important;
+}
+
+.dark .react-datepicker__navigation--previous {
+  border-right-color: rgb(156 163 175) !important;
+}
+
+.dark .react-datepicker__navigation--next {
+  border-left-color: rgb(156 163 175) !important;
+}

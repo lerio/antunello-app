@@ -15,22 +15,22 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
   const handleSwipeDown = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
     const startY = touch.clientY
-    
+
     const handleTouchMove = (moveEvent: TouchEvent) => {
       const currentTouch = moveEvent.touches[0]
       const deltaY = currentTouch.clientY - startY
-      
+
       if (deltaY > 50) {
         onClose()
         cleanup()
       }
     }
-    
+
     const cleanup = () => {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', cleanup)
     }
-    
+
     document.addEventListener('touchmove', handleTouchMove, { passive: true })
     document.addEventListener('touchend', cleanup, { passive: true })
   }, [onClose])
@@ -42,7 +42,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
       setShouldRender(true)
       document.body.style.overflow = 'hidden'
       setIsAnimating(false)
-      
+
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsAnimating(true))
       })
@@ -53,7 +53,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
         setShouldRender(false)
         document.body.style.overflow = 'unset'
       }, ANIMATION_DURATION)
-      
+
       return () => clearTimeout(timer)
     }
 
@@ -80,10 +80,9 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
   const maxHeightStyle = 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)'
 
   return (
-    <div 
-      className={`fixed inset-0 z-50 overflow-hidden flex items-end justify-center transition-opacity duration-300 ease-out ${
-        isAnimating ? 'opacity-100' : 'opacity-0'
-      }`}
+    <div
+      className={`fixed inset-0 z-[105] overflow-hidden flex items-end justify-center transition-opacity duration-300 ease-out ${isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <button
@@ -94,26 +93,25 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
       />
       <dialog
         open
-        className={`relative z-10 w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
-          isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        }`}
+        className={`relative z-10 w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-background rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+          }`}
         style={{ maxHeight: maxHeightStyle }}
         aria-label="Modal dialog"
       >
         {/* Interactive Handle Bar */}
-        <button 
+        <button
           type="button"
-          className="w-full flex items-center justify-center py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer select-none active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+          className="w-full flex items-center justify-center py-4 border-b border-border cursor-pointer select-none active:bg-muted transition-colors"
           onClick={onClose}
           onTouchStart={handleSwipeDown}
           aria-label="Close modal - tap or swipe down"
         >
-          <div className="w-12 h-1 bg-gray-400 dark:bg-gray-500 rounded-full" />
+          <div className="w-12 h-1 bg-muted-foreground/50 rounded-full" />
         </button>
 
         {/* Scrollable Content */}
-        <div 
-          className="overflow-y-auto overflow-x-hidden" 
+        <div
+          className="overflow-y-auto overflow-x-hidden"
           style={{ maxHeight: maxHeightStyle }}
         >
           {children}
