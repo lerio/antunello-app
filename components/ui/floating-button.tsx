@@ -16,7 +16,7 @@ export function FloatingButton({
   position = 'bottom',
   className = ''
 }: FloatingButtonProps) {
-  const positionClass = position === 'stacked' ? 'bottom-28' : 'bottom-8'
+  const positionClass = position === 'stacked' ? 'bottom-52' : 'bottom-28'
   
   return (
     <button
