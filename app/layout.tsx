@@ -73,7 +73,7 @@ export default function RootLayout({
           >
             <SWRConfig value={getClientSwrConfig()}>
               <CacheManager />
-              <div className="min-h-screen flex flex-col overflow-x-hidden">
+              <div className="min-h-screen flex flex-col overflow-x-clip">
                 <Toaster position="top-right" />
 
                 {/* New Header Design */}

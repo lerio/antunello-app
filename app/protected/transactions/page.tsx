@@ -248,7 +248,7 @@ export default function ProtectedPage() {
         <Balance />
 
         {/* Sticky Horizontal Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6 pt-2">
           {monthsLoading ? (
             <div className="flex justify-center">
               <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
