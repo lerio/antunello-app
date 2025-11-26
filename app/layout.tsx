@@ -11,6 +11,7 @@ import { SWRConfig } from "swr";
 import { getClientSwrConfig } from "@/lib/swr-config";
 import { CacheManager } from "@/components/cache-manager";
 import { MobileNavigation, DesktopNavigation } from "@/components/layout/navigation";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -72,7 +73,7 @@ export default function RootLayout({
           >
             <SWRConfig value={getClientSwrConfig()}>
               <CacheManager />
-              <div className="min-h-screen flex flex-col prevent-horizontal-scroll">
+              <div className="min-h-screen flex flex-col overflow-x-hidden">
                 <Toaster position="top-right" />
 
                 {/* New Header Design */}
@@ -90,12 +91,13 @@ export default function RootLayout({
                           Antunello
                         </h1>
                       </Link>
-                      
+
                       {/* Desktop Navigation */}
                       <DesktopNavigation />
                     </div>
 
                     <div className="flex items-center space-x-4">
+                      <ThemeToggle />
                       {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                     </div>
                   </div>
@@ -117,7 +119,7 @@ export default function RootLayout({
                     </a>
                   </p>
                 </footer>
-                
+
                 {/* Mobile Navigation */}
                 <MobileNavigation />
               </div>

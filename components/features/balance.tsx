@@ -53,7 +53,7 @@ export default function Balance() {
   };
 
   return (
-    <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-4 mb-4">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 mb-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold m-0">Balance</h3>

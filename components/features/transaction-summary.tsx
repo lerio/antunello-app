@@ -369,7 +369,7 @@ function TotalsTable({
   const filteredData = isDetailsExpanded ? totalsData.filter(item => !item.isBalance) : [];
 
   return (
-    <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h3 className={`text-base sm:text-lg font-semibold ${isGains ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{title}</h3>
         <button
@@ -474,7 +474,7 @@ type CategoriesTableProps = {
 function CategoriesTable({ categoriesData, currentYear, previousYear }: CategoriesTableProps) {
   if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
-    <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Category Breakdown (€)</h3>
       <div className="overflow-hidden">
         <table className="w-full">
@@ -539,7 +539,7 @@ type TransactionSummaryProps = {
 
 function LoadingSkeleton() {
   return (
-    <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-6 mb-8">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6 mb-8">
       <div className="flex justify-between items-center pb-4 border-b border-border">
         <div className="h-6 bg-muted rounded animate-pulse w-20"></div>
         <div className="h-6 bg-muted rounded animate-pulse w-24"></div>
@@ -657,7 +657,7 @@ export default function TransactionSummary({
           <CategoriesTable categoriesData={categoriesData} currentYear={currentYear} previousYear={previousYear} />
         </>
       ) : (
-        <div className="bg-card text-card-foreground rounded-xl border shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6">
           <div className="text-center py-8 text-muted-foreground">
             No transactions this year
           </div>

@@ -4,7 +4,7 @@ import styles from './horizontal-year-selector.module.css'
 
 function getYearButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
   if (isSelected) {
-    return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-lg scale-105";
+    return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105";
   }
   if (isToday) {
     return "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50";

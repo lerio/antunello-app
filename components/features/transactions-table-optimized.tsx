@@ -33,9 +33,8 @@ const TransactionRow = React.memo(
         type="button"
         onClick={() => onClick(transaction)}
         aria-label={`Open transaction ${transaction.title}`}
-        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${
-          transaction.hide_from_totals ? 'opacity-50' : ''
-        }`}
+        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? 'opacity-50' : ''
+          }`}
       >
         <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
           <Icon size={20} className="text-gray-500 dark:text-gray-400" />
@@ -53,9 +52,8 @@ const TransactionRow = React.memo(
         </div>
         <div className="flex-shrink-0 ml-4">
           <p
-            className={`font-medium text-right ${
-              transaction.type === "expense" ? "text-red-500" : "text-green-500"
-            }`}
+            className={`font-medium text-right ${transaction.type === "expense" ? "text-red-500" : "text-green-500"
+              }`}
           >
             {formatCurrency(
               amount,
@@ -92,37 +90,36 @@ const DateGroup = React.memo(
   }) => {
     // Calculate hidden transactions count for this day
     const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
-    
-    return (
-    <div className="mb-6">
-      {/* Sticky Date Header */}
-      <div className="sticky top-[72px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
-        <div className="flex items-center">
-          <h3 className="font-semibold text-gray-600 dark:text-gray-400">
-            {showYear ? formatDateHeaderWithYear(transactions[0].date) : formatDateHeader(transactions[0].date)}
-          </h3>
-          <DailyHiddenIndicator count={hiddenCount} />
-        </div>
-        <span
-          className={`font-semibold ${
-            dailyTotal >= 0 ? "text-green-500" : "text-red-500"
-          }`}
-        >
-          {formatCurrency(Math.abs(dailyTotal), "EUR")}
-        </span>
-      </div>
 
-      {/* Transactions List */}
-      <div className="mt-4 space-y-4">
-        {transactions.map((transaction) => (
-          <TransactionRow
-            key={transaction.id}
-            transaction={transaction}
-            onClick={onTransactionClick}
-          />
-        ))}
+    return (
+      <div className="mb-6">
+        {/* Sticky Date Header */}
+        <div className="sticky top-[66px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
+          <div className="flex items-center">
+            <h3 className="font-semibold text-gray-600 dark:text-gray-400">
+              {showYear ? formatDateHeaderWithYear(transactions[0].date) : formatDateHeader(transactions[0].date)}
+            </h3>
+            <DailyHiddenIndicator count={hiddenCount} />
+          </div>
+          <span
+            className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
+              }`}
+          >
+            {formatCurrency(Math.abs(dailyTotal), "EUR")}
+          </span>
+        </div>
+
+        {/* Transactions List */}
+        <div className="mt-4 space-y-4">
+          {transactions.map((transaction) => (
+            <TransactionRow
+              key={transaction.id}
+              transaction={transaction}
+              onClick={onTransactionClick}
+            />
+          ))}
+        </div>
       </div>
-    </div>
     );
   }
 );
@@ -166,7 +163,7 @@ export default function TransactionsTable({
         const dailyTotal = dateTransactions.reduce((total, t) => {
           // Skip transactions that are hidden from totals
           if (t.hide_from_totals) return total;
-          
+
           const amount = t.eur_amount || (t.currency === "EUR" ? t.amount : 0);
           return total + (t.type === "expense" ? -amount : amount);
         }, 0);
