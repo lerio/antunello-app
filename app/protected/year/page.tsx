@@ -8,7 +8,7 @@ import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector
 import { Button } from "@/components/ui/button";
 
 import TransactionSummary from "@/components/features/transaction-summary";
-import Balance from "@/components/features/balance";
+
 
 export default function YearSummaryPage() {
   const searchParams = useSearchParams();
@@ -72,8 +72,7 @@ export default function YearSummaryPage() {
           </h1>
         </div>
 
-        {/* Balance */}
-        <Balance />
+
 
         {/* Sticky Horizontal Year Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6">

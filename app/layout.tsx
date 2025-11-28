@@ -78,7 +78,7 @@ export default function RootLayout({
 
                 {/* New Header Design */}
                 <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
-                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
                     <div className="flex items-center gap-8">
                       <Link
                         href="/protected"

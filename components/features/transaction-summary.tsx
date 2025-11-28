@@ -638,7 +638,7 @@ export default function TransactionSummary({
   const hasData = Object.keys(incomeCategoryTotals).length > 0 || Object.keys(expenseCategoryTotals).length > 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
+    <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
       {hasData ? (
         <>
 

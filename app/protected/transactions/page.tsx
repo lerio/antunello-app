@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
-import Balance from "@/components/features/balance";
+
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
   { ssr: false }
@@ -213,7 +213,7 @@ export default function ProtectedPage() {
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Year and Actions Row */}
-        <div className="flex items-center justify-between pt-4 pb-4">
+        <div className="flex items-center justify-between pt-4 pb-2">
           <div className="flex-1"></div>
 
           <button
@@ -244,11 +244,10 @@ export default function ProtectedPage() {
           </div>
         </div>
 
-        {/* Balance */}
-        <Balance />
+
 
         {/* Sticky Horizontal Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 -mx-6 px-6 pt-2">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
           {monthsLoading ? (
             <div className="flex justify-center">
               <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
@@ -277,7 +276,7 @@ export default function ProtectedPage() {
             ))}
           </div>
         ) : (
-          <div className="transactions-list mt-8">
+          <div className="transactions-list mt-4">
             <TransactionsTable
               transactions={transactions}
               onTransactionClick={handleEditTransaction}

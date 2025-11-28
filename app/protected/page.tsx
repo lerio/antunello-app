@@ -1,3 +1,5 @@
+import Balance from "@/components/features/balance";
+
 export default function HomePage() {
   return (
     <div className="container max-w-4xl py-6 lg:py-10 px-4">
@@ -8,7 +10,9 @@ export default function HomePage() {
             Your personalized dashboard is coming soon!
           </p>
         </div>
-        
+
+        <Balance />
+
         <hr className="my-4 border-gray-200 dark:border-gray-700" />
 
         <div className="grid gap-6">

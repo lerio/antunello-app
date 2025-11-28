@@ -109,7 +109,7 @@ export function HorizontalMonthSelector({
       {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} pb-4 px-8`}
+        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} px-8`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {months.map((month) => {
