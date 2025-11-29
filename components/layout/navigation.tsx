@@ -49,7 +49,7 @@ export function MobileNavigation() {
             // Home is active if we are on /protected AND there are no specific date filters
             isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
           } else if (item.label === "Transactions") {
-            isActive = pathname?.startsWith(item.href) || false;
+            isActive = pathname?.startsWith(item.href) || pathname?.startsWith("/protected/year") || pathname?.startsWith("/protected/search") || false;
           } else if (item.label === "Budgets") {
             isActive = pathname?.startsWith(item.href);
           } else if (item.label === "Settings") {
@@ -92,7 +92,7 @@ export function DesktopNavigation() {
         if (item.label === "Home") {
           isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
         } else if (item.label === "Transactions") {
-          isActive = pathname?.startsWith(item.href) || false;
+          isActive = pathname?.startsWith(item.href) || pathname?.startsWith("/protected/year") || pathname?.startsWith("/protected/search") || false;
         } else { // For Budgets, Settings
           isActive = pathname?.startsWith(item.href);
         }

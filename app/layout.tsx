@@ -10,7 +10,10 @@ import { Toaster } from "react-hot-toast";
 import { SWRConfig } from "swr";
 import { getClientSwrConfig } from "@/lib/swr-config";
 import { CacheManager } from "@/components/cache-manager";
-import { MobileNavigation, DesktopNavigation } from "@/components/layout/navigation";
+import {
+  MobileNavigation,
+  DesktopNavigation,
+} from "@/components/layout/navigation";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -108,7 +111,7 @@ export default function RootLayout({
 
                 <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 mb-16 md:mb-0">
                   <p>
-                    Made in 🇯🇵 by{" "}
+                    Made in 🇯🇵&nbsp;&nbsp;by{" "}
                     <a
                       href="https://www.linkedin.com/in/valerio-donati-b0b0b21/"
                       target="_blank"

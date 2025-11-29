@@ -56,26 +56,9 @@ export default function SearchPage() {
     return () => globalThis.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Update URL when search query changes
-  useEffect(() => {
-    const params = new URLSearchParams();
-
-    // Preserve referrer parameters
-    const fromYear = searchParams.get("from_year");
-    const fromMonth = searchParams.get("from_month");
-    if (fromYear) params.set("from_year", fromYear);
-    if (fromMonth) params.set("from_month", fromMonth);
-
-    // Add search query if present
-    if (searchQuery) {
-      params.set("q", searchQuery);
-    }
-
-    const newUrl = params.toString()
-      ? `/protected/search?${params}`
-      : "/protected/search";
-    globalThis.history.replaceState(null, "", newUrl);
-  }, [searchQuery, searchParams]);
+  // Note: We don't sync searchQuery to URL dynamically to avoid navigation conflicts.
+  // The URL is set once when navigating to this page via handleSearchClick.
+  // The initial search query is loaded from the ?q= param if present.
 
   const scrollToTop = useCallback(() => {
     globalThis.scrollTo({
@@ -90,9 +73,24 @@ export default function SearchPage() {
     const fromMonth = searchParams.get("from_month");
 
     if (fromYear && fromMonth) {
-      router.push(`/protected?year=${fromYear}&month=${fromMonth}`);
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      // If it's the current month/year, navigate to clean URL without query params
+      const isCurrentMonth =
+        Number.parseInt(fromYear) === currentYear &&
+        Number.parseInt(fromMonth) === currentMonth;
+
+      if (isCurrentMonth) {
+        router.push("/protected/transactions");
+      } else {
+        router.push(
+          `/protected/transactions?year=${fromYear}&month=${fromMonth}`
+        );
+      }
     } else {
-      router.push("/protected");
+      router.push("/protected/transactions");
     }
   }, [router, searchParams]);
 
@@ -193,6 +191,7 @@ export default function SearchPage() {
 
             <div className="relative flex-1">
               <input
+                name="search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -213,7 +212,7 @@ export default function SearchPage() {
         {/* Search Results */}
         {searchLoading && (
           <div className="space-y-4 mt-8">
-            {["s1","s2","s3","s4","s5"].map((key) => (
+            {["s1", "s2", "s3", "s4", "s5"].map((key) => (
               <div key={key} className="animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
                 <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
@@ -228,13 +227,16 @@ export default function SearchPage() {
             </p>
           </div>
         )}
-        {!searchLoading && !searchError && searchQuery.trim() && searchResults.length === 0 && (
-          <div className="mt-8 text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
-              No transactions found
-            </p>
-          </div>
-        )}
+        {!searchLoading &&
+          !searchError &&
+          searchQuery.trim() &&
+          searchResults.length === 0 && (
+            <div className="mt-8 text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">
+                No transactions found
+              </p>
+            </div>
+          )}
         {!searchLoading && !searchError && searchResults.length > 0 && (
           <div className="mt-2">
             <SearchSummary transactions={searchResults} />
@@ -247,13 +249,16 @@ export default function SearchPage() {
             </div>
           </div>
         )}
-        {!searchLoading && !searchError && !searchQuery.trim() && searchResults.length === 0 && (
-          <div className="mt-8 text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
-              Start typing to search transactions...
-            </p>
-          </div>
-        )}
+        {!searchLoading &&
+          !searchError &&
+          !searchQuery.trim() &&
+          searchResults.length === 0 && (
+            <div className="mt-8 text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">
+                Start typing to search transactions...
+              </p>
+            </div>
+          )}
       </div>
 
       {/* Floating Buttons - Hidden when modals are open */}
@@ -278,7 +283,10 @@ export default function SearchPage() {
 
       {/* Add Entry Modal */}
       <Modal isOpen={showAddModal} onClose={closeAddModal}>
-        <TransactionFormModal onSubmit={handleAddSubmit} onClose={closeAddModal} />
+        <TransactionFormModal
+          onSubmit={handleAddSubmit}
+          onClose={closeAddModal}
+        />
       </Modal>
 
       {/* Edit Entry Modal */}

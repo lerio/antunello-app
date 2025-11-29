@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Search } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
 import { Button } from "@/components/ui/button";
 import { FloatingButton } from "@/components/ui/floating-button";
+import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
 
 import TransactionSummary from "@/components/features/transaction-summary";
-
 
 export default function YearSummaryPage() {
   const router = useRouter();
@@ -44,7 +44,8 @@ export default function YearSummaryPage() {
 
     if (typeof globalThis.addEventListener === "function") {
       globalThis.addEventListener("scroll", handleScroll as EventListener);
-      return () => globalThis.removeEventListener("scroll", handleScroll as EventListener);
+      return () =>
+        globalThis.removeEventListener("scroll", handleScroll as EventListener);
     }
     return undefined;
   }, []);
@@ -58,10 +59,6 @@ export default function YearSummaryPage() {
       });
     }
   }, []);
-
-  const handleSearchClick = useCallback(() => {
-    router.push(`/protected/search?from_year=${currentYear}`);
-  }, [router, currentYear]);
 
   const handleYearSelect = useCallback((year: number) => {
     setCurrentYear(year);
@@ -86,7 +83,10 @@ export default function YearSummaryPage() {
             Error Loading Year Data
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => globalThis.location?.reload?.()} className="mt-4">
+          <Button
+            onClick={() => globalThis.location?.reload?.()}
+            className="mt-4"
+          >
             Retry
           </Button>
         </div>
@@ -97,26 +97,10 @@ export default function YearSummaryPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Year and Actions Row */}
+        {/* View Tabs Row */}
         <div className="flex items-center justify-between pt-4 pb-2">
-          <div className="flex-1"></div>
-
-          <div className="px-6 py-1 text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-            {currentYear}
-          </div>
-
-          <div className="flex-1 flex justify-end">
-            <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onClick={handleSearchClick}
-              aria-label="Search transactions"
-            >
-              <Search size={20} />
-            </button>
-          </div>
+          <TransactionViewTabs currentView="year" year={currentYear} />
         </div>
-
-
 
         {/* Sticky Horizontal Year Selector */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
@@ -140,7 +124,6 @@ export default function YearSummaryPage() {
           includeHiddenInTotals={true}
           currentYear={currentYear}
         />
-
       </div>
 
       {/* Floating Button - Scroll to Top */}
