@@ -7,9 +7,10 @@ let globalCache: Map<string, any> | null = null
 
 export const getSwrConfig = (): SWRConfiguration => {
   const baseConfig: SWRConfiguration = {
-    // Optimized revalidation settings for faster perceived performance
+    // Optimized revalidation settings for instant app access on iOS Safari
     revalidateOnFocus: false,
-    revalidateOnReconnect: true,
+    revalidateOnReconnect: false, // Disabled to prevent hanging on iOS Safari tab wake
+    // revalidateOnMount is left as default (true) to ensure data loads on first mount
 
     // Smart retry settings
     errorRetryCount: 2, // Reduced for faster failure detection
@@ -40,27 +41,17 @@ export const getClientSwrConfig = (): SWRConfiguration => {
 
       // Cache persistence configuration
       provider: () => {
-        // Initialize with empty cache to avoid blocking main thread
-        // Cache will be hydrated asynchronously
-        const newCache = new Map()
+        // Load cache synchronously for instant access (iOS Safari optimization)
+        const persistedCache = loadCacheFromStorage()
+        const newCache = persistedCache || new Map()
         globalCache = newCache
 
-        // Hydrate cache asynchronously
-        setTimeout(() => {
-          const persistedCache = loadCacheFromStorage()
-          if (persistedCache && globalCache) {
-            console.log('Hydrating cache asynchronously with', persistedCache.size, 'entries')
-            for (const [key, value] of Array.from(persistedCache.entries())) {
-              globalCache.set(key, value)
-              // Trigger revalidation for hydrated keys if needed
-              // mutate(key) - optional, SWR might handle this if we use the cache provider correctly
-            }
-            // Notify SWR that cache has changed (this is tricky with Map, but SWR polls it)
-          }
+        if (persistedCache) {
+          console.log('Cache hydrated synchronously with', persistedCache.size, 'entries')
+        }
 
-          // Setup periodic saves
-          setupPeriodicSave(() => globalCache && saveCacheToStorage(globalCache))
-        }, 0)
+        // Setup periodic saves
+        setupPeriodicSave(() => globalCache && saveCacheToStorage(globalCache))
 
         return newCache
       },

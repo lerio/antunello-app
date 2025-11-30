@@ -5,16 +5,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Search } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
+import { useBackgroundSync } from "@/hooks/useBackgroundSync";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
 import { Button } from "@/components/ui/button";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
+import { UpdateBanner } from "@/components/ui/update-banner";
+import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
+import { createClient } from "@/utils/supabase/client";
 
 import TransactionSummary from "@/components/features/transaction-summary";
 
 export default function YearSummaryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   const initialYear = useMemo(() => {
     const yearParam = searchParams.get("year");
@@ -32,8 +39,33 @@ export default function YearSummaryPage() {
     setCurrentYear(initialYear);
   }, [initialYear]);
 
-  const { transactions, isLoading, error } = useYearTransactions(currentYear);
+  // Get user ID for background sync
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, [supabase]);
+
+  const { transactions, isLoading, error, mutate } =
+    useYearTransactions(currentYear);
   const { availableYears, isLoading: yearsLoading } = useAvailableYears();
+
+  // Background sync for detecting updates
+  const { hasUpdates, updateCount, dismissUpdate, refreshData } =
+    useBackgroundSync(userId);
+
+  // Pull-to-refresh functionality
+  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: async () => {
+      await mutate();
+    },
+  });
 
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -87,10 +119,7 @@ export default function YearSummaryPage() {
             Error Loading Year Data
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button
-            onClick={() => globalThis.location?.reload?.()}
-            className="mt-4"
-          >
+          <Button onClick={() => mutate()} className="mt-4">
             Retry
           </Button>
         </div>
@@ -100,6 +129,19 @@ export default function YearSummaryPage() {
 
   return (
     <div>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+      />
+
+      {hasUpdates && (
+        <UpdateBanner
+          updateCount={updateCount}
+          onRefresh={() => refreshData(mutate)}
+          onDismiss={dismissUpdate}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between pt-4 pb-2">

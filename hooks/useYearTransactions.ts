@@ -16,7 +16,7 @@ export function useYearTransactions(year?: number) {
     mutate
   } = useSWR<Transaction[]>(yearKey, yearTransactionFetcher, {
     revalidateOnFocus: false,
-    revalidateOnReconnect: true,
+    revalidateOnReconnect: false, // Disabled to prevent hanging on iOS Safari tab wake
     dedupingInterval: 30000, // 30 seconds
     focusThrottleInterval: 60000, // 1 minute
     keepPreviousData: true,

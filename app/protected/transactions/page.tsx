@@ -8,12 +8,17 @@ import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
 import { useModalState } from "@/hooks/useModalState";
+import { useBackgroundSync } from "@/hooks/useBackgroundSync";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
+import { UpdateBanner } from "@/components/ui/update-banner";
+import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
 import { Transaction } from "@/types/database";
+import { createClient } from "@/utils/supabase/client";
 import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
@@ -27,6 +32,8 @@ const TransactionFormModal = dynamic(
 export default function ProtectedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   const initialDate = useMemo(() => {
     const yearParam = searchParams.get("year");
@@ -48,6 +55,19 @@ export default function ProtectedPage() {
     setCurrentDate(initialDate);
   }, [initialDate]);
 
+  // Get user ID for background sync
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, [supabase]);
+
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const {
@@ -60,7 +80,7 @@ export default function ProtectedPage() {
     hasOpenModal,
   } = useModalState();
 
-  const { transactions, isLoading, error } = useTransactionsOptimized(
+  const { transactions, isLoading, error, mutate } = useTransactionsOptimized(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
@@ -69,6 +89,18 @@ export default function ProtectedPage() {
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
+
+  // Background sync for detecting updates
+  const { hasUpdates, updateCount, dismissUpdate, refreshData } =
+    useBackgroundSync(userId);
+
+  // Pull-to-refresh functionality
+  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: async () => {
+      await mutate();
+    },
+    disabled: hasOpenModal, // Disable when modals are open
+  });
 
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -202,10 +234,7 @@ export default function ProtectedPage() {
             Error Loading Transactions
           </h2>
           <p className="text-gray-600">{error.message}</p>
-          <Button
-            onClick={() => globalThis.location?.reload?.()}
-            className="mt-4"
-          >
+          <Button onClick={() => mutate()} className="mt-4">
             Retry
           </Button>
         </div>
@@ -215,6 +244,19 @@ export default function ProtectedPage() {
 
   return (
     <div>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+      />
+
+      {hasUpdates && (
+        <UpdateBanner
+          updateCount={updateCount}
+          onRefresh={() => refreshData(mutate)}
+          onDismiss={dismissUpdate}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between pt-4 pb-2">

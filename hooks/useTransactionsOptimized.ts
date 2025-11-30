@@ -29,7 +29,7 @@ export function useTransactionsOptimized(year: number, month: number) {
     isLoading 
   } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
     revalidateOnFocus: false,
-    revalidateOnReconnect: true,
+    revalidateOnReconnect: false, // Disabled to prevent hanging on iOS Safari tab wake
     dedupingInterval: 10000,
     focusThrottleInterval: 30000,
     keepPreviousData: true,
@@ -122,40 +122,8 @@ export function useTransactionsOptimized(year: number, month: number) {
     globalMutate('/api/overall-totals', undefined, true)
   }
 
-  // Real-time subscription with simplified logic
-  useEffect(() => {
-    let channel: any
-
-    const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      channel = supabase
-        .channel(`transactions_${user.id}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'transactions',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          const { eventType, new: newRecord, old: oldRecord } = payload
-
-          if (eventType === 'INSERT') {
-            handleInsert(newRecord)
-          } else if (eventType === 'UPDATE') {
-            handleUpdate(newRecord, oldRecord)
-          } else if (eventType === 'DELETE') {
-            handleDelete(oldRecord)
-          }
-        })
-        .subscribe()
-    }
-
-    setupRealtime()
-    return () => {
-      if (channel) supabase.removeChannel(channel)
-    }
-  }, [year, month, mutate, supabase, invalidateYearCache])
+  // Real-time subscriptions removed for iOS Safari optimization
+  // Updates will be detected via background polling (see useBackgroundSync hook)
 
   // Memoized summary calculations
   const summary = useMemo(() => {
