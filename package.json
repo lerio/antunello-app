@@ -26,6 +26,7 @@
     "react-datepicker": "^8.10.0",
     "react-dom": "19.2.0",
     "react-hot-toast": "^2.6.0",
+    "recharts": "^2.15.4",
     "swr": "^2.3.7"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/node": "24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "19.2.3",
+    "@types/recharts": "^1.8.29",
     "baseline-browser-mapping": "^2.8.32",
     "postcss": "8.5.6",
     "tailwind-merge": "^3.4.0",

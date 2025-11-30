@@ -1,6 +1,7 @@
 "use client";
 
 import Balance from "@/components/features/balance";
+import BalanceChart from "@/components/features/balance-chart";
 
 export default function HomePage() {
   return (
@@ -24,6 +25,11 @@ export default function HomePage() {
         {/* Balance Component with consistent styling */}
         <div className="py-2 sm:py-6">
           <Balance />
+        </div>
+
+        {/* Balance Over Time Chart */}
+        <div className="py-2 sm:py-6">
+          <BalanceChart />
         </div>
       </div>
     </div>
