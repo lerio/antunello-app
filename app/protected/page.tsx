@@ -1,24 +1,29 @@
+"use client";
+
 import Balance from "@/components/features/balance";
 
 export default function HomePage() {
   return (
-    <div className="container max-w-4xl py-6 lg:py-10 px-4">
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Home Dashboard</h3>
-          <p className="text-sm text-muted-foreground">
-            Your personalized dashboard is coming soon!
-          </p>
+    <div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* View Tabs Row */}
+        <div className="flex items-center justify-between pt-4 pb-2">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Home
+            </h2>
+          </div>
+
+          {/* Placeholder to match search button height */}
+          <div
+            className="p-4.5 border border-transparent rounded-lg w-9 h-9"
+            aria-hidden="true"
+          ></div>
         </div>
 
-        <Balance />
-
-        <hr className="my-4 border-gray-200 dark:border-gray-700" />
-
-        <div className="grid gap-6">
-          <p className="text-sm text-gray-500 italic">
-            Stay tuned for exciting new features and insights here.
-          </p>
+        {/* Balance Component with consistent styling */}
+        <div className="py-2 sm:py-6">
+          <Balance />
         </div>
       </div>
     </div>
