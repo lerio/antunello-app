@@ -92,7 +92,7 @@ const DateGroup = React.memo(
     const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
 
     return (
-      <div className="mb-6">
+      <div className="mb-3">
         {/* Sticky Date Header */}
         <div className="sticky top-[66px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
           <div className="flex items-center">
@@ -110,7 +110,7 @@ const DateGroup = React.memo(
         </div>
 
         {/* Transactions List */}
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-2">
           {transactions.map((transaction) => (
             <TransactionRow
               key={transaction.id}
@@ -158,7 +158,7 @@ export default function TransactionsTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {Object.entries(groupedData).map(([date, dateTransactions]) => {
         const dailyTotal = dateTransactions.reduce((total, t) => {
           // Skip transactions that are hidden from totals

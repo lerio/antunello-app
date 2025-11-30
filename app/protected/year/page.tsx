@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Search } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
@@ -60,6 +60,10 @@ export default function YearSummaryPage() {
     }
   }, []);
 
+  const handleSearchClick = useCallback(() => {
+    router.push(`/protected/search?from_year=${currentYear}`);
+  }, [router, currentYear]);
+
   const handleYearSelect = useCallback((year: number) => {
     setCurrentYear(year);
 
@@ -97,9 +101,17 @@ export default function YearSummaryPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* View Tabs Row */}
+        {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between pt-4 pb-2">
           <TransactionViewTabs currentView="year" year={currentYear} />
+
+          <button
+            className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            onClick={handleSearchClick}
+            aria-label="Search transactions"
+          >
+            <Search size={20} />
+          </button>
         </div>
 
         {/* Sticky Horizontal Year Selector */}
