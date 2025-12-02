@@ -91,7 +91,7 @@ export default function ProtectedPage() {
     useTransactionMutations();
 
   // Background sync for detecting updates
-  const { hasUpdates, updateCount, dismissUpdate, refreshData } =
+  const { hasUpdates, updateCount, dismissUpdate, refreshData, recordLocalMutation } =
     useBackgroundSync(userId);
 
   // Pull-to-refresh functionality
@@ -151,7 +151,10 @@ export default function ProtectedPage() {
 
   const handleAddSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
-      const toastPromise = addTransaction(data);
+      const toastPromise = addTransaction(data).then(async (result) => {
+        await recordLocalMutation();
+        return result;
+      });
 
       toast.promise(toastPromise, {
         loading: "Adding transaction...",
@@ -164,7 +167,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [addTransaction, closeAddModal]
+    [addTransaction, closeAddModal, recordLocalMutation]
   );
 
   const handleEditSubmit = useCallback(
@@ -175,7 +178,10 @@ export default function ProtectedPage() {
         editingTransaction.id,
         data,
         editingTransaction.date
-      );
+      ).then(async (result) => {
+        await recordLocalMutation();
+        return result;
+      });
 
       toast.promise(toastPromise, {
         loading: "Updating transaction...",
@@ -188,12 +194,15 @@ export default function ProtectedPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction, closeEditModal]
+    [updateTransaction, editingTransaction, closeEditModal, recordLocalMutation]
   );
 
   const handleDeleteTransaction = useCallback(
     async (transaction: Transaction) => {
-      const toastPromise = deleteTransaction(transaction);
+      const toastPromise = deleteTransaction(transaction).then(async (result) => {
+        await recordLocalMutation();
+        return result;
+      });
 
       toast.promise(toastPromise, {
         loading: "Deleting transaction...",
@@ -206,7 +215,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [deleteTransaction, closeEditModal]
+    [deleteTransaction, closeEditModal, recordLocalMutation]
   );
 
   const handleMonthSelect = useCallback((year: number, month: number) => {

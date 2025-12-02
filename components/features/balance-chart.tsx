@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  TooltipProps,
 } from "recharts";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -19,6 +18,17 @@ import {
   BalanceDataPoint,
 } from "@/hooks/useBalanceHistory";
 import { formatCurrency } from "@/utils/currency";
+
+/**
+ * Custom tooltip props interface for recharts
+ */
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: BalanceDataPoint;
+    value: number;
+  }>;
+}
 
 /**
  * Format date for axis display based on time range
@@ -61,12 +71,12 @@ function formatDateTooltip(dateStr: string): string {
 /**
  * Custom tooltip component
  */
-function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  const data = payload[0].payload as BalanceDataPoint;
+  const data = payload[0].payload;
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg">

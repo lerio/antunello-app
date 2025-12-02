@@ -6,6 +6,7 @@ export interface BackgroundSyncState {
   updateCount: number
   dismissUpdate: () => void
   refreshData: (mutateFn: () => void) => void
+  recordLocalMutation: () => void
 }
 
 /**
@@ -112,5 +113,33 @@ export function useBackgroundSync(userId: string | undefined): BackgroundSyncSta
     lastCheckRef.current = null
   }
 
-  return { hasUpdates, updateCount, dismissUpdate, refreshData }
+  const recordLocalMutation = async () => {
+    // After a local mutation, update the baseline to prevent showing the banner
+    // for changes that originated from this device
+    try {
+      const { data, count, error } = await supabase
+        .from('transactions')
+        .select('id, updated_at', { count: 'exact', head: false })
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error('Failed to update baseline after mutation:', error)
+        return
+      }
+
+      const currentCount = count || 0
+      const currentLastUpdate = data?.[0]?.updated_at || ''
+
+      lastCheckRef.current = {
+        count: currentCount,
+        lastUpdate: currentLastUpdate,
+      }
+    } catch (err) {
+      console.error('Failed to update baseline after mutation:', err)
+    }
+  }
+
+  return { hasUpdates, updateCount, dismissUpdate, refreshData, recordLocalMutation }
 }
