@@ -6,7 +6,7 @@ export function TransactionListSkeleton({ count = 5 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-card border rounded-lg p-4 flex items-center justify-between"
+          className="bg-white dark:bg-gray-800 border rounded-lg p-4 flex items-center justify-between"
         >
           {/* Icon + Category */}
           <div className="flex items-center gap-3 flex-1">

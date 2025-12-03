@@ -11,7 +11,7 @@ export function SummarySkeleton({ collapsed = false, yearView = false }: Summary
     return (
       <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
         {/* Totals Section (collapsed) */}
-        <div className="bg-card rounded-xl border shadow-sm p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-5 w-5" />
@@ -19,7 +19,7 @@ export function SummarySkeleton({ collapsed = false, yearView = false }: Summary
         </div>
 
         {/* Category Breakdown Section */}
-        <div className="bg-card rounded-xl border shadow-sm p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border shadow-sm p-4 sm:p-6">
           {/* Header */}
           <Skeleton className="h-6 w-48 mb-3 sm:mb-4" />
 
@@ -51,7 +51,7 @@ export function SummarySkeleton({ collapsed = false, yearView = false }: Summary
     // Wrapped in same container as actual component
     return (
       <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
-        <div className="bg-card rounded-xl border shadow-sm p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-5 w-5" />
@@ -63,7 +63,7 @@ export function SummarySkeleton({ collapsed = false, yearView = false }: Summary
 
   // Expanded state - full summary with rows
   return (
-    <div className="bg-card rounded-xl border shadow-sm p-6 mb-8">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border shadow-sm p-6 mb-8">
       {/* Header */}
       <div className="flex justify-between items-center pb-4 border-b">
         <Skeleton className="h-6 w-20" />

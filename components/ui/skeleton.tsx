@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "text" | "circle" | "rectangular"
-  animation?: "pulse" | "wave" | "none"
+  variant?: "default" | "text" | "circle" | "rectangular";
+  animation?: "pulse" | "wave" | "none";
 }
 
 function Skeleton({
@@ -14,10 +14,10 @@ function Skeleton({
   const animationClass = {
     pulse: "animate-pulse",
     wave: "animate-shimmer",
-    none: ""
-  }[animation]
+    none: "",
+  }[animation];
 
-  const baseStyles = "bg-muted rounded"
+  const baseStyles = "bg-gray-200 dark:bg-gray-700 rounded";
 
   return (
     <div
@@ -32,7 +32,7 @@ function Skeleton({
       aria-label="Loading..."
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };
