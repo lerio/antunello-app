@@ -200,10 +200,24 @@
 
 .dark .react-datepicker__time-container {
   border-left-color: rgb(75 85 99) !important;
+  background-color: rgb(31 41 55) !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time {
+  background-color: rgb(31 41 55) !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+  background-color: rgb(31 41 55) !important;
+}
+
+.dark .react-datepicker__time-list {
+  background-color: rgb(31 41 55) !important;
 }
 
 .dark .react-datepicker__time-list-item {
   color: rgb(243 244 246) !important;
+  background-color: rgb(31 41 55) !important;
 }
 
 .dark .react-datepicker__time-list-item:hover {

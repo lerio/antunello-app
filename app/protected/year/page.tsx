@@ -13,6 +13,7 @@ import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
 import { UpdateBanner } from "@/components/ui/update-banner";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
 
 import TransactionSummary from "@/components/features/transaction-summary";
@@ -160,7 +161,7 @@ export default function YearSummaryPage() {
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
           {yearsLoading ? (
             <div className="flex justify-center">
-              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
+              <Skeleton className="h-12 w-80 rounded-lg" />
             </div>
           ) : (
             <HorizontalYearSelector

@@ -2,6 +2,7 @@
 
 import { formatCurrency } from "@/utils/currency";
 import { useOverallTotals } from "@/hooks/useOverallTotals";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OverallTotals() {
   const { totals, isLoading, error } = useOverallTotals();
@@ -26,7 +27,7 @@ export default function OverallTotals() {
         <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 m-0">Balance</h3>
         <div className={`text-base sm:text-lg font-semibold ${amountColorClass}`}>
           {isLoading ? (
-            <span className="inline-block w-20 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <Skeleton className="inline-block w-20 h-5" />
           ) : (
             <>€{formatAmount(Math.abs(eurTotal))}</>
           )}

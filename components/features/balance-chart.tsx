@@ -18,6 +18,7 @@ import {
   BalanceDataPoint,
 } from "@/hooks/useBalanceHistory";
 import { formatCurrency } from "@/utils/currency";
+import { ChartSkeleton } from "@/components/ui/skeletons";
 
 /**
  * Custom tooltip props interface for recharts
@@ -114,12 +115,10 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
  */
 function TimeRangeButton({
   label,
-  value,
   selected,
   onClick,
 }: {
   label: string;
-  value: TimeRange;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -156,25 +155,21 @@ function BalanceChartControls({
       <div className="flex gap-2">
         <TimeRangeButton
           label="1M"
-          value="1m"
           selected={timeRange === "1m"}
           onClick={() => onTimeRangeChange("1m")}
         />
         <TimeRangeButton
           label="1Y"
-          value="1y"
           selected={timeRange === "1y"}
           onClick={() => onTimeRangeChange("1y")}
         />
         <TimeRangeButton
           label="5Y"
-          value="5y"
           selected={timeRange === "5y"}
           onClick={() => onTimeRangeChange("5y")}
         />
         <TimeRangeButton
           label="All"
-          value="all"
           selected={timeRange === "all"}
           onClick={() => onTimeRangeChange("all")}
         />
@@ -200,27 +195,6 @@ function BalanceChartControls({
   );
 }
 
-/**
- * Loading skeleton for the chart
- */
-function ChartLoadingSkeleton() {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 sm:p-6">
-      <div className="flex justify-between items-center mb-4">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
-        <div className="flex gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-      <div className="h-[250px] md:h-[350px] bg-gray-100 dark:bg-gray-800/50 rounded animate-pulse" />
-    </div>
-  );
-}
 
 /**
  * Empty state when no data is available
@@ -244,8 +218,8 @@ function EmptyState({ includeHidden }: { includeHidden: boolean }) {
  * Main balance chart component
  */
 export default function BalanceChart() {
-  const [timeRange, setTimeRange] = useState<TimeRange>("1y");
-  const [includeHidden, setIncludeHidden] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>("1m");
+  const [includeHidden, setIncludeHidden] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -257,12 +231,12 @@ export default function BalanceChart() {
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   if (isLoading) {
-    return <ChartLoadingSkeleton />;
+    return <ChartSkeleton />;
   }
 
   if (dataPoints.length === 0) {
@@ -281,13 +255,13 @@ export default function BalanceChart() {
 
   // Calculate X-axis tick interval based on screen size and time range
   const getXAxisInterval = () => {
-    if (!isMobile) return 'preserveStartEnd';
+    if (!isMobile) return "preserveStartEnd";
 
     // Mobile: reduce ticks based on time range
     const dataLength = dataPoints.length;
-    if (timeRange === '1m') return Math.floor(dataLength / 4); // Show ~5 ticks
-    if (timeRange === '1y') return Math.floor(dataLength / 5); // Show ~6 ticks
-    if (timeRange === '5y') return Math.floor(dataLength / 4); // Show ~5 ticks
+    if (timeRange === "1m") return Math.floor(dataLength / 4); // Show ~5 ticks
+    if (timeRange === "1y") return Math.floor(dataLength / 5); // Show ~6 ticks
+    if (timeRange === "5y") return Math.floor(dataLength / 4); // Show ~5 ticks
     return Math.floor(dataLength / 4); // Show ~5 ticks for 'all'
   };
 
@@ -307,7 +281,7 @@ export default function BalanceChart() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width={"100%"} height={"100%"}>
           <LineChart
             data={dataPoints}
             margin={{ top: 10, right: 10, left: -25, bottom: 0 }}

@@ -23,6 +23,8 @@ import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TransactionListSkeleton } from "@/components/ui/skeletons";
 
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
@@ -288,7 +290,7 @@ export default function ProtectedPage() {
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
           {monthsLoading ? (
             <div className="flex justify-center">
-              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-80 rounded-lg"></div>
+              <Skeleton className="h-12 w-80 rounded-lg" />
             </div>
           ) : (
             <HorizontalMonthSelector
@@ -304,23 +306,13 @@ export default function ProtectedPage() {
 
         <TransactionSummary transactions={transactions} isLoading={isLoading} />
 
-        {isLoading ? (
-          <div className="space-y-4 mt-8">
-            {["s1", "s2", "s3"].map((id) => (
-              <div key={id} className="animate-pulse">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
-                <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="transactions-list mt-4">
-            <TransactionsTable
-              transactions={transactions}
-              onTransactionClick={handleEditTransaction}
-            />
-          </div>
-        )}
+        <div className="transactions-list mt-4">
+          <TransactionsTable
+            transactions={transactions}
+            onTransactionClick={handleEditTransaction}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       {/* Floating Buttons - Hidden when modals are open */}

@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import { useAllTransactions } from './useAllTransactions';
-import { Transaction } from '@/types/database';
+import { useMemo, useState, useEffect } from 'react';
+import { useRangeTransactions, type BalanceTransaction } from './useRangeTransactions';
+import { useStartingBalance } from './useStartingBalance';
+import { createClient } from '@/utils/supabase/client';
 
 export type TimeRange = '1m' | '1y' | '5y' | 'all';
 
@@ -21,149 +22,96 @@ export interface BalanceStats {
 }
 
 /**
- * Calculate the date range based on the time range selection
+ * Calculate period key for a given date based on time range
+ * Used for aggregating transactions into daily, weekly, or monthly buckets
  */
-function getDateRange(timeRange: TimeRange): Date | null {
-  const now = new Date();
-
+function getPeriodKey(date: Date, timeRange: TimeRange): string {
   switch (timeRange) {
     case '1m':
-      const oneMonthAgo = new Date(now);
-      oneMonthAgo.setMonth(now.getMonth() - 1);
-      return oneMonthAgo;
     case '1y':
-      const oneYearAgo = new Date(now);
-      oneYearAgo.setFullYear(now.getFullYear() - 1);
-      return oneYearAgo;
+      // Daily aggregation
+      return date.toISOString().split('T')[0];
+
     case '5y':
-      const fiveYearsAgo = new Date(now);
-      fiveYearsAgo.setFullYear(now.getFullYear() - 5);
-      return fiveYearsAgo;
+      // Weekly aggregation - Monday of the week
+      const monday = new Date(date);
+      monday.setDate(date.getDate() - date.getDay() + (date.getDay() === 0 ? -6 : 1));
+      return monday.toISOString().split('T')[0];
+
     case 'all':
-      return null; // No date filter
+      // Monthly aggregation - last day of month
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      return lastDay.toISOString().split('T')[0];
   }
 }
 
 /**
- * Aggregate transactions by period (daily, weekly, or monthly)
- */
-function aggregateByPeriod(
-  transactions: Transaction[],
-  timeRange: TimeRange
-): Map<string, Transaction[]> {
-  const periods = new Map<string, Transaction[]>();
-
-  transactions.forEach(tx => {
-    const date = new Date(tx.date);
-    let periodKey: string;
-
-    switch (timeRange) {
-      case '1m':
-      case '1y':
-        // Daily aggregation
-        periodKey = tx.date;
-        break;
-      case '5y':
-        // Weekly aggregation - use Monday of the week
-        const monday = new Date(date);
-        monday.setDate(date.getDate() - date.getDay() + (date.getDay() === 0 ? -6 : 1));
-        periodKey = monday.toISOString().split('T')[0];
-        break;
-      case 'all':
-        // Monthly aggregation - use last day of month
-        const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-        periodKey = lastDay.toISOString().split('T')[0];
-        break;
-    }
-
-    if (!periods.has(periodKey)) {
-      periods.set(periodKey, []);
-    }
-    periods.get(periodKey)!.push(tx);
-  });
-
-  return periods;
-}
-
-/**
  * Calculate balance history from transactions
+ * startBalance is now calculated by the database via useStartingBalance hook
  */
 function calculateBalanceHistory(
-  transactions: Transaction[],
+  transactions: BalanceTransaction[],
   timeRange: TimeRange,
-  includeHidden: boolean
+  includeHidden: boolean,
+  startBalance: number
 ): BalanceStats {
-  // Filter transactions
-  const filtered = transactions
-    .filter(t => includeHidden || !t.hide_from_totals)
-    .filter(t => t.eur_amount !== null && t.eur_amount !== undefined);
-
-  // Apply time range filter
-  const cutoffDate = getDateRange(timeRange);
-  const timeFiltered = cutoffDate
-    ? filtered.filter(t => new Date(t.date) >= cutoffDate)
-    : filtered;
-
-  // Sort chronologically
-  const sorted = [...timeFiltered].sort((a, b) =>
-    a.date.localeCompare(b.date)
+  // Filter transactions in single pass (hide_from_totals and valid eur_amount)
+  const filtered = transactions.filter(t =>
+    (includeHidden || !t.hide_from_totals) &&
+    t.eur_amount !== null &&
+    t.eur_amount !== undefined
   );
+
+  // No need to sort - useRangeTransactions already orders by date ascending
+  const sorted = filtered;
 
   if (sorted.length === 0) {
     return {
-      startBalance: 0,
-      currentBalance: 0,
+      startBalance,
+      currentBalance: startBalance,
       changeAmount: 0,
       changePercent: 0,
       dataPoints: [],
     };
   }
 
-  // Calculate balance before the time range for accurate starting balance
-  const beforeCutoff = cutoffDate
-    ? filtered.filter(t => new Date(t.date) < cutoffDate)
-    : [];
-
-  let startBalance = 0;
-  beforeCutoff.forEach(tx => {
-    const amount = tx.eur_amount as number;
-    startBalance += tx.type === 'income' ? amount : -amount;
-  });
-
-  // Aggregate by period
-  const periods = aggregateByPeriod(sorted, timeRange);
-
-  // Calculate running balance for each period
-  const dataPoints: BalanceDataPoint[] = [];
+  // OPTIMIZED: Single-pass aggregation with running balance (O(n) instead of O(n²))
+  const periods = new Map<string, BalanceDataPoint>();
   let runningBalance = startBalance;
 
-  const sortedPeriods = Array.from(periods.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0])
-  );
+  // Transactions already sorted chronologically, process in single pass
+  sorted.forEach(tx => {
+    const date = new Date(tx.date);
+    const periodKey = getPeriodKey(date, timeRange);
 
-  sortedPeriods.forEach(([periodDate, periodTransactions]) => {
-    let periodIncome = 0;
-    let periodExpense = 0;
+    // Get or create period data point
+    if (!periods.has(periodKey)) {
+      periods.set(periodKey, {
+        date: periodKey,
+        balance: runningBalance,
+        income: 0,
+        expense: 0,
+        transactionCount: 0,
+      });
+    }
 
-    periodTransactions.forEach(tx => {
-      const amount = tx.eur_amount as number;
-      if (tx.type === 'income') {
-        runningBalance += amount;
-        periodIncome += amount;
-      } else {
-        runningBalance -= amount;
-        periodExpense += amount;
-      }
-    });
+    const period = periods.get(periodKey)!;
+    const amount = tx.eur_amount as number;
 
-    dataPoints.push({
-      date: periodDate,
-      balance: runningBalance,
-      income: periodIncome,
-      expense: periodExpense,
-      transactionCount: periodTransactions.length,
-    });
+    // Update running balance and period statistics
+    if (tx.type === 'income') {
+      runningBalance += amount;
+      period.income += amount;
+    } else {
+      runningBalance -= amount;
+      period.expense += amount;
+    }
+
+    period.balance = runningBalance;
+    period.transactionCount++;
   });
+
+  const dataPoints = Array.from(periods.values());
 
   const currentBalance = dataPoints.length > 0
     ? dataPoints[dataPoints.length - 1].balance
@@ -184,27 +132,55 @@ function calculateBalanceHistory(
 }
 
 /**
- * Hook to get balance history data
+ * Hook to get balance history data with optimized range-based queries
  */
 export function useBalanceHistory(
   timeRange: TimeRange,
   includeHidden: boolean
 ) {
-  const { transactions, isLoading, error } = useAllTransactions();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  // Get user ID for starting balance calculation
+  useEffect(() => {
+    const supabase = createClient();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
+
+  // Fetch transactions for the selected time range only
+  const { transactions, isLoading: transactionsLoading, error: transactionsError } = useRangeTransactions(
+    timeRange,
+    includeHidden
+  );
+
+  // Fetch starting balance from database (efficient RPC call)
+  const { startingBalance, isLoading: balanceLoading, error: balanceError } = useStartingBalance(
+    timeRange,
+    includeHidden,
+    userId
+  );
+
+  const isLoading = transactionsLoading || balanceLoading;
+  const error = transactionsError || balanceError;
 
   const balanceStats = useMemo(() => {
     if (!transactions || transactions.length === 0) {
       return {
-        startBalance: 0,
-        currentBalance: 0,
+        startBalance: startingBalance,
+        currentBalance: startingBalance,
         changeAmount: 0,
         changePercent: 0,
         dataPoints: [],
       };
     }
 
-    return calculateBalanceHistory(transactions, timeRange, includeHidden);
-  }, [transactions, timeRange, includeHidden]);
+    return calculateBalanceHistory(transactions, timeRange, includeHidden, startingBalance);
+  }, [transactions, timeRange, includeHidden, startingBalance]);
 
   return {
     ...balanceStats,

@@ -3,6 +3,7 @@ import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
+import { SummarySkeleton } from "@/components/ui/skeletons";
 
 type CurrencyTotals = { [currency: string]: number };
 
@@ -537,27 +538,6 @@ type TransactionSummaryProps = {
   readonly currentYear?: number;
 };
 
-function LoadingSkeleton() {
-  return (
-    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6 mb-8">
-      <div className="flex justify-between items-center pb-4 border-b border-border">
-        <div className="h-6 bg-muted rounded animate-pulse w-20"></div>
-        <div className="h-6 bg-muted rounded animate-pulse w-24"></div>
-      </div>
-      <div className="mt-4 space-y-4">
-        {["ls-1", "ls-2", "ls-3"].map((id) => (
-          <div key={id} className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 bg-muted rounded animate-pulse"></div>
-              <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
-            </div>
-            <div className="h-4 bg-muted rounded animate-pulse w-20"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function TransactionSummary({
   transactions,
@@ -597,7 +577,12 @@ export default function TransactionSummary({
   const prevYearBalanceTotal = prevYearIncomeTotal - prevYearExpenseTotal;
 
   if (isLoading) {
-    return <LoadingSkeleton />;
+    // Year view shows both totals and category breakdown
+    if (currentYear !== undefined) {
+      return <SummarySkeleton yearView={true} />;
+    }
+    // Monthly view shows collapsed summary
+    return <SummarySkeleton collapsed={true} />;
   }
 
   // Prepare totals data with categories for monthly view

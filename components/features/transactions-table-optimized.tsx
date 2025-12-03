@@ -6,11 +6,13 @@ import { CATEGORY_ICONS } from "@/utils/categories";
 import NoTransactions from "@/components/features/no-transactions";
 import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
 import { LucideProps } from "lucide-react";
+import { TransactionListSkeleton } from "@/components/ui/skeletons";
 
 type TransactionsTableProps = {
   readonly transactions: ReadonlyArray<Transaction>;
   readonly onTransactionClick?: (transaction: Transaction) => void;
   readonly showYear?: boolean; // For search results - forces year display
+  readonly isLoading?: boolean;
 };
 
 // Optimized transaction row component with new card design
@@ -130,6 +132,7 @@ export default function TransactionsTable({
   transactions,
   onTransactionClick,
   showYear = false,
+  isLoading = false,
 }: TransactionsTableProps) {
   const groupedData = useMemo(() => {
     if (!transactions.length) return {};
@@ -152,6 +155,10 @@ export default function TransactionsTable({
     },
     [onTransactionClick]
   );
+
+  if (isLoading) {
+    return <TransactionListSkeleton count={10} />;
+  }
 
   if (transactions.length === 0) {
     return <NoTransactions />;

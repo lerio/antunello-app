@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BalanceSkeleton } from "@/components/ui/skeletons";
 
 export default function Balance() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -60,7 +62,7 @@ export default function Balance() {
         <div className="flex items-center gap-2">
           <div className={`text-lg font-semibold ${amountColorClass}`}>
             {isLoading ? (
-              <span className="inline-block w-20 h-[1.375rem] bg-muted rounded animate-pulse align-middle" />
+              <Skeleton className="inline-block w-20 h-5 align-middle" />
             ) : (
               <>€{formatAmount(Math.abs(totalBalanceEUR))}</>
             )}
@@ -84,16 +86,7 @@ export default function Balance() {
         <div className="mt-4">
           {(() => {
             if (isLoading) {
-              return (
-                <div className="space-y-2">
-                  {['s1', 's2', 's3'].map((k) => (
-                    <div key={k} className="flex justify-between items-center">
-                      <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                      <div className="h-4 bg-muted rounded w-16 animate-pulse" />
-                    </div>
-                  ))}
-                </div>
-              );
+              return <BalanceSkeleton />;
             }
             if (fundCategories.length === 0) {
               return (

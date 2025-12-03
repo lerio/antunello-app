@@ -1,6 +1,7 @@
 import { Transaction } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
+import { SummarySkeleton } from "@/components/ui/skeletons";
 
 type SearchTotals = {
   expenseTotal: number;
@@ -41,26 +42,6 @@ function computeSearchTotals(transactions: ReadonlyArray<Transaction>): SearchTo
   return { expenseTotal, incomeTotal, hiddenExpenseTotal, hiddenIncomeTotal, hiddenTransactionCount };
 }
 
-function LoadingSkeleton() {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
-        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-      </div>
-      <div className="mt-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-20"></div>
-          <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-        </div>
-        <div className="flex justify-between items-center">
-          <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-28"></div>
-          <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 type SearchSummaryProps = {
   readonly transactions: ReadonlyArray<Transaction>;
@@ -126,7 +107,7 @@ export default function SearchSummary({
   const { expenseTotal, incomeTotal, hiddenExpenseTotal, hiddenIncomeTotal, hiddenTransactionCount } = computeSearchTotals(transactions);
   const balanceTotal = incomeTotal - expenseTotal;
 
-  if (isLoading) return <LoadingSkeleton />;
+  if (isLoading) return <SummarySkeleton />;
   if (transactions.length === 0) return null;
 
   return (
