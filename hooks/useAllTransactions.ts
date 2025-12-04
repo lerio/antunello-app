@@ -15,6 +15,7 @@ const allTransactionsFetcher = async (): Promise<Transaction[]> => {
       .from('transactions')
       .select('*')
       .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(from, from + batchSize - 1)
     
     if (error) throw error

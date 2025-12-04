@@ -84,9 +84,14 @@ export function useTransactionMutations() {
     return {}
   }
 
-  // Helper to sort transactions by date descending
+  // Helper to sort transactions by date descending, then by created_at descending
   const sortTransactionsByDate = (transactions: Transaction[]): Transaction[] => {
-    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return transactions.sort((a, b) => {
+      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+      if (dateCompare !== 0) return dateCompare
+      // If dates are equal, sort by created_at
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
   }
 
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {

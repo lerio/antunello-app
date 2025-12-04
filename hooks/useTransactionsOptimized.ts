@@ -56,9 +56,14 @@ export function useTransactionsOptimized(year: number, month: number) {
     }
   }
 
-  // Helper to sort transactions by date
+  // Helper to sort transactions by date, then by created_at
   const sortByDate = (transactions: Transaction[]): Transaction[] => {
-    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return transactions.sort((a, b) => {
+      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+      if (dateCompare !== 0) return dateCompare
+      // If dates are equal, sort by created_at
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
   }
 
   // Helper to handle INSERT event

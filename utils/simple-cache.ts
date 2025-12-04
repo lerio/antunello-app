@@ -99,6 +99,46 @@ class TransactionCache {
     this.cache.clear()
   }
 
+  /**
+   * Clear a specific month's cache entry
+   */
+  clearMonth(year: number, month: number) {
+    const key = `transactions-${year}-${month}`
+    this.cache.delete(key)
+  }
+
+  /**
+   * Clear a specific year's cache entry
+   */
+  clearYear(year: number) {
+    const key = `year-transactions-${year}`
+    this.cache.delete(key)
+  }
+
+  /**
+   * Clear related cache entries (current + adjacent months + years)
+   * Handles year boundaries correctly
+   */
+  clearRelated(year: number, month: number) {
+    // Clear current month
+    this.clearMonth(year, month)
+
+    // Clear adjacent months
+    const prevDate = new Date(year, month - 2, 1)
+    const nextDate = new Date(year, month, 1)
+    this.clearMonth(prevDate.getFullYear(), prevDate.getMonth() + 1)
+    this.clearMonth(nextDate.getFullYear(), nextDate.getMonth() + 1)
+
+    // Clear year cache(s) - handles year boundaries
+    this.clearYear(year)
+    if (prevDate.getFullYear() !== year) {
+      this.clearYear(prevDate.getFullYear())
+    }
+    if (nextDate.getFullYear() !== year) {
+      this.clearYear(nextDate.getFullYear())
+    }
+  }
+
   // Debug method to see cache status
   getStatus() {
     return {

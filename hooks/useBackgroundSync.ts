@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { transactionCache } from '@/utils/simple-cache'
 
 export interface BackgroundSyncState {
   hasUpdates: boolean
   updateCount: number
   dismissUpdate: () => void
-  refreshData: (mutateFn: () => void) => void
+  refreshData: (mutateFn: () => void, context?: { year: number; month: number }) => void
   recordLocalMutation: () => void
 }
 
@@ -102,7 +103,12 @@ export function useBackgroundSync(userId: string | undefined): BackgroundSyncSta
     setUpdateCount(0)
   }
 
-  const refreshData = (mutateFn: () => void) => {
+  const refreshData = (mutateFn: () => void, context?: { year: number; month: number }) => {
+    // Clear simple cache if context provided
+    if (context) {
+      transactionCache.clearRelated(context.year, context.month)
+    }
+
     // Trigger SWR revalidation
     mutateFn()
 

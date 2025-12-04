@@ -19,6 +19,7 @@ import { UpdateBanner } from "@/components/ui/update-banner";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
 import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
+import { transactionCache } from "@/utils/simple-cache";
 import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
@@ -99,6 +100,8 @@ export default function ProtectedPage() {
   // Pull-to-refresh functionality
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: async () => {
+      // Clear cache before refreshing
+      transactionCache.clearRelated(currentDate.getFullYear(), currentDate.getMonth() + 1);
       await mutate();
     },
     disabled: hasOpenModal, // Disable when modals are open
@@ -263,7 +266,10 @@ export default function ProtectedPage() {
       {hasUpdates && (
         <UpdateBanner
           updateCount={updateCount}
-          onRefresh={() => refreshData(mutate)}
+          onRefresh={() => refreshData(mutate, {
+            year: currentDate.getFullYear(),
+            month: currentDate.getMonth() + 1
+          })}
           onDismiss={dismissUpdate}
         />
       )}

@@ -25,6 +25,7 @@ export function useTransactionSearch(query: string) {
         .select('*')
         .or(`title.ilike.%${query}%,main_category.ilike.%${query}%,sub_category.ilike.%${query}%`)
         .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100)
 
       if (queryError) throw new Error(queryError.message)

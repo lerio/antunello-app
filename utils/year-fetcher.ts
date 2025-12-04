@@ -56,6 +56,7 @@ async function fetchYearTransactions(key: string): Promise<Transaction[]> {
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(from, from + batchSize - 1)
     
     if (error) throw error

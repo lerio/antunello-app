@@ -44,6 +44,7 @@ async function fetchTransactions(key: string): Promise<Transaction[]> {
     .gte('date', start.toISOString())
     .lte('date', end.toISOString())
     .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
     .range(0, 9999) // Get up to 10,000 transactions to avoid the 1000 limit
 
   if (error) throw error

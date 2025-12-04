@@ -5,7 +5,12 @@ import { createClient } from '@/utils/supabase/client'
 export type TimeRange = '1m' | '1y' | '5y' | 'all';
 
 // Partial transaction type with only fields needed for balance calculation
-export type BalanceTransaction = Pick<Transaction, 'date' | 'type' | 'eur_amount' | 'hide_from_totals'>;
+export type BalanceTransaction = {
+  date: string
+  type: 'expense' | 'income'
+  eur_amount: number | null
+  hide_from_totals: boolean | null
+}
 
 /**
  * Calculate start date for a given time range
