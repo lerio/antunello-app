@@ -122,8 +122,8 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
   let hiddenExpenseTotal = 0;
 
   const converted = transactions.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
-  const hidden = converted.filter((t) => t.hide_from_totals);
-  const visible = converted.filter((t) => !t.hide_from_totals);
+  const hidden = converted.filter((t) => t.hide_from_totals && !t.is_money_transfer);
+  const visible = converted.filter((t) => !t.hide_from_totals && !t.is_money_transfer);
 
   for (const t of hidden) {
     if (t.type === "expense") hiddenExpenseTotal += t.eur_amount as number;
@@ -152,8 +152,8 @@ function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevY
 
   const list = transactions ?? [];
   const converted = list.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
-  const hidden = converted.filter((t) => t.hide_from_totals);
-  const visible = converted.filter((t) => !t.hide_from_totals);
+  const hidden = converted.filter((t) => t.hide_from_totals && !t.is_money_transfer);
+  const visible = converted.filter((t) => !t.hide_from_totals && !t.is_money_transfer);
 
   for (const t of hidden) {
     if (t.type === "expense") prevYearHiddenExpenseTotal += t.eur_amount as number;

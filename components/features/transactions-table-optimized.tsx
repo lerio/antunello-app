@@ -43,7 +43,7 @@ const TransactionRow = React.memo(
         </div>
         <div className="ml-4 flex-1 min-w-0 overflow-hidden">
           <div className="relative">
-            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden">
+            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden uppercase">
               {transaction.title}
             </p>
             <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
@@ -54,8 +54,13 @@ const TransactionRow = React.memo(
         </div>
         <div className="flex-shrink-0 ml-4">
           <p
-            className={`font-medium text-right ${transaction.type === "expense" ? "text-red-500" : "text-green-500"
-              }`}
+            className={`font-medium text-right ${
+              transaction.is_money_transfer
+                ? "text-gray-900 dark:text-white"
+                : transaction.type === "expense"
+                ? "text-red-500"
+                : "text-green-500"
+            }`}
           >
             {formatCurrency(
               amount,
@@ -168,8 +173,8 @@ export default function TransactionsTable({
     <div className="space-y-3">
       {Object.entries(groupedData).map(([date, dateTransactions]) => {
         const dailyTotal = dateTransactions.reduce((total, t) => {
-          // Skip transactions that are hidden from totals
-          if (t.hide_from_totals) return total;
+          // Skip transactions that are hidden from totals or are money transfers
+          if (t.hide_from_totals || t.is_money_transfer) return total;
 
           const amount = t.eur_amount || (t.currency === "EUR" ? t.amount : 0);
           return total + (t.type === "expense" ? -amount : amount);

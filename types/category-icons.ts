@@ -18,11 +18,13 @@ import {
   Receipt,
   Car,
   Plane,
+  ArrowRightLeft,
   LucideIcon
 } from 'lucide-react'
 
 // Category icon mapping
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'Money Transfer': ArrowRightLeft,
   'Bank Movements': Building2,
   'Dining': Utensils,
   'Education': GraduationCap,

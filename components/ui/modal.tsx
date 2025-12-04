@@ -93,7 +93,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
       />
       <dialog
         open
-        className={`relative z-10 w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-background rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+        className={`relative z-10 w-full max-w-md sm:max-w-lg md:max-w-4xl mx-1 sm:mx-2 mb-2 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
           }`}
         style={{ maxHeight: maxHeightStyle }}
         aria-label="Modal dialog"

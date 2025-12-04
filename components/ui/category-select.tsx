@@ -114,7 +114,7 @@ export function CategorySelect({
       <button
         ref={buttonRef}
         type="button"
-        className={`w-full px-4 py-3 text-left bg-background border border-input rounded-lg shadow-sm focus:outline-none text-base ${disabled ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer'
+        className={`w-full px-4 py-3 text-left bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none text-base ${disabled ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer'
           }`}
         onClick={toggleOpen}
         disabled={disabled}
@@ -134,7 +134,7 @@ export function CategorySelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
           <div className="py-1">
             {options.map(renderOption)}
           </div>

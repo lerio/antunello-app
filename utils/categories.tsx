@@ -1,5 +1,6 @@
 import {
   Apple,
+  ArrowRightLeft,
   BriefcaseBusiness,
   BriefcaseMedical,
   CreditCard,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 
 export const CATEGORY_ICONS: Record<string, React.ComponentType> = {
+  "Money Transfer": ArrowRightLeft,
   "Bank Movements": CreditCard,
   Dining: Utensils,
   Education: GraduationCap,

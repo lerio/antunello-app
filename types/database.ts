@@ -18,6 +18,9 @@ export type Transaction = {
   hide_from_totals?: boolean
   // Link to fund category
   fund_category_id?: string | null
+  // Money transfer fields
+  is_money_transfer?: boolean
+  target_fund_category_id?: string | null
 }
 
 export type ExchangeRate = {
@@ -55,6 +58,7 @@ type CategoryData = {
 
 // Use a smaller inline constant for now to avoid webpack cache issues
 export const CATEGORIES_WITH_TYPES: ReadonlyArray<CategoryData> = [
+  { category: "Money Transfer", subcategories: ["Money Transfer"], type: "expense" },
   { category: "Bank Movements", subcategories: ["Initial Assets"], type: "income" },
   { category: "Dining", subcategories: ["Bars and Drinks", "Food Delivery", "Restaurants"], type: "expense" },
   { category: "Education", subcategories: ["Books and Supplies", "Educational Services", "Tuition and Fees"], type: "expense" },

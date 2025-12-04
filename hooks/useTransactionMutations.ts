@@ -102,7 +102,9 @@ export function useTransactionMutations() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       eur_amount: optimisticEurAmount,
-      fund_category_id: data.fund_category_id || undefined
+      fund_category_id: data.fund_category_id || undefined,
+      is_money_transfer: data.is_money_transfer || false,
+      target_fund_category_id: data.target_fund_category_id || undefined
     }
 
     // Optimistically update the cache immediately
@@ -115,7 +117,9 @@ export function useTransactionMutations() {
       const transactionData = {
         ...data,
         ...(data.eur_amount === undefined ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {}),
-        fund_category_id: data.fund_category_id || undefined
+        fund_category_id: data.fund_category_id || undefined,
+        is_money_transfer: data.is_money_transfer || false,
+        target_fund_category_id: data.target_fund_category_id || undefined
       }
 
 
