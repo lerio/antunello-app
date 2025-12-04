@@ -18,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
+import { FundSelect } from "@/components/ui/fund-select";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
 
@@ -629,26 +630,14 @@ export default function TransactionFormModal({
           {/* Source (Fund Category) - Only show for regular transactions */}
           {!isMoneyTransferMode && (
             <div className="md:col-span-2">
-              <select
-                className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                  } ${!selectedFundCategoryId ? "text-gray-500 dark:text-gray-400" : ""}`}
-                id="fund_category_id"
-                name="fund_category_id"
-                value={selectedFundCategoryId || ""}
-                onChange={(e) => {
-                  setSelectedFundCategoryId(e.target.value || null);
-                }}
+              <FundSelect
+                options={fundCategories.filter((fund) => fund.is_active)}
+                value={selectedFundCategoryId}
+                onChange={setSelectedFundCategoryId}
+                placeholder="Select fund"
                 disabled={disabled || fundCategoriesLoading}
-              >
-                <option value="">No Source</option>
-                {fundCategories
-                  .filter((fund) => fund.is_active)
-                  .map((fund) => (
-                    <option key={fund.id} value={fund.id}>
-                      {fund.name} ({fund.currency})
-                    </option>
-                  ))}
-              </select>
+              />
+              <input type="hidden" name="fund_category_id" value={selectedFundCategoryId || ""} />
             </div>
           )}
 
@@ -747,24 +736,15 @@ export default function TransactionFormModal({
                     setValidationErrors((prev) => ({ ...prev, mainCategory: "" }))
                   }
                 >
-                  <select
-                    className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${!selectedFundCategoryId ? "text-gray-500 dark:text-gray-400" : ""}`}
-                    name="fund_category_id"
-                    value={selectedFundCategoryId || ""}
-                    onChange={(e) => setSelectedFundCategoryId(e.target.value || null)}
+                  <FundSelect
+                    options={fundCategories.filter((fund) => fund.is_active)}
+                    value={selectedFundCategoryId}
+                    onChange={setSelectedFundCategoryId}
+                    placeholder="Select source fund"
                     disabled={disabled || fundCategoriesLoading}
-                    required
-                  >
-                    <option value="">Select source fund</option>
-                    {fundCategories
-                      .filter((fund) => fund.is_active)
-                      .map((fund) => (
-                        <option key={fund.id} value={fund.id}>
-                          {fund.name} ({fund.currency})
-                        </option>
-                      ))}
-                  </select>
+                  />
                 </ValidationTooltip>
+                <input type="hidden" name="fund_category_id" value={selectedFundCategoryId || ""} />
               </div>
 
               {/* To Fund (Target) */}
@@ -776,32 +756,17 @@ export default function TransactionFormModal({
                     setValidationErrors((prev) => ({ ...prev, subCategory: "" }))
                   }
                 >
-                  <select
-                    className={`${inputClass} ${
-                      disabled ? "opacity-50 cursor-not-allowed" : ""
-                    } ${
-                      selectedFundCategoryId && targetFundCategoryId &&
-                      selectedFundCategoryId === targetFundCategoryId
-                        ? "border-red-500 dark:border-red-400"
-                        : ""
-                    } ${!targetFundCategoryId ? "text-gray-500 dark:text-gray-400" : ""}`}
-                    name="target_fund_category_id"
-                    value={targetFundCategoryId || ""}
-                    onChange={(e) => setTargetFundCategoryId(e.target.value || null)}
+                  <FundSelect
+                    options={fundCategories.filter((fund) => fund.is_active)}
+                    value={targetFundCategoryId}
+                    onChange={setTargetFundCategoryId}
+                    placeholder="Select target fund"
                     disabled={disabled || fundCategoriesLoading}
-                    required
-                  >
-                    <option value="">Select target fund</option>
-                    {fundCategories
-                      .filter((fund) => fund.is_active)
-                      .map((fund) => (
-                        <option key={fund.id} value={fund.id}>
-                          {fund.name} ({fund.currency})
-                        </option>
-                      ))}
-                  </select>
+                    error={selectedFundCategoryId === targetFundCategoryId && selectedFundCategoryId !== null}
+                  />
                 </ValidationTooltip>
-                {/* Hidden input for title */}
+                {/* Hidden inputs for form submission */}
+                <input type="hidden" name="target_fund_category_id" value={targetFundCategoryId || ""} />
                 <input type="hidden" name="title" value={title} />
               </div>
 
