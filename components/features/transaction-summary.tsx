@@ -10,7 +10,7 @@ type CurrencyTotals = { [currency: string]: number };
 type CategoryTotals = { [category: string]: { [currency: string]: number } };
 
 type CategoryData = {
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   category: string;
   icon: React.ComponentType<LucideProps>;
   total: number;
@@ -45,7 +45,7 @@ type TotalsItem = {
   isHiddenExpense?: boolean;
   isCollapsible?: boolean;
   isSubCategory?: boolean;
-  type?: 'income' | 'expense';
+  type?: "income" | "expense";
   icon?: React.ComponentType<LucideProps>;
 };
 
@@ -58,55 +58,97 @@ function getMonthlyAverage(total: number, year?: number) {
   return total / 12;
 }
 
-function getDifferenceFromPrevYear(currentTotal: number, prevYearTotal: number): number {
+function getDifferenceFromPrevYear(
+  currentTotal: number,
+  prevYearTotal: number
+): number {
   const currentMonthlyAvg = getMonthlyAverage(currentTotal);
   const prevYearMonthlyAvg = getMonthlyAverage(prevYearTotal);
   return currentMonthlyAvg - prevYearMonthlyAvg;
 }
 
 function formatAmount(amount: number) {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
-function getDifferenceColorClass(difference: number, isIncome: boolean = false): string {
+function getDifferenceColorClass(
+  difference: number,
+  isIncome: boolean = false
+): string {
   const isPositive = difference > 0;
-  if (isIncome) return isPositive ? 'text-green-500' : 'text-red-500';
-  return isPositive ? 'text-red-500' : 'text-green-500';
+  if (isIncome) return isPositive ? "text-green-500" : "text-red-500";
+  return isPositive ? "text-red-500" : "text-green-500";
 }
 
 function formatDifference(difference: number, isIncome: boolean = false) {
-  const sign = difference > 0 ? '+' : '-';
+  const sign = difference > 0 ? "+" : "-";
   const colorClass = getDifferenceColorClass(difference, isIncome);
   return (
     <span className={`${colorClass} text-sm sm:text-sm`}>
-      {sign}{formatAmount(Math.abs(difference))}
+      {sign}
+      {formatAmount(Math.abs(difference))}
     </span>
   );
 }
 
-function getCategoryNameClass(isSubCategory: boolean, isHiddenExpense: boolean, isBalance: boolean, isIncome: boolean, total?: number): string {
-  const baseClass = 'text-sm sm:text-sm';
+function getCategoryNameClass(
+  isSubCategory: boolean,
+  isHiddenExpense: boolean,
+  isBalance: boolean,
+  isIncome: boolean,
+  total?: number
+): string {
+  const baseClass = "text-sm sm:text-sm";
   if (isSubCategory) return `${baseClass} ml-4`;
-  if (isHiddenExpense) return `${baseClass} text-red-600 dark:text-red-400 ml-2 sm:ml-4`;
+  if (isHiddenExpense)
+    return `${baseClass} text-red-600 dark:text-red-400 ml-2 sm:ml-4`;
   if (isBalance) {
-    const colorClass = (total || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    const colorClass =
+      (total || 0) >= 0
+        ? "text-green-600 dark:text-green-400"
+        : "text-red-600 dark:text-red-400";
     return `font-medium ${baseClass} ${colorClass}`;
   }
-  if (isIncome) return `font-medium ${baseClass} text-green-600 dark:text-green-400`;
+  if (isIncome)
+    return `font-medium ${baseClass} text-green-600 dark:text-green-400`;
   return `font-medium ${baseClass} text-red-600 dark:text-red-400`;
 }
 
-function getTotalAmountClass(isSubCategory: boolean, itemType: string, isHiddenExpense: boolean, isBalance: boolean, isIncome: boolean, total?: number): string {
-  const baseClass = 'text-sm sm:text-sm';
-  if (isSubCategory) return `${baseClass} ${itemType === 'income' ? 'text-green-500' : 'text-red-500'}`;
+function getTotalAmountClass(
+  isSubCategory: boolean,
+  itemType: string,
+  isHiddenExpense: boolean,
+  isBalance: boolean,
+  isIncome: boolean,
+  total?: number
+): string {
+  const baseClass = "text-sm sm:text-sm";
+  if (isSubCategory)
+    return `${baseClass} ${
+      itemType === "income" ? "text-green-500" : "text-red-500"
+    }`;
   if (isHiddenExpense) return `${baseClass} text-red-500`;
-  if (isBalance) return `font-medium ${baseClass} ${(total || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`;
-  return `font-medium ${baseClass} ${isIncome ? 'text-green-500' : 'text-red-500'}`;
+  if (isBalance)
+    return `font-medium ${baseClass} ${
+      (total || 0) >= 0 ? "text-green-500" : "text-red-500"
+    }`;
+  return `font-medium ${baseClass} ${
+    isIncome ? "text-green-500" : "text-red-500"
+  }`;
 }
 
-function getMonthlyAmountClass(isBalance: boolean, monthlyAverage?: number): string {
-  const baseClass = 'text-sm sm:text-sm';
-  if (isBalance) return `${baseClass} ${(monthlyAverage || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`;
+function getMonthlyAmountClass(
+  isBalance: boolean,
+  monthlyAverage?: number
+): string {
+  const baseClass = "text-sm sm:text-sm";
+  if (isBalance)
+    return `${baseClass} ${
+      (monthlyAverage || 0) >= 0 ? "text-green-500" : "text-red-500"
+    }`;
   return baseClass;
 }
 
@@ -114,16 +156,24 @@ function inc(map: Record<string, number>, key: string, amount: number) {
   map[key] = (map[key] || 0) + amount;
 }
 
-function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTotals {
+function computeYearTotals(
+  transactions: ReadonlyArray<Transaction>
+): SummaryTotals {
   let expenseTotal = 0;
   let incomeTotal = 0;
   const incomeCategoryTotals: Record<string, number> = {};
   const expenseCategoryTotals: Record<string, number> = {};
   let hiddenExpenseTotal = 0;
 
-  const converted = transactions.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
-  const hidden = converted.filter((t) => t.hide_from_totals && !t.is_money_transfer);
-  const visible = converted.filter((t) => !t.hide_from_totals && !t.is_money_transfer);
+  const converted = transactions.filter(
+    (t) => t.eur_amount !== null && t.eur_amount !== undefined
+  );
+  const hidden = converted.filter(
+    (t) => t.hide_from_totals && !t.is_money_transfer
+  );
+  const visible = converted.filter(
+    (t) => !t.hide_from_totals && !t.is_money_transfer
+  );
 
   for (const t of hidden) {
     if (t.type === "expense") hiddenExpenseTotal += t.eur_amount as number;
@@ -140,10 +190,18 @@ function computeYearTotals(transactions: ReadonlyArray<Transaction>): SummaryTot
     }
   }
 
-  return { expenseTotal, incomeTotal, incomeCategoryTotals, expenseCategoryTotals, hiddenExpenseTotal };
+  return {
+    expenseTotal,
+    incomeTotal,
+    incomeCategoryTotals,
+    expenseCategoryTotals,
+    hiddenExpenseTotal,
+  };
 }
 
-function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevYearTotals {
+function computePrevYearTotals(
+  transactions?: ReadonlyArray<Transaction>
+): PrevYearTotals {
   let prevYearExpenseTotal = 0;
   let prevYearIncomeTotal = 0;
   const prevYearIncomeCategoryTotals: Record<string, number> = {};
@@ -151,12 +209,19 @@ function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevY
   let prevYearHiddenExpenseTotal = 0;
 
   const list = transactions ?? [];
-  const converted = list.filter((t) => t.eur_amount !== null && t.eur_amount !== undefined);
-  const hidden = converted.filter((t) => t.hide_from_totals && !t.is_money_transfer);
-  const visible = converted.filter((t) => !t.hide_from_totals && !t.is_money_transfer);
+  const converted = list.filter(
+    (t) => t.eur_amount !== null && t.eur_amount !== undefined
+  );
+  const hidden = converted.filter(
+    (t) => t.hide_from_totals && !t.is_money_transfer
+  );
+  const visible = converted.filter(
+    (t) => !t.hide_from_totals && !t.is_money_transfer
+  );
 
   for (const t of hidden) {
-    if (t.type === "expense") prevYearHiddenExpenseTotal += t.eur_amount as number;
+    if (t.type === "expense")
+      prevYearHiddenExpenseTotal += t.eur_amount as number;
   }
 
   for (const t of visible) {
@@ -170,11 +235,25 @@ function computePrevYearTotals(transactions?: ReadonlyArray<Transaction>): PrevY
     }
   }
 
-  return { prevYearExpenseTotal, prevYearIncomeTotal, prevYearIncomeCategoryTotals, prevYearExpenseCategoryTotals, prevYearHiddenExpenseTotal };
+  return {
+    prevYearExpenseTotal,
+    prevYearIncomeTotal,
+    prevYearIncomeCategoryTotals,
+    prevYearExpenseCategoryTotals,
+    prevYearHiddenExpenseTotal,
+  };
 }
 
-function getDifferenceIfAvailable(current: number, previous: number, currentYear?: number, previousYear?: number, isBalance: boolean = false) {
-  return currentYear && previousYear ? getDifferenceFromPrevYear(current, previous) : null;
+function getDifferenceIfAvailable(
+  current: number,
+  previous: number,
+  currentYear?: number,
+  previousYear?: number,
+  isBalance: boolean = false
+) {
+  return currentYear && previousYear
+    ? getDifferenceFromPrevYear(current, previous)
+    : null;
 }
 
 function buildCategoriesData(
@@ -188,31 +267,41 @@ function buildCategoriesData(
   const categoriesData: CategoryData[] = [];
 
   if (Object.keys(incomeCategoryTotals).length > 0) {
-    const entries = Object.entries(incomeCategoryTotals).sort(([, a], [, b]) => b - a);
+    const entries = Object.entries(incomeCategoryTotals).sort(
+      ([, a], [, b]) => b - a
+    );
     for (const [category, amount] of entries) {
       const prevYearAmount = prevYearIncomeCategoryTotals[category] || 0;
       categoriesData.push({
-        type: 'income',
+        type: "income",
         category,
         icon: CATEGORY_ICONS[category],
         total: amount,
         monthlyAverage: getMonthlyAverage(amount, currentYear),
-        difference: currentYear !== undefined && previousYear !== undefined ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+        difference:
+          currentYear !== undefined && previousYear !== undefined
+            ? getDifferenceFromPrevYear(amount, prevYearAmount)
+            : null,
       });
     }
   }
 
   if (Object.keys(expenseCategoryTotals).length > 0) {
-    const entries = Object.entries(expenseCategoryTotals).sort(([, a], [, b]) => b - a);
+    const entries = Object.entries(expenseCategoryTotals).sort(
+      ([, a], [, b]) => b - a
+    );
     for (const [category, amount] of entries) {
       const prevYearAmount = prevYearExpenseCategoryTotals[category] || 0;
       categoriesData.push({
-        type: 'expense',
+        type: "expense",
         category,
         icon: CATEGORY_ICONS[category],
         total: amount,
         monthlyAverage: getMonthlyAverage(amount, currentYear),
-        difference: currentYear !== undefined && previousYear !== undefined ? getDifferenceFromPrevYear(amount, prevYearAmount) : null
+        difference:
+          currentYear !== undefined && previousYear !== undefined
+            ? getDifferenceFromPrevYear(amount, prevYearAmount)
+            : null,
       });
     }
   }
@@ -249,37 +338,58 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
 
   const base: TotalsItem[] = [
     {
-      category: balanceTotal >= 0 ? 'Gains' : 'Losses',
+      category: balanceTotal >= 0 ? "Gains" : "Losses",
       total: balanceTotal,
       monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
-      difference: getDifferenceIfAvailable(balanceTotal, prevYearBalanceTotal, currentYear, previousYear, true),
-      isBalance: true
+      difference: getDifferenceIfAvailable(
+        balanceTotal,
+        prevYearBalanceTotal,
+        currentYear,
+        previousYear,
+        true
+      ),
+      isBalance: true,
     },
     {
-      category: 'Income',
+      category: "Income",
       total: incomeTotal,
       monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
-      difference: getDifferenceIfAvailable(incomeTotal, prevYearIncomeTotal, currentYear, previousYear),
+      difference: getDifferenceIfAvailable(
+        incomeTotal,
+        prevYearIncomeTotal,
+        currentYear,
+        previousYear
+      ),
       isIncome: true,
-      isCollapsible: !currentYear
+      isCollapsible: !currentYear,
     },
     {
-      category: 'Expenses',
+      category: "Expenses",
       total: expenseTotal,
       monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
-      difference: getDifferenceIfAvailable(expenseTotal, prevYearExpenseTotal, currentYear, previousYear),
+      difference: getDifferenceIfAvailable(
+        expenseTotal,
+        prevYearExpenseTotal,
+        currentYear,
+        previousYear
+      ),
       isExpense: true,
-      isCollapsible: !currentYear
-    }
+      isCollapsible: !currentYear,
+    },
   ];
 
   if (hiddenExpenseTotal > 0) {
     base.push({
-      category: 'Hidden',
+      category: "Hidden",
       total: hiddenExpenseTotal,
       monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
-      difference: getDifferenceIfAvailable(hiddenExpenseTotal, prevYearHiddenExpenseTotal, currentYear, previousYear),
-      isHiddenExpense: true
+      difference: getDifferenceIfAvailable(
+        hiddenExpenseTotal,
+        prevYearHiddenExpenseTotal,
+        currentYear,
+        previousYear
+      ),
+      isHiddenExpense: true,
     });
   }
 
@@ -300,29 +410,33 @@ function extendWithCategoryRows(
     extended.push(item);
 
     if (item.isIncome && isIncomeExpanded) {
-      for (const [category, amount] of Object.entries(incomeCategoryTotals).sort(([, a], [, b]) => b - a)) {
+      for (const [category, amount] of Object.entries(
+        incomeCategoryTotals
+      ).sort(([, a], [, b]) => b - a)) {
         extended.push({
           category,
           total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
           difference: null,
           isSubCategory: true,
-          type: 'income',
-          icon: CATEGORY_ICONS[category]
+          type: "income",
+          icon: CATEGORY_ICONS[category],
         });
       }
     }
 
     if (item.isExpense && isExpensesExpanded) {
-      for (const [category, amount] of Object.entries(expenseCategoryTotals).sort(([, a], [, b]) => b - a)) {
+      for (const [category, amount] of Object.entries(
+        expenseCategoryTotals
+      ).sort(([, a], [, b]) => b - a)) {
         extended.push({
           category,
           total: amount,
           monthlyAverage: getMonthlyAverage(amount, currentYear),
           difference: null,
           isSubCategory: true,
-          type: 'expense',
-          icon: CATEGORY_ICONS[category]
+          type: "expense",
+          icon: CATEGORY_ICONS[category],
         });
       }
     }
@@ -332,8 +446,10 @@ function extendWithCategoryRows(
 }
 
 function renderComparisonCell(item: TotalsItem): React.ReactNode {
-  if (item.isHiddenExpense) return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
-  if (item.difference === null) return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
+  if (item.isHiddenExpense)
+    return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
+  if (item.difference === null)
+    return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
   return formatDifference(item.difference, !!(item.isIncome || item.isBalance));
 }
 
@@ -361,22 +477,34 @@ function TotalsTable({
   onToggleDetails,
 }: TotalsTableProps) {
   // Find the balance item to determine if it's gains or losses
-  const balanceItem = totalsData.find(item => item.isBalance);
+  const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
   const isGains = balanceTotal >= 0;
-  const title = isGains ? `Gains (€${formatAmount(Math.abs(balanceTotal))})` : `Losses (€${formatAmount(Math.abs(balanceTotal))})`;
+  const title = isGains
+    ? `Gains (€${formatAmount(Math.abs(balanceTotal))})`
+    : `Losses (€${formatAmount(Math.abs(balanceTotal))})`;
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
-  const filteredData = isDetailsExpanded ? totalsData.filter(item => !item.isBalance) : [];
+  const filteredData = isDetailsExpanded
+    ? totalsData.filter((item) => !item.isBalance)
+    : [];
 
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <h3 className={`text-base sm:text-lg font-semibold ${isGains ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{title}</h3>
+        <h3
+          className={`text-base sm:text-lg font-semibold ${
+            isGains
+              ? "text-green-600 dark:text-green-400"
+              : "text-red-600 dark:text-red-400"
+          }`}
+        >
+          {title}
+        </h3>
         <button
           onClick={onToggleDetails}
           className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
-          aria-label={isDetailsExpanded ? 'Collapse details' : 'Expand details'}
+          aria-label={isDetailsExpanded ? "Collapse details" : "Expand details"}
         >
           {isDetailsExpanded ? (
             <ChevronDown size={18} className="text-muted-foreground" />
@@ -391,10 +519,16 @@ function TotalsTable({
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm"></th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">Total</th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">Monthly</th>
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                  Total
+                </th>
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                  Monthly
+                </th>
                 {previousYear !== undefined && (
-                  <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">vs {previousYear}</th>
+                  <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                    vs {previousYear}
+                  </th>
                 )}
               </tr>
             </thead>
@@ -421,40 +555,78 @@ function TotalsTable({
                   <td className="py-2 sm:py-3 px-1 sm:px-2">
                     <div className="flex items-center">
                       {isCollapsible && (
-                        <button onClick={handleToggleExpand} className="mr-2 p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors">
+                        <button
+                          onClick={handleToggleExpand}
+                          className="mr-2 p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
+                        >
                           {isExpanded ? (
-                            <ChevronDown size={16} className="text-muted-foreground" />
+                            <ChevronDown
+                              size={16}
+                              className="text-muted-foreground"
+                            />
                           ) : (
-                            <ChevronRight size={16} className="text-muted-foreground" />
+                            <ChevronRight
+                              size={16}
+                              className="text-muted-foreground"
+                            />
                           )}
                         </button>
                       )}
                       {isSubCategory && item.icon && (
-                        <item.icon size={16} className="text-muted-foreground mr-2" />
+                        <item.icon
+                          size={16}
+                          className="text-muted-foreground mr-2"
+                        />
                       )}
-                      <span className={getCategoryNameClass(!!isSubCategory, !!isHiddenExpense, item.isBalance || false, item.isIncome || false, item.total)}>
+                      <span
+                        className={getCategoryNameClass(
+                          !!isSubCategory,
+                          !!isHiddenExpense,
+                          item.isBalance || false,
+                          item.isIncome || false,
+                          item.total
+                        )}
+                      >
                         {item.category}
                       </span>
                     </div>
                   </td>
                   <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                    <span className={getTotalAmountClass(!!isSubCategory, item.type || '', !!isHiddenExpense, item.isBalance || false, item.isIncome || false, item.total)}>
+                    <span
+                      className={getTotalAmountClass(
+                        !!isSubCategory,
+                        item.type || "",
+                        !!isHiddenExpense,
+                        item.isBalance || false,
+                        item.isIncome || false,
+                        item.total
+                      )}
+                    >
                       {formatAmount(Math.abs(item.total))}
                     </span>
                   </td>
                   {currentYear !== undefined && (
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
                       {isHiddenExpense ? (
-                        <span className="text-muted-foreground text-sm sm:text-sm">-</span>
+                        <span className="text-muted-foreground text-sm sm:text-sm">
+                          -
+                        </span>
                       ) : (
-                        <span className={getMonthlyAmountClass(item.isBalance || false, item.monthlyAverage)}>
+                        <span
+                          className={getMonthlyAmountClass(
+                            item.isBalance || false,
+                            item.monthlyAverage
+                          )}
+                        >
                           {formatAmount(Math.abs(item.monthlyAverage || 0))}
                         </span>
                       )}
                     </td>
                   )}
                   {currentYear !== undefined && previousYear !== undefined && (
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">{renderComparisonCell(item)}</td>
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
+                      {renderComparisonCell(item)}
+                    </td>
                   )}
                 </tr>
               );
@@ -472,37 +644,74 @@ type CategoriesTableProps = {
   readonly previousYear?: number;
 };
 
-function CategoriesTable({ categoriesData, currentYear, previousYear }: CategoriesTableProps) {
+function CategoriesTable({
+  categoriesData,
+  currentYear,
+  previousYear,
+}: CategoriesTableProps) {
   if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
-      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Category Breakdown (€)</h3>
+      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+        Category Breakdown (€)
+      </h3>
       <div className="overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
               <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm"></th>
-              <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">{currentYear ? 'Monthly' : 'Total'}</th>
+              <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                {currentYear ? "Monthly" : "Total"}
+              </th>
               {currentYear !== undefined && previousYear !== undefined && (
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">vs {previousYear}</th>
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                  vs {previousYear}
+                </th>
               )}
             </tr>
           </thead>
           <tbody>
             {categoriesData.map((item) => (
-              <tr key={`${item.type}-${item.category}`} className="border-b border-border last:border-b-0">
+              <tr
+                key={`${item.type}-${item.category}`}
+                className="border-b border-border last:border-b-0"
+              >
                 <td className="py-2 sm:py-3 px-1 sm:px-2">
                   <div className="flex items-center min-w-0">
-                    <item.icon size={14} className="text-muted-foreground mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5" />
-                    <div className={`relative min-w-0 flex-1 ${currentYear !== undefined && previousYear !== undefined ? 'max-w-[140px] sm:max-w-[200px]' : ''}`}>
+                    <item.icon
+                      size={14}
+                      className="text-muted-foreground mr-1 sm:mr-3 flex-shrink-0 sm:w-5 sm:h-5"
+                    />
+                    <div
+                      className={`relative min-w-0 flex-1 ${
+                        currentYear !== undefined && previousYear !== undefined
+                          ? "max-w-[140px] sm:max-w-[200px]"
+                          : ""
+                      }`}
+                    >
                       <span
-                        className={`font-medium text-sm sm:text-sm block ${currentYear !== undefined && previousYear !== undefined ? 'overflow-hidden whitespace-nowrap' : ''} ${item.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                          }`}
+                        className={`font-medium text-sm sm:text-sm block ${
+                          currentYear !== undefined &&
+                          previousYear !== undefined
+                            ? "overflow-hidden whitespace-nowrap"
+                            : ""
+                        } ${
+                          item.type === "income"
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
                         title={item.category}
-                        style={currentYear !== undefined && previousYear !== undefined ? {
-                          maskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)',
-                          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 85%, transparent 100%)'
-                        } : undefined}
+                        style={
+                          currentYear !== undefined &&
+                          previousYear !== undefined
+                            ? {
+                                maskImage:
+                                  "linear-gradient(to right, black 0%, black 85%, transparent 100%)",
+                                WebkitMaskImage:
+                                  "linear-gradient(to right, black 0%, black 85%, transparent 100%)",
+                              }
+                            : undefined
+                        }
                       >
                         {item.category}
                       </span>
@@ -510,8 +719,14 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
                   </div>
                 </td>
                 <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                  <span className={`text-sm sm:text-sm ${item.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                    {formatAmount(Math.abs(currentYear ? item.monthlyAverage : item.total))}
+                  <span
+                    className={`text-sm sm:text-sm ${
+                      item.type === "income" ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {formatAmount(
+                      Math.abs(currentYear ? item.monthlyAverage : item.total)
+                    )}
                   </span>
                 </td>
                 {currentYear !== undefined && previousYear !== undefined && (
@@ -519,7 +734,7 @@ function CategoriesTable({ categoriesData, currentYear, previousYear }: Categori
                     {item.difference === null ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
-                      formatDifference(item.difference, item.type === 'income')
+                      formatDifference(item.difference, item.type === "income")
                     )}
                   </td>
                 )}
@@ -538,14 +753,12 @@ type TransactionSummaryProps = {
   readonly currentYear?: number;
 };
 
-
 export default function TransactionSummary({
   transactions,
   isLoading = false,
   includeHiddenInTotals = false,
   currentYear,
 }: TransactionSummaryProps) {
-
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
@@ -553,7 +766,8 @@ export default function TransactionSummary({
 
   // Fetch previous year data for comparison if currentYear is provided
   const previousYear = currentYear ? currentYear - 1 : undefined;
-  const { transactions: previousYearTransactions } = useYearTransactions(previousYear);
+  const { transactions: previousYearTransactions } =
+    useYearTransactions(previousYear);
 
   // Compute current and previous year totals via helpers
   const {
@@ -569,7 +783,7 @@ export default function TransactionSummary({
     prevYearIncomeTotal,
     prevYearIncomeCategoryTotals,
     prevYearExpenseCategoryTotals,
-    prevYearHiddenExpenseTotal
+    prevYearHiddenExpenseTotal,
   } = computePrevYearTotals(previousYearTransactions);
 
   // Calculate balance
@@ -602,13 +816,13 @@ export default function TransactionSummary({
   const totalsData = currentYear
     ? baseData
     : extendWithCategoryRows(
-      baseData,
-      isIncomeExpanded,
-      isExpensesExpanded,
-      incomeCategoryTotals,
-      expenseCategoryTotals,
-      currentYear
-    );
+        baseData,
+        isIncomeExpanded,
+        isExpensesExpanded,
+        incomeCategoryTotals,
+        expenseCategoryTotals,
+        currentYear
+      );
 
   // Prepare categories data
   const categoriesData: CategoryData[] = buildCategoriesData(
@@ -620,13 +834,14 @@ export default function TransactionSummary({
     previousYear
   );
 
-  const hasData = Object.keys(incomeCategoryTotals).length > 0 || Object.keys(expenseCategoryTotals).length > 0;
+  const hasData =
+    Object.keys(incomeCategoryTotals).length > 0 ||
+    Object.keys(expenseCategoryTotals).length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
       {hasData ? (
         <>
-
           <TotalsTable
             totalsData={totalsData}
             currentYear={currentYear}
@@ -639,7 +854,11 @@ export default function TransactionSummary({
             onToggleDetails={() => setIsDetailsExpanded(!isDetailsExpanded)}
           />
 
-          <CategoriesTable categoriesData={categoriesData} currentYear={currentYear} previousYear={previousYear} />
+          <CategoriesTable
+            categoriesData={categoriesData}
+            currentYear={currentYear}
+            previousYear={previousYear}
+          />
         </>
       ) : (
         <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, BadgeEuro, BadgeJapaneseYen, BadgeDollarSign, BadgePoundSterling, BadgeCent } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +21,23 @@ export default function Balance() {
       .replaceAll("£", "")
       .replaceAll("¥", "")
       .replaceAll("₹", "");
+
+  const getCurrencyIcon = (currency: string) => {
+    switch (currency) {
+      case "EUR":
+        return BadgeEuro;
+      case "JPY":
+        return BadgeJapaneseYen;
+      case "USD":
+      case "CAD":
+      case "AUD":
+        return BadgeDollarSign;
+      case "GBP":
+        return BadgePoundSterling;
+      default:
+        return BadgeCent;
+    }
+  };
 
   const amountColorClass = totalBalanceEUR >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
@@ -141,26 +158,32 @@ export default function Balance() {
                       {/* Individual Funds */}
                       {isCategoryExpanded && (
                         <div id={`category-${category.toLowerCase().replace(/[^a-z0-9_-]/gi, "-")}`} className="ml-6 space-y-1">
-                          {sortedFunds.map((fund) => (
-                            <div
-                              key={fund.id}
-                              className="flex justify-between items-center py-1 px-2 hover:bg-muted/50 rounded"
-                            >
-                              <div className="flex-1">
-                                <div className="text-sm">
-                                  {fund.name}
-                                </div>
-                                {fund.description && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {fund.description}
+                          {sortedFunds.map((fund) => {
+                            const CurrencyIcon = getCurrencyIcon(fund.currency);
+                            return (
+                              <div
+                                key={fund.id}
+                                className="flex justify-between items-center py-1 px-2 hover:bg-muted/50 rounded"
+                              >
+                                <div className="flex-1 flex items-center gap-2">
+                                  <CurrencyIcon size={16} className="text-muted-foreground flex-shrink-0" />
+                                  <div>
+                                    <div className="text-sm">
+                                      {fund.name}
+                                    </div>
+                                    {fund.description && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {fund.description}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

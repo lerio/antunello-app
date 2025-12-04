@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, BadgeEuro, BadgeJapaneseYen, BadgeDollarSign, BadgePoundSterling, BadgeCent } from 'lucide-react'
 
 interface FundOption {
   id: string
@@ -16,6 +16,23 @@ interface FundSelectProps {
   readonly className?: string
   readonly error?: boolean
 }
+
+const getCurrencyIcon = (currency: string) => {
+  switch (currency) {
+    case "EUR":
+      return BadgeEuro;
+    case "JPY":
+      return BadgeJapaneseYen;
+    case "USD":
+    case "CAD":
+    case "AUD":
+      return BadgeDollarSign;
+    case "GBP":
+      return BadgePoundSterling;
+    default:
+      return BadgeCent;
+  }
+};
 
 export function FundSelect({
   options,
@@ -81,8 +98,11 @@ export function FundSelect({
       )
     }
 
+    const CurrencyIcon = getCurrencyIcon(selectedOption.currency);
+
     return (
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        <CurrencyIcon size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
         <span className="truncate">{selectedOption.name}</span>
       </div>
     )
@@ -90,6 +110,7 @@ export function FundSelect({
 
   const renderOption = (option: FundOption) => {
     const isSelected = option.id === value
+    const CurrencyIcon = getCurrencyIcon(option.currency);
 
     return (
       <button
@@ -100,6 +121,7 @@ export function FundSelect({
         }`}
         onClick={() => handleSelect(option.id)}
       >
+        <CurrencyIcon size={16} className={`flex-shrink-0 mr-2 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
         <span className="flex-1 truncate">{option.name}</span>
         {isSelected && (
           <Check

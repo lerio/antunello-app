@@ -96,7 +96,7 @@ export function getCategoryType(category: string): 'income' | 'expense' {
 
 // Top-level fund categories
 export const TOP_LEVEL_FUND_CATEGORIES = [
-  "Bank Accounts",
+  "Checking Accounts",
   "Savings Accounts",
   "Investments",
   "P2P Lending",

@@ -144,6 +144,7 @@ function DeleteSection({
   return (
     <div className="pt-1 pb-1">
       <button
+        type="button"
         onClick={() => setShowDeleteConfirm(true)}
         className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${showDeleteConfirm ? "invisible pointer-events-none" : ""
           }`}
@@ -824,55 +825,58 @@ export default function TransactionFormModal({
         </div>
 
         {/* Submit and Cancel Buttons */}
-        <div className="mt-3 sm:mt-6 md:mt-8 pb-2">
+        {!showDeleteConfirm && (
+          <div className="mt-3 sm:mt-6 md:mt-8 pb-2">
+            <div className="flex gap-3">
+              <button
+                className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                type="button"
+                onClick={onClose}
+                disabled={isLoading || disabled}
+              >
+                Cancel
+              </button>
+              <button
+                className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                type="submit"
+                disabled={isLoading || disabled}
+              >
+                {buttonContent}
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
+
+      {/* Delete Confirmation Buttons - Outside form to prevent accidental submission */}
+      {showDeleteConfirm && (
+        <div className="mt-3 sm:mt-6 md:mt-8 pb-2 px-4 sm:px-6 md:px-8 lg:px-12">
           <div className="flex gap-3">
-            {showDeleteConfirm ? (
-              <>
-                <button
-                  className="flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="flex-1 flex justify-center items-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
-                  type="button"
-                  onClick={async () => {
-                    if (onDelete && initialData) {
-                      await onDelete(initialData);
-                      setShowDeleteConfirm(false);
-                    }
-                  }}
-                >
-                  <Trash2 size={20} className="mr-2 flex-shrink-0" />
-                  Confirm
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  type="button"
-                  onClick={onClose}
-                  disabled={isLoading || disabled}
-                >
-                  Cancel
-                </button>
-                <button
-                  className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  type="submit"
-                  disabled={isLoading || disabled}
-                >
-                  {buttonContent}
-                </button>
-              </>
-            )}
+            <button
+              className="flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none"
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-1 flex justify-center items-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+              type="button"
+              onClick={async () => {
+                if (onDelete && initialData) {
+                  await onDelete(initialData);
+                  setShowDeleteConfirm(false);
+                }
+              }}
+            >
+              <Trash2 size={20} className="mr-2 flex-shrink-0" />
+              Confirm
+            </button>
           </div>
         </div>
-      </form>
+      )}
 
       {/* Delete Section - Only show for existing transactions */}
       <DeleteSection
