@@ -97,20 +97,20 @@ export default function YearSummaryPage() {
     router.push(`/protected/search?from_year=${currentYear}`);
   }, [router, currentYear]);
 
+  /* REMOVED: history.pushState manual handling */
   const handleYearSelect = useCallback((year: number) => {
+    // Optimistic update
     setCurrentYear(year);
 
     const now = new Date();
     const isCurrentYear = year === now.getFullYear();
 
-    const newUrl = isCurrentYear
-      ? "/protected/year"
-      : `/protected/year?year=${year}`;
-
-    if (typeof globalThis.history?.pushState === "function") {
-      globalThis.history.pushState(null, "", newUrl);
+    if (isCurrentYear) {
+      router.push("/protected/year");
+    } else {
+      router.push(`/protected/year?year=${year}`);
     }
-  }, []);
+  }, [router]);
 
   if (error) {
     return (

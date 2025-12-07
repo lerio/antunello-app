@@ -1,11 +1,9 @@
 import React, { useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { MonthOption } from '@/hooks/useAvailableMonths'
-import styles from './horizontal-month-selector.module.css'
 
 function getMonthButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
   if (isSelected) {
-    return 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105'
+    return 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md'
   }
   if (isToday) {
     return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50'
@@ -13,7 +11,7 @@ function getMonthButtonVariant(isSelected: boolean, isToday: boolean, isFuture: 
   if (isFuture) {
     return 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
   }
-  return 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
+  return 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-sm'
 }
 
 interface HorizontalMonthSelectorProps {
@@ -31,86 +29,50 @@ export function HorizontalMonthSelector({
 }: HorizontalMonthSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLButtonElement>(null)
+  const isInitialMount = useRef(true)
+  const prevMonthsRef = useRef(months)
 
-  // Determine if we should show navigation arrows based on selected month
-  const today = new Date()
-  const currentYear = today.getFullYear()
-  const currentMonth = today.getMonth() + 1
-  const isCurrentMonthSelected = selectedMonth.year === currentYear && selectedMonth.month === currentMonth
-  const selectedDate = new Date(selectedMonth.year, selectedMonth.month - 1, 1)
-  const currentDate = new Date(currentYear, currentMonth - 1, 1)
-  const isInFuture = selectedDate > currentDate
-  const isInPast = selectedDate < currentDate
-
-  // Center the selected month with smooth animation after DOM updates
+  // Center the selected month
   useEffect(() => {
     if (selectedRef.current && scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const selectedElement = selectedRef.current
 
-      // Use setTimeout to delay centering until after React has completed DOM updates
-      const timeoutId = setTimeout(() => {
-        const containerWidth = container.clientWidth
-        const elementLeft = selectedElement.offsetLeft
-        const elementWidth = selectedElement.clientWidth
+      const containerWidth = container.clientWidth
+      const elementLeft = selectedElement.offsetLeft
+      const elementWidth = selectedElement.clientWidth
 
-        // Calculate scroll position to center the element
-        const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
+      // Calculate scroll position to center the element
+      const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2)
 
-        // Use smooth scrolling animation
-        container.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
-        })
-      }, 50) // Small delay to allow DOM updates to complete
+      let behavior: ScrollBehavior = 'smooth'
 
-      return () => clearTimeout(timeoutId)
+      // Use instant scroll on initial mount or if the 'months' data itself has changed.
+      if (isInitialMount.current || prevMonthsRef.current !== months) {
+        behavior = 'auto'
+      }
+
+      container.scrollTo({
+        left: scrollLeft,
+        behavior
+      })
+
+      // Update refs for the next render cycle
+      isInitialMount.current = false
+      prevMonthsRef.current = months
     }
-  }, [selectedMonth])
-
-
-  const navigateToCurrentMonth = () => {
-    const today = new Date()
-    onMonthSelect(today.getFullYear(), today.getMonth() + 1)
-  }
+  }, [selectedMonth.year, selectedMonth.month, months]) // Depend on specific properties and months array
 
   return (
     <div className={`relative ${className}`}>
-      {/* Left arrow - Return to current month (when browsing future) */}
-      {!isCurrentMonthSelected && isInFuture && (
-        <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center">
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
-          <button
-            onClick={navigateToCurrentMonth}
-            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
-            aria-label="Return to current month"
-            title="Return to current month"
-          >
-            <ChevronLeft size={16} className="text-gray-700 dark:text-gray-300" />
-          </button>
-        </div>
-      )}
-
-      {/* Right arrow - Return to current month (when browsing past) */}
-      {!isCurrentMonthSelected && isInPast && (
-        <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end">
-          <div className="absolute inset-0 bg-gradient-to-l from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent w-12 pointer-events-none" />
-          <button
-            onClick={navigateToCurrentMonth}
-            className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600 relative z-10"
-            aria-label="Return to current month"
-            title="Return to current month"
-          >
-            <ChevronRight size={16} className="text-gray-700 dark:text-gray-300" />
-          </button>
-        </div>
-      )}
-
       {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className={`flex gap-2 overflow-x-auto ${styles.scrollbarHide} px-8`}
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="flex gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
       >
         {months.map((month) => {
           const isSelected = month.year === selectedMonth.year && month.month === selectedMonth.month
@@ -121,17 +83,16 @@ export function HorizontalMonthSelector({
               ref={isSelected ? selectedRef : undefined}
               onClick={() => onMonthSelect(month.year, month.month)}
               className={`
-                flex-shrink-0 px-4 py-1.5 rounded-lg font-medium text-sm transition-all transform
+                flex-shrink-0 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
                 ${getMonthButtonVariant(isSelected, month.isToday, month.isFuture)}
-                ${isSelected ? 'hover:scale-105' : 'hover:scale-102'}
               `}
             >
-              <div className="text-center min-w-[80px]">
-                <div className="font-semibold">
+              <div className="text-center min-w-[70px]">
+                <div className="font-semibold whitespace-nowrap">
                   {month.date.toLocaleDateString('en-US', { month: 'long' })}
                 </div>
                 {month.year !== new Date().getFullYear() && (
-                  <div className={`text-xs ${isSelected ? 'text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <div className={`text-xs mt-0.5 ${isSelected ? 'text-white/80 dark:text-gray-900/80' : 'text-gray-500 dark:text-gray-400'}`}>
                     {month.year}
                   </div>
                 )}
@@ -140,7 +101,6 @@ export function HorizontalMonthSelector({
           )
         })}
       </div>
-
     </div>
   )
 }

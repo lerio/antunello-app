@@ -223,22 +223,25 @@ export default function ProtectedPage() {
     [deleteTransaction, closeEditModal, recordLocalMutation]
   );
 
+  /* REMOVED: history.pushState manual handling */
   const handleMonthSelect = useCallback((year: number, month: number) => {
+    // Optimistic update
     const newDate = new Date(year, month - 1, 1);
     setCurrentDate(newDate);
 
     const now = new Date();
+    // Check if selected month/year is the current month/year
     const isCurrentMonth =
       month === now.getMonth() + 1 && year === now.getFullYear();
 
-    const newUrl = isCurrentMonth
-      ? "/protected"
-      : `/protected?year=${year}&month=${month.toString().padStart(2, "0")}`;
-
-    if (typeof globalThis.history?.pushState === "function") {
-      globalThis.history.pushState(null, "", newUrl);
+    if (isCurrentMonth) {
+      router.push("/protected/transactions");
+    } else {
+      router.push(
+        `/protected/transactions?month=${month.toString().padStart(2, "0")}&year=${year}`
+      );
     }
-  }, []);
+  }, [router]);
 
   if (error) {
     return (
