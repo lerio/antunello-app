@@ -1,5 +1,12 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction, CATEGORIES_WITH_TYPES, getCategoryType, TitleSuggestion } from "@/types/database";
+import {
+  MAIN_CATEGORIES,
+  SUB_CATEGORIES,
+  Transaction,
+  CATEGORIES_WITH_TYPES,
+  getCategoryType,
+  TitleSuggestion,
+} from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseNumber, isValidPositiveNumber } from "@/utils/number";
 import { generateTransferTitle } from "@/utils/money-transfer-validation";
@@ -8,8 +15,6 @@ import {
   PlusCircle,
   Calendar,
   Trash2,
-  Eye,
-  EyeOff,
   ChevronDown,
   ArrowRightLeft,
 } from "lucide-react";
@@ -19,6 +24,7 @@ import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
 import { FundSelect } from "@/components/ui/fund-select";
+import { Switch } from "@/components/ui/switch";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
 
@@ -146,8 +152,9 @@ function DeleteSection({
       <button
         type="button"
         onClick={() => setShowDeleteConfirm(true)}
-        className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${showDeleteConfirm ? "invisible pointer-events-none" : ""
-          }`}
+        className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${
+          showDeleteConfirm ? "invisible pointer-events-none" : ""
+        }`}
         tabIndex={showDeleteConfirm ? -1 : 0}
         aria-hidden={showDeleteConfirm}
       >
@@ -209,9 +216,9 @@ export default function TransactionFormModal({
   const [isMoneyTransferMode, setIsMoneyTransferMode] = useState(
     initialData?.is_money_transfer || false
   );
-  const [targetFundCategoryId, setTargetFundCategoryId] = useState<string | null>(
-    initialData?.target_fund_category_id || null
-  );
+  const [targetFundCategoryId, setTargetFundCategoryId] = useState<
+    string | null
+  >(initialData?.target_fund_category_id || null);
 
   // Reset main category when transaction type changes if current category is not valid for the new type
   useEffect(() => {
@@ -224,14 +231,14 @@ export default function TransactionFormModal({
   // Auto-set defaults when entering/exiting money transfer mode
   useEffect(() => {
     if (isMoneyTransferMode) {
-      setTransactionType('expense');
-      setMainCategory('Money Transfer');
-      setSubCategory('Money Transfer');
+      setTransactionType("expense");
+      setMainCategory("Money Transfer");
+      setSubCategory("Money Transfer");
     } else {
       // Reset categories when exiting money transfer mode
-      if (mainCategory === 'Money Transfer') {
-        setMainCategory('');
-        setSubCategory('');
+      if (mainCategory === "Money Transfer") {
+        setMainCategory("");
+        setSubCategory("");
       }
     }
   }, [isMoneyTransferMode, mainCategory]);
@@ -239,13 +246,22 @@ export default function TransactionFormModal({
   // Auto-generate title for money transfers
   useEffect(() => {
     if (isMoneyTransferMode && selectedFundCategoryId && targetFundCategoryId) {
-      const sourceFund = fundCategories.find(f => f.id === selectedFundCategoryId);
-      const targetFund = fundCategories.find(f => f.id === targetFundCategoryId);
+      const sourceFund = fundCategories.find(
+        (f) => f.id === selectedFundCategoryId
+      );
+      const targetFund = fundCategories.find(
+        (f) => f.id === targetFundCategoryId
+      );
       if (sourceFund && targetFund) {
         setTitle(generateTransferTitle(sourceFund.name, targetFund.name));
       }
     }
-  }, [isMoneyTransferMode, selectedFundCategoryId, targetFundCategoryId, fundCategories]);
+  }, [
+    isMoneyTransferMode,
+    selectedFundCategoryId,
+    targetFundCategoryId,
+    fundCategories,
+  ]);
 
   // Title suggestion state
   const [title, setTitle] = useState(initialData?.title || "");
@@ -256,7 +272,7 @@ export default function TransactionFormModal({
   }>({
     type: false,
     mainCategory: false,
-    subCategory: false
+    subCategory: false,
   });
 
   // Handle title suggestion selection
@@ -270,37 +286,40 @@ export default function TransactionFormModal({
     setAutoFilledFields({
       type: true,
       mainCategory: true,
-      subCategory: !!suggestion.sub_category
+      subCategory: !!suggestion.sub_category,
     });
   }, []);
 
   // Reset auto-fill indicators when user manually changes fields
-  const handleTypeChange = useCallback((type: React.SetStateAction<"expense" | "income">) => {
-    setTransactionType(type);
-    setAutoFilledFields(prev => ({ ...prev, type: false }));
-  }, []);
+  const handleTypeChange = useCallback(
+    (type: React.SetStateAction<"expense" | "income">) => {
+      setTransactionType(type);
+      setAutoFilledFields((prev) => ({ ...prev, type: false }));
+    },
+    []
+  );
 
   const handleCategoryChange = useCallback((value: string) => {
     setMainCategory(value);
     setSubCategory(""); // Reset sub category when main category changes
-    setAutoFilledFields(prev => ({
+    setAutoFilledFields((prev) => ({
       ...prev,
       mainCategory: false,
-      subCategory: false
+      subCategory: false,
     }));
   }, []);
 
   const handleSubCategoryChange = useCallback((value: string) => {
     setSubCategory(value);
-    setAutoFilledFields(prev => ({ ...prev, subCategory: false }));
+    setAutoFilledFields((prev) => ({ ...prev, subCategory: false }));
   }, []);
 
   // Protect amount field from browser extension errors
-  useFormFieldProtection('amount');
+  useFormFieldProtection("amount");
 
   // Additional aggressive protection for 1Password
   useEffect(() => {
-    const amountField = document.getElementById('amount') as HTMLInputElement;
+    const amountField = document.getElementById("amount") as HTMLInputElement;
     if (!amountField) return;
 
     // Add a more aggressive protection by wrapping the field in a proxy
@@ -308,9 +327,21 @@ export default function TransactionFormModal({
     amountField.focus = function (options?: FocusOptions) {
       // Add defensive properties before calling focus
       try {
-        Object.defineProperty(this, 'control', { value: this, writable: false, configurable: true });
-        Object.defineProperty(this, 'form', { value: this.closest('form'), writable: false, configurable: true });
-        Object.defineProperty(this, 'ownerDocument', { value: document, writable: false, configurable: true });
+        Object.defineProperty(this, "control", {
+          value: this,
+          writable: false,
+          configurable: true,
+        });
+        Object.defineProperty(this, "form", {
+          value: this.closest("form"),
+          writable: false,
+          configurable: true,
+        });
+        Object.defineProperty(this, "ownerDocument", {
+          value: document,
+          writable: false,
+          configurable: true,
+        });
       } catch (error) {
         // Ignore errors
       }
@@ -350,13 +381,14 @@ export default function TransactionFormModal({
       currencySymbol:
         CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol ||
         "€",
-      mainCategoryOptions: CATEGORIES_WITH_TYPES
-        .filter(cat => cat.type === transactionType && cat.category !== "Money Transfer")
-        .map((category) => ({
-          value: category.category,
-          label: category.category,
-          isMainCategory: true,
-        })),
+      mainCategoryOptions: CATEGORIES_WITH_TYPES.filter(
+        (cat) =>
+          cat.type === transactionType && cat.category !== "Money Transfer"
+      ).map((category) => ({
+        value: category.category,
+        label: category.category,
+        isMainCategory: true,
+      })),
       subCategoryOptions: (
         SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || []
       ).map((category) => ({
@@ -420,7 +452,12 @@ export default function TransactionFormModal({
       const formMainCategory = formData.get("main_category") as string;
       const formSubCategory = formData.get("sub_category") as string;
 
-      let newErrors = { amount: "", mainCategory: "", subCategory: "", title: "" };
+      let newErrors = {
+        amount: "",
+        mainCategory: "",
+        subCategory: "",
+        title: "",
+      };
 
       // Basic amount validation for all types
       if (!isValidPositiveNumber(amount)) {
@@ -436,8 +473,11 @@ export default function TransactionFormModal({
         if (!targetFundCategoryId) {
           newErrors.subCategory = "Please select a target fund";
         }
-        if (selectedFundCategoryId && targetFundCategoryId &&
-            selectedFundCategoryId === targetFundCategoryId) {
+        if (
+          selectedFundCategoryId &&
+          targetFundCategoryId &&
+          selectedFundCategoryId === targetFundCategoryId
+        ) {
           newErrors.subCategory = "Source and target funds must be different";
         }
       } else {
@@ -480,17 +520,20 @@ export default function TransactionFormModal({
           user_id: user.id,
           amount: parseNumber(formData.get("amount") as string),
           currency: selectedCurrency,
-          type: isMoneyTransferMode ? ('expense' as const) : transactionType,
-          main_category: isMoneyTransferMode ? 'Money Transfer' : mainCategory,
-          sub_category: isMoneyTransferMode ? 'Money Transfer' : subCategory,
-          title: isMoneyTransferMode ? title : (formData.get("title") as string),
+          type: isMoneyTransferMode ? ("expense" as const) : transactionType,
+          main_category: isMoneyTransferMode ? "Money Transfer" : mainCategory,
+          sub_category: isMoneyTransferMode ? "Money Transfer" : subCategory,
+          title: isMoneyTransferMode
+            ? title
+            : (formData.get("title") as string),
           date: selectedDate.toISOString(),
           hide_from_totals: hideFromTotalsRef.current,
           fund_category_id: selectedFundCategoryId,
           is_money_transfer: isMoneyTransferMode,
-          target_fund_category_id: isMoneyTransferMode ? targetFundCategoryId : null,
+          target_fund_category_id: isMoneyTransferMode
+            ? targetFundCategoryId
+            : null,
         };
-
 
         await onSubmit(submitData);
       } catch (error) {
@@ -512,7 +555,6 @@ export default function TransactionFormModal({
       title,
     ]
   );
-
 
   const handleCurrencyChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -540,7 +582,7 @@ export default function TransactionFormModal({
           {/* Amount with Currency and Hide Toggle */}
           <div className="md:col-span-2">
             <div className="flex gap-3">
-              <div className="flex-1" style={{ width: "75%" }}>
+              <div className="flex-1" style={{ width: "60%" }}>
                 <ValidationTooltip
                   message={validationErrors.amount}
                   isVisible={!!validationErrors.amount}
@@ -571,8 +613,9 @@ export default function TransactionFormModal({
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2">
                       <div className="relative">
                         <select
-                          className={`h-full py-0 pl-2 pr-6 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md appearance-none cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                            }`}
+                          className={`h-full py-0 pl-2 pr-6 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md appearance-none cursor-pointer ${
+                            disabled ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
                           id="currency"
                           name="currency"
                           value={selectedCurrency}
@@ -593,26 +636,27 @@ export default function TransactionFormModal({
                 </ValidationTooltip>
               </div>
 
-              {/* Hide Toggle Eye Icon */}
+              {/* Hide Toggle with Switch and Label */}
               <div className="flex items-end">
-                <button
-                  type="button"
-                  onClick={() => !isMoneyTransferMode && updateHideFromTotals(!hideFromTotals)}
-                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${hideFromTotals
-                    ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    } ${disabled || isMoneyTransferMode ? "opacity-50 cursor-not-allowed" : ""}`}
-                  disabled={disabled || isMoneyTransferMode}
-                  title={
-                    isMoneyTransferMode
-                      ? "Money transfers are automatically excluded from totals"
-                      : hideFromTotals
-                      ? "Hidden from monthly totals"
-                      : "Visible in monthly totals"
-                  }
-                >
-                  {hideFromTotals ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+                <div className="flex items-center gap-2 h-12">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Hide
+                  </label>
+                  <Switch
+                    checked={hideFromTotals}
+                    onCheckedChange={(checked) =>
+                      !isMoneyTransferMode && updateHideFromTotals(checked)
+                    }
+                    disabled={disabled || isMoneyTransferMode}
+                    title={
+                      isMoneyTransferMode
+                        ? "Money transfers are automatically excluded from totals"
+                        : hideFromTotals
+                        ? "Hidden from monthly totals"
+                        : "Visible in monthly totals"
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -638,7 +682,11 @@ export default function TransactionFormModal({
                 placeholder="Select fund"
                 disabled={disabled || fundCategoriesLoading}
               />
-              <input type="hidden" name="fund_category_id" value={selectedFundCategoryId || ""} />
+              <input
+                type="hidden"
+                name="fund_category_id"
+                value={selectedFundCategoryId || ""}
+              />
             </div>
           )}
 
@@ -675,7 +723,10 @@ export default function TransactionFormModal({
                   message={validationErrors.mainCategory}
                   isVisible={!!validationErrors.mainCategory}
                   onClose={() =>
-                    setValidationErrors((prev) => ({ ...prev, mainCategory: "" }))
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      mainCategory: "",
+                    }))
                   }
                 >
                   <div>
@@ -685,19 +736,19 @@ export default function TransactionFormModal({
                       onChange={handleCategoryChange}
                       placeholder="Main Category"
                       disabled={disabled}
-                />
-                {/* Hidden input for form submission */}
-                <input
-                  type="hidden"
-                  name="main_category"
-                  value={mainCategory}
-                />
+                    />
+                    {/* Hidden input for form submission */}
+                    <input
+                      type="hidden"
+                      name="main_category"
+                      value={mainCategory}
+                    />
+                  </div>
+                </ValidationTooltip>
+                {autoFilledFields.mainCategory && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
+                )}
               </div>
-            </ValidationTooltip>
-            {autoFilledFields.mainCategory && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
-            )}
-          </div>
 
               {/* Sub Category */}
               <div className="relative">
@@ -705,7 +756,10 @@ export default function TransactionFormModal({
                   message={validationErrors.subCategory}
                   isVisible={!!validationErrors.subCategory}
                   onClose={() =>
-                    setValidationErrors((prev) => ({ ...prev, subCategory: "" }))
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      subCategory: "",
+                    }))
                   }
                 >
                   <div>
@@ -718,7 +772,11 @@ export default function TransactionFormModal({
                       key={mainCategory}
                     />
                     {/* Hidden input for form submission */}
-                    <input type="hidden" name="sub_category" value={subCategory} />
+                    <input
+                      type="hidden"
+                      name="sub_category"
+                      value={subCategory}
+                    />
                   </div>
                 </ValidationTooltip>
                 {autoFilledFields.subCategory && (
@@ -734,7 +792,10 @@ export default function TransactionFormModal({
                   message={validationErrors.mainCategory}
                   isVisible={!!validationErrors.mainCategory}
                   onClose={() =>
-                    setValidationErrors((prev) => ({ ...prev, mainCategory: "" }))
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      mainCategory: "",
+                    }))
                   }
                 >
                   <FundSelect
@@ -745,7 +806,11 @@ export default function TransactionFormModal({
                     disabled={disabled || fundCategoriesLoading}
                   />
                 </ValidationTooltip>
-                <input type="hidden" name="fund_category_id" value={selectedFundCategoryId || ""} />
+                <input
+                  type="hidden"
+                  name="fund_category_id"
+                  value={selectedFundCategoryId || ""}
+                />
               </div>
 
               {/* To Fund (Target) */}
@@ -754,7 +819,10 @@ export default function TransactionFormModal({
                   message={validationErrors.subCategory}
                   isVisible={!!validationErrors.subCategory}
                   onClose={() =>
-                    setValidationErrors((prev) => ({ ...prev, subCategory: "" }))
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      subCategory: "",
+                    }))
                   }
                 >
                   <FundSelect
@@ -763,27 +831,46 @@ export default function TransactionFormModal({
                     onChange={setTargetFundCategoryId}
                     placeholder="Select target fund"
                     disabled={disabled || fundCategoriesLoading}
-                    error={selectedFundCategoryId === targetFundCategoryId && selectedFundCategoryId !== null}
+                    error={
+                      selectedFundCategoryId === targetFundCategoryId &&
+                      selectedFundCategoryId !== null
+                    }
                   />
                 </ValidationTooltip>
                 {/* Hidden inputs for form submission */}
-                <input type="hidden" name="target_fund_category_id" value={targetFundCategoryId || ""} />
+                <input
+                  type="hidden"
+                  name="target_fund_category_id"
+                  value={targetFundCategoryId || ""}
+                />
                 <input type="hidden" name="title" value={title} />
               </div>
 
               {/* Currency Warning (if different) */}
-              {selectedFundCategoryId && targetFundCategoryId && (() => {
-                const sourceFund = fundCategories.find(f => f.id === selectedFundCategoryId);
-                const targetFund = fundCategories.find(f => f.id === targetFundCategoryId);
-                return sourceFund && targetFund && sourceFund.currency !== targetFund.currency && (
-                  <div className="md:col-span-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      <strong>Note:</strong> Amount is in {targetFund.currency}.
-                      {' '}{sourceFund.currency} will be converted using the exchange rate on the transaction date.
-                    </p>
-                  </div>
-                );
-              })()}
+              {selectedFundCategoryId &&
+                targetFundCategoryId &&
+                (() => {
+                  const sourceFund = fundCategories.find(
+                    (f) => f.id === selectedFundCategoryId
+                  );
+                  const targetFund = fundCategories.find(
+                    (f) => f.id === targetFundCategoryId
+                  );
+                  return (
+                    sourceFund &&
+                    targetFund &&
+                    sourceFund.currency !== targetFund.currency && (
+                      <div className="md:col-span-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>Note:</strong> Amount is in{" "}
+                          {targetFund.currency}. {sourceFund.currency} will be
+                          converted using the exchange rate on the transaction
+                          date.
+                        </p>
+                      </div>
+                    )
+                  );
+                })()}
             </>
           )}
 
@@ -809,8 +896,9 @@ export default function TransactionFormModal({
                 customInput={
                   <input
                     inputMode="none"
-                    className={`${inputClass} ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                    className={`${inputClass} ${
+                      disabled ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   />
                 }
               />
@@ -829,8 +917,9 @@ export default function TransactionFormModal({
           <div className="mt-3 sm:mt-6 md:mt-8 pb-2">
             <div className="flex gap-3">
               <button
-                className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${
+                  isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 type="button"
                 onClick={onClose}
                 disabled={isLoading || disabled}
@@ -838,8 +927,9 @@ export default function TransactionFormModal({
                 Cancel
               </button>
               <button
-                className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${
+                  isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 type="submit"
                 disabled={isLoading || disabled}
               >

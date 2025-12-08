@@ -7,6 +7,8 @@ import NoTransactions from "@/components/features/no-transactions";
 import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
 import { LucideProps } from "lucide-react";
 import { TransactionListSkeleton } from "@/components/ui/skeletons";
+import { usePrivacyMode } from "@/hooks/usePrivacyMode";
+import { PrivacyBlur } from "@/components/ui/privacy-blur";
 
 type TransactionsTableProps = {
   readonly transactions: ReadonlyArray<Transaction>;
@@ -20,9 +22,11 @@ const TransactionRow = React.memo(
   ({
     transaction,
     onClick,
+    privacyMode,
   }: {
     readonly transaction: Transaction;
     readonly onClick: (transaction: Transaction) => void;
+    readonly privacyMode: boolean;
   }) => {
     const Icon: React.ComponentType<LucideProps> =
       CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"];
@@ -62,14 +66,18 @@ const TransactionRow = React.memo(
                 : "text-green-500"
             }`}
           >
-            {formatCurrency(
-              amount,
-              showOriginalCurrency ? "EUR" : transaction.currency
-            )}
+            <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
+              {formatCurrency(
+                amount,
+                showOriginalCurrency ? "EUR" : transaction.currency
+              )}
+            </PrivacyBlur>
           </p>
           {showOriginalCurrency && (
             <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-              ({formatCurrency(transaction.amount, transaction.currency)})
+              <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
+                ({formatCurrency(transaction.amount, transaction.currency)})
+              </PrivacyBlur>
             </p>
           )}
         </div>
@@ -88,12 +96,14 @@ const DateGroup = React.memo(
     dailyTotal,
     onTransactionClick,
     showYear = false,
+    privacyMode,
   }: {
     readonly date: string;
     readonly transactions: ReadonlyArray<Transaction>;
     readonly dailyTotal: number;
     readonly onTransactionClick: (transaction: Transaction) => void;
     readonly showYear?: boolean;
+    readonly privacyMode: boolean;
   }) => {
     // Calculate hidden transactions count for this day
     const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
@@ -112,7 +122,9 @@ const DateGroup = React.memo(
             className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
               }`}
           >
-            {formatCurrency(Math.abs(dailyTotal), "EUR")}
+            <PrivacyBlur blur={privacyMode}>
+              {formatCurrency(Math.abs(dailyTotal), "EUR")}
+            </PrivacyBlur>
           </span>
         </div>
 
@@ -123,6 +135,7 @@ const DateGroup = React.memo(
               key={transaction.id}
               transaction={transaction}
               onClick={onTransactionClick}
+              privacyMode={privacyMode}
             />
           ))}
         </div>
@@ -139,6 +152,8 @@ export default function TransactionsTable({
   showYear = false,
   isLoading = false,
 }: TransactionsTableProps) {
+  const { privacyMode } = usePrivacyMode();
+
   const groupedData = useMemo(() => {
     if (!transactions.length) return {};
 
@@ -188,6 +203,7 @@ export default function TransactionsTable({
             dailyTotal={dailyTotal}
             onTransactionClick={handleTransactionClick}
             showYear={showYear}
+            privacyMode={privacyMode}
           />
         );
       })}

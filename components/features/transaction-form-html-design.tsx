@@ -1,5 +1,11 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MAIN_CATEGORIES, SUB_CATEGORIES, Transaction, CATEGORIES_WITH_TYPES, getCategoryType } from "@/types/database";
+import {
+  MAIN_CATEGORIES,
+  SUB_CATEGORIES,
+  Transaction,
+  CATEGORIES_WITH_TYPES,
+  getCategoryType,
+} from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
 import { parseNumber } from "@/utils/number";
@@ -8,10 +14,9 @@ import {
   Calendar,
   MinusCircle,
   PlusCircle,
-  Eye,
-  EyeOff,
   ChevronDown,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
 
 type TransactionFormProps = Readonly<{
@@ -57,11 +62,11 @@ export default function TransactionFormHtmlDesign({
   const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
 
   // Protect amount field from browser extension errors
-  useFormFieldProtection('amount');
+  useFormFieldProtection("amount");
 
   // Additional aggressive protection for 1Password
   useEffect(() => {
-    const amountField = document.getElementById('amount') as HTMLInputElement;
+    const amountField = document.getElementById("amount") as HTMLInputElement;
     if (!amountField) return;
 
     // Add a more aggressive protection by wrapping the field in a proxy
@@ -69,9 +74,21 @@ export default function TransactionFormHtmlDesign({
     amountField.focus = function (options?: FocusOptions) {
       // Add defensive properties before calling focus
       try {
-        Object.defineProperty(this, 'control', { value: this, writable: false, configurable: true });
-        Object.defineProperty(this, 'form', { value: this.closest('form'), writable: false, configurable: true });
-        Object.defineProperty(this, 'ownerDocument', { value: document, writable: false, configurable: true });
+        Object.defineProperty(this, "control", {
+          value: this,
+          writable: false,
+          configurable: true,
+        });
+        Object.defineProperty(this, "form", {
+          value: this.closest("form"),
+          writable: false,
+          configurable: true,
+        });
+        Object.defineProperty(this, "ownerDocument", {
+          value: document,
+          writable: false,
+          configurable: true,
+        });
       } catch (error) {
         // Ignore errors
       }
@@ -95,9 +112,9 @@ export default function TransactionFormHtmlDesign({
   }, [mainCategory]);
 
   const filteredMainCategories = useMemo(() => {
-    return CATEGORIES_WITH_TYPES
-      .filter(cat => cat.type === transactionType)
-      .map(cat => cat.category);
+    return CATEGORIES_WITH_TYPES.filter(
+      (cat) => cat.type === transactionType
+    ).map((cat) => cat.category);
   }, [transactionType]);
 
   const defaultDate = useMemo(() => {
@@ -106,7 +123,9 @@ export default function TransactionFormHtmlDesign({
   }, [initialData?.date]);
 
   const currencySymbol = useMemo(() => {
-    return CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol || "€";
+    return (
+      CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol || "€"
+    );
   }, [selectedCurrency]);
 
   const handleSubmit = useCallback(
@@ -134,7 +153,6 @@ export default function TransactionFormHtmlDesign({
           date: parseDateTime(formData.get("date") as string),
           hide_from_totals: hideFromTotalsRef.current,
         };
-
 
         await onSubmit(data);
       } catch (error) {
@@ -202,7 +220,7 @@ export default function TransactionFormHtmlDesign({
               Amount
             </label>
             <div className="flex gap-3">
-              <div className="flex-1" style={{ width: '75%' }}>
+              <div className="flex-1" style={{ width: "60%" }}>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
                     {currencySymbol}
@@ -238,23 +256,22 @@ export default function TransactionFormHtmlDesign({
                 </div>
               </div>
 
-              {/* Hide Toggle Eye Icon */}
+              {/* Hide Toggle with Switch and Label */}
               <div className="flex items-end">
-                <button
-                  type="button"
-                  onClick={() => updateHideFromTotals(!hideFromTotals)}
-                  className={`h-12 px-3 flex items-center justify-center rounded-lg border transition-colors ${hideFromTotals
-                      ? 'bg-gray-100 border-gray-300 text-gray-600'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  title={hideFromTotals ? 'Hidden from monthly totals' : 'Visible in monthly totals'}
-                >
-                  {hideFromTotals ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
-                </button>
+                <div className="flex items-center gap-2 h-12">
+                  <label className="text-sm font-medium text-gray-700">
+                    Hide
+                  </label>
+                  <Switch
+                    checked={hideFromTotals}
+                    onCheckedChange={updateHideFromTotals}
+                    title={
+                      hideFromTotals
+                        ? "Hidden from monthly totals"
+                        : "Visible in monthly totals"
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -286,10 +303,11 @@ export default function TransactionFormHtmlDesign({
             </div>
             <div className="flex space-x-4">
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${transactionType === "expense"
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
+                  transactionType === "expense"
                     ? "bg-red-100 text-red-700 border-red-500"
                     : "bg-red-50 text-red-700 border-gray-200 hover:bg-red-100 hover:border-red-400"
-                  }`}
+                }`}
                 type="button"
                 onClick={() => setTransactionType("expense")}
               >
@@ -297,10 +315,11 @@ export default function TransactionFormHtmlDesign({
                 Expense
               </button>
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${transactionType === "income"
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
+                  transactionType === "income"
                     ? "bg-green-100 text-green-700 border-green-500"
                     : "bg-green-50 text-green-700 border-gray-200 hover:bg-green-100 hover:border-green-400"
-                  }`}
+                }`}
                 type="button"
                 onClick={() => setTransactionType("income")}
               >
@@ -385,13 +404,14 @@ export default function TransactionFormHtmlDesign({
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Submit Button */}
         <div className="mt-12">
           <button
-            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${getSubmitButtonColorClass()} ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${getSubmitButtonColorClass()} ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             type="submit"
             disabled={isLoading}
           >

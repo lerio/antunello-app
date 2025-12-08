@@ -15,6 +15,8 @@ import {
   DesktopNavigation,
 } from "@/components/layout/navigation";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { PrivacyProvider } from "@/components/layout/privacy-provider";
+import { PrivacyToggle } from "@/components/layout/privacy-toggle";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -74,8 +76,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SWRConfig value={getClientSwrConfig()}>
-              <CacheManager />
+            <PrivacyProvider>
+              <SWRConfig value={getClientSwrConfig()}>
+                <CacheManager />
               <div className="min-h-screen flex flex-col overflow-x-clip">
                 <Toaster position="top-right" />
 
@@ -101,6 +104,7 @@ export default function RootLayout({
 
                     <div className="flex items-center space-x-4">
                       <ThemeToggle />
+                      <PrivacyToggle />
                       {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                     </div>
                   </div>
@@ -127,6 +131,7 @@ export default function RootLayout({
                 <MobileNavigation />
               </div>
             </SWRConfig>
+            </PrivacyProvider>
           </ThemeProvider>
         </Suspense>
       </body>

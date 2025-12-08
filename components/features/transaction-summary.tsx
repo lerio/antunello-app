@@ -4,6 +4,8 @@ import { CATEGORY_ICONS } from "@/utils/categories";
 import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
+import { usePrivacyMode } from "@/hooks/usePrivacyMode";
+import { PrivacyBlur } from "@/components/ui/privacy-blur";
 
 type CurrencyTotals = { [currency: string]: number };
 
@@ -83,13 +85,14 @@ function getDifferenceColorClass(
   return isPositive ? "text-red-500" : "text-green-500";
 }
 
-function formatDifference(difference: number, isIncome: boolean = false) {
+function formatDifference(difference: number, isIncome: boolean = false, privacyMode: boolean = false) {
   const sign = difference > 0 ? "+" : "-";
   const colorClass = getDifferenceColorClass(difference, isIncome);
   return (
     <span className={`${colorClass} text-sm sm:text-sm`}>
-      {sign}
-      {formatAmount(Math.abs(difference))}
+      <PrivacyBlur blur={privacyMode}>
+        {sign}{formatAmount(Math.abs(difference))}
+      </PrivacyBlur>
     </span>
   );
 }
@@ -445,12 +448,12 @@ function extendWithCategoryRows(
   return extended;
 }
 
-function renderComparisonCell(item: TotalsItem): React.ReactNode {
+function renderComparisonCell(item: TotalsItem, privacyMode: boolean = false): React.ReactNode {
   if (item.isHiddenExpense)
     return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
   if (item.difference === null)
     return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
-  return formatDifference(item.difference, !!(item.isIncome || item.isBalance));
+  return formatDifference(item.difference, !!(item.isIncome || item.isBalance), privacyMode);
 }
 
 type TotalsTableProps = {
@@ -463,6 +466,7 @@ type TotalsTableProps = {
   readonly onToggleExpenses: () => void;
   readonly isDetailsExpanded: boolean;
   readonly onToggleDetails: () => void;
+  readonly privacyMode: boolean;
 };
 
 function TotalsTable({
@@ -475,14 +479,18 @@ function TotalsTable({
   onToggleExpenses,
   isDetailsExpanded,
   onToggleDetails,
+  privacyMode,
 }: TotalsTableProps) {
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
   const isGains = balanceTotal >= 0;
-  const title = isGains
-    ? `Gains (€${formatAmount(Math.abs(balanceTotal))})`
-    : `Losses (€${formatAmount(Math.abs(balanceTotal))})`;
+  const amountDisplay = (
+    <PrivacyBlur blur={privacyMode}>
+      €{formatAmount(Math.abs(balanceTotal))}
+    </PrivacyBlur>
+  );
+  const title = isGains ? "Gains" : "Losses";
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
   const filteredData = isDetailsExpanded
@@ -499,7 +507,7 @@ function TotalsTable({
               : "text-red-600 dark:text-red-400"
           }`}
         >
-          {title}
+          {title} ({amountDisplay})
         </h3>
         <button
           onClick={onToggleDetails}
@@ -602,7 +610,9 @@ function TotalsTable({
                         item.total
                       )}
                     >
-                      {formatAmount(Math.abs(item.total))}
+                      <PrivacyBlur blur={privacyMode}>
+                        {formatAmount(Math.abs(item.total))}
+                      </PrivacyBlur>
                     </span>
                   </td>
                   {currentYear !== undefined && (
@@ -618,14 +628,16 @@ function TotalsTable({
                             item.monthlyAverage
                           )}
                         >
-                          {formatAmount(Math.abs(item.monthlyAverage || 0))}
+                          <PrivacyBlur blur={privacyMode}>
+                            {formatAmount(Math.abs(item.monthlyAverage || 0))}
+                          </PrivacyBlur>
                         </span>
                       )}
                     </td>
                   )}
                   {currentYear !== undefined && previousYear !== undefined && (
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                      {renderComparisonCell(item)}
+                      {renderComparisonCell(item, privacyMode)}
                     </td>
                   )}
                 </tr>
@@ -642,12 +654,14 @@ type CategoriesTableProps = {
   readonly categoriesData: CategoryData[];
   readonly currentYear?: number;
   readonly previousYear?: number;
+  readonly privacyMode: boolean;
 };
 
 function CategoriesTable({
   categoriesData,
   currentYear,
   previousYear,
+  privacyMode,
 }: CategoriesTableProps) {
   if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
@@ -724,9 +738,11 @@ function CategoriesTable({
                       item.type === "income" ? "text-green-500" : "text-red-500"
                     }`}
                   >
-                    {formatAmount(
-                      Math.abs(currentYear ? item.monthlyAverage : item.total)
-                    )}
+                    <PrivacyBlur blur={privacyMode}>
+                      {formatAmount(
+                        Math.abs(currentYear ? item.monthlyAverage : item.total)
+                      )}
+                    </PrivacyBlur>
                   </span>
                 </td>
                 {currentYear !== undefined && previousYear !== undefined && (
@@ -734,7 +750,7 @@ function CategoriesTable({
                     {item.difference === null ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
-                      formatDifference(item.difference, item.type === "income")
+                      formatDifference(item.difference, item.type === "income", privacyMode)
                     )}
                   </td>
                 )}
@@ -763,6 +779,9 @@ export default function TransactionSummary({
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
+  // Privacy mode
+  const { privacyMode } = usePrivacyMode();
 
   // Fetch previous year data for comparison if currentYear is provided
   const previousYear = currentYear ? currentYear - 1 : undefined;
@@ -852,12 +871,14 @@ export default function TransactionSummary({
             onToggleExpenses={() => setIsExpensesExpanded(!isExpensesExpanded)}
             isDetailsExpanded={isDetailsExpanded}
             onToggleDetails={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            privacyMode={privacyMode}
           />
 
           <CategoriesTable
             categoriesData={categoriesData}
             currentYear={currentYear}
             previousYear={previousYear}
+            privacyMode={privacyMode}
           />
         </>
       ) : (

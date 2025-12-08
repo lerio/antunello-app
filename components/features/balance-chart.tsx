@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { Eye, EyeOff } from "lucide-react";
 import {
   useBalanceHistory,
   TimeRange,
@@ -137,18 +136,14 @@ function TimeRangeButton({
 }
 
 /**
- * Balance chart controls (time range + hidden toggle)
+ * Balance chart controls (time range)
  */
 function BalanceChartControls({
   timeRange,
   onTimeRangeChange,
-  includeHidden,
-  onIncludeHiddenChange,
 }: {
   timeRange: TimeRange;
   onTimeRangeChange: (range: TimeRange) => void;
-  includeHidden: boolean;
-  onIncludeHiddenChange: (include: boolean) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-4">
@@ -174,23 +169,6 @@ function BalanceChartControls({
           onClick={() => onTimeRangeChange("all")}
         />
       </div>
-
-      <button
-        type="button"
-        onClick={() => onIncludeHiddenChange(!includeHidden)}
-        className={`p-2 flex items-center justify-center rounded-lg border transition-colors ${
-          includeHidden
-            ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-        }`}
-        title={
-          includeHidden
-            ? "Including hidden transactions"
-            : "Excluding hidden transactions"
-        }
-      >
-        {includeHidden ? <Eye size={20} /> : <EyeOff size={20} />}
-      </button>
     </div>
   );
 }
@@ -199,17 +177,12 @@ function BalanceChartControls({
 /**
  * Empty state when no data is available
  */
-function EmptyState({ includeHidden }: { includeHidden: boolean }) {
+function EmptyState() {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 text-center">
       <p className="text-gray-500 dark:text-gray-400 mb-2">
         No transaction data available
       </p>
-      {!includeHidden && (
-        <p className="text-sm text-gray-400 dark:text-gray-500">
-          Try enabling "Include Hidden Transactions" to see more data
-        </p>
-      )}
     </div>
   );
 }
@@ -219,11 +192,10 @@ function EmptyState({ includeHidden }: { includeHidden: boolean }) {
  */
 export default function BalanceChart() {
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
-  const [includeHidden, setIncludeHidden] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const { dataPoints, isLoading } = useBalanceHistory(timeRange, includeHidden);
+  const { dataPoints, isLoading } = useBalanceHistory(timeRange, true);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -240,7 +212,7 @@ export default function BalanceChart() {
   }
 
   if (dataPoints.length === 0) {
-    return <EmptyState includeHidden={includeHidden} />;
+    return <EmptyState />;
   }
 
   // Calculate min and max balance for Y-axis domain
@@ -272,8 +244,6 @@ export default function BalanceChart() {
       <BalanceChartControls
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
-        includeHidden={includeHidden}
-        onIncludeHiddenChange={setIncludeHidden}
       />
 
       <div

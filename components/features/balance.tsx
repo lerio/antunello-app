@@ -6,11 +6,14 @@ import { formatCurrency } from "@/utils/currency";
 import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BalanceSkeleton } from "@/components/ui/skeletons";
+import { usePrivacyMode } from "@/hooks/usePrivacyMode";
+import { PrivacyBlur } from "@/components/ui/privacy-blur";
 
 export default function Balance() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { fundCategories, isLoading, error, totalBalanceEUR } = useFundCategories();
+  const { privacyMode } = usePrivacyMode();
 
   if (error) return null;
 
@@ -81,7 +84,9 @@ export default function Balance() {
             {isLoading ? (
               <Skeleton className="inline-block w-20 h-5 align-middle" />
             ) : (
-              <>€{formatAmount(Math.abs(totalBalanceEUR))}</>
+              <PrivacyBlur blur={privacyMode}>
+                €{formatAmount(Math.abs(totalBalanceEUR))}
+              </PrivacyBlur>
             )}
           </div>
           <button
@@ -149,7 +154,9 @@ export default function Balance() {
                               </div>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
-                              €{formatAmount(Math.abs(totalEUR))}
+                              <PrivacyBlur blur={privacyMode}>
+                                €{formatAmount(Math.abs(totalEUR))}
+                              </PrivacyBlur>
                             </div>
                           </button>
                         );
@@ -179,7 +186,9 @@ export default function Balance() {
                                   </div>
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                  {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
+                                  <PrivacyBlur blur={privacyMode}>
+                                    {formatCurrency(fund.current_amount || fund.amount, fund.currency)}
+                                  </PrivacyBlur>
                                 </div>
                               </div>
                             );
