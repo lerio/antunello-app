@@ -281,7 +281,7 @@ export default function BalanceChart() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <ResponsiveContainer width={"100%"} height={"100%"}>
+        <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
           <LineChart
             data={dataPoints}
             margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
