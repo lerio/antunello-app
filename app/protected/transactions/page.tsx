@@ -94,14 +94,22 @@ export default function ProtectedPage() {
     useTransactionMutations();
 
   // Background sync for detecting updates
-  const { hasUpdates, updateCount, dismissUpdate, refreshData, recordLocalMutation } =
-    useBackgroundSync(userId);
+  const {
+    hasUpdates,
+    updateCount,
+    dismissUpdate,
+    refreshData,
+    recordLocalMutation,
+  } = useBackgroundSync(userId);
 
   // Pull-to-refresh functionality
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: async () => {
       // Clear cache before refreshing
-      transactionCache.clearRelated(currentDate.getFullYear(), currentDate.getMonth() + 1);
+      transactionCache.clearRelated(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1
+      );
       await mutate();
     },
     disabled: hasOpenModal, // Disable when modals are open
@@ -204,10 +212,12 @@ export default function ProtectedPage() {
 
   const handleDeleteTransaction = useCallback(
     async (transaction: Transaction) => {
-      const toastPromise = deleteTransaction(transaction).then(async (result) => {
-        await recordLocalMutation();
-        return result;
-      });
+      const toastPromise = deleteTransaction(transaction).then(
+        async (result) => {
+          await recordLocalMutation();
+          return result;
+        }
+      );
 
       toast.promise(toastPromise, {
         loading: "Deleting transaction...",
@@ -224,24 +234,29 @@ export default function ProtectedPage() {
   );
 
   /* REMOVED: history.pushState manual handling */
-  const handleMonthSelect = useCallback((year: number, month: number) => {
-    // Optimistic update
-    const newDate = new Date(year, month - 1, 1);
-    setCurrentDate(newDate);
+  const handleMonthSelect = useCallback(
+    (year: number, month: number) => {
+      // Optimistic update
+      const newDate = new Date(year, month - 1, 1);
+      setCurrentDate(newDate);
 
-    const now = new Date();
-    // Check if selected month/year is the current month/year
-    const isCurrentMonth =
-      month === now.getMonth() + 1 && year === now.getFullYear();
+      const now = new Date();
+      // Check if selected month/year is the current month/year
+      const isCurrentMonth =
+        month === now.getMonth() + 1 && year === now.getFullYear();
 
-    if (isCurrentMonth) {
-      router.push("/protected/transactions");
-    } else {
-      router.push(
-        `/protected/transactions?month=${month.toString().padStart(2, "0")}&year=${year}`
-      );
-    }
-  }, [router]);
+      if (isCurrentMonth) {
+        router.push("/protected/transactions");
+      } else {
+        router.push(
+          `/protected/transactions?month=${month
+            .toString()
+            .padStart(2, "0")}&year=${year}`
+        );
+      }
+    },
+    [router]
+  );
 
   if (error) {
     return (
@@ -269,10 +284,12 @@ export default function ProtectedPage() {
       {hasUpdates && (
         <UpdateBanner
           updateCount={updateCount}
-          onRefresh={() => refreshData(mutate, {
-            year: currentDate.getFullYear(),
-            month: currentDate.getMonth() + 1
-          })}
+          onRefresh={() =>
+            refreshData(mutate, {
+              year: currentDate.getFullYear(),
+              month: currentDate.getMonth() + 1,
+            })
+          }
           onDismiss={dismissUpdate}
         />
       )}

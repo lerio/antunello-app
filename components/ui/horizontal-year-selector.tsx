@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
 
-function getYearButtonVariant(isSelected: boolean, isToday: boolean, isFuture: boolean): string {
+function getYearButtonVariant(
+  isSelected: boolean,
+  isToday: boolean,
+  isFuture: boolean
+): string {
   if (isSelected) {
     return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md";
   }
@@ -48,7 +52,7 @@ export function HorizontalYearSelector({
       const elementWidth = selectedElement.clientWidth;
 
       // Calculate scroll position to center the element
-      const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2);
+      const scrollLeft = elementLeft - containerWidth / 2 + elementWidth / 2;
 
       let behavior: ScrollBehavior = "smooth";
 
@@ -59,7 +63,7 @@ export function HorizontalYearSelector({
 
       container.scrollTo({
         left: scrollLeft,
-        behavior
+        behavior,
       });
 
       // Update refs
@@ -74,7 +78,12 @@ export function HorizontalYearSelector({
       <div
         ref={scrollContainerRef}
         className="flex gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          touchAction: "pan-x",
+          overscrollBehaviorY: "none",
+        }}
       >
         {years.map((yearOption) => {
           const isSelected = yearOption.year === selectedYear;
@@ -85,8 +94,12 @@ export function HorizontalYearSelector({
               ref={isSelected ? selectedRef : undefined}
               onClick={() => onYearSelect(yearOption.year)}
               className={`
-                flex-shrink-0 px-6 py-2 rounded-lg font-medium text-sm transition-all duration-200
-                ${getYearButtonVariant(isSelected, yearOption.isToday, yearOption.isFuture)}
+                flex-shrink-0 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200
+                ${getYearButtonVariant(
+                  isSelected,
+                  yearOption.isToday,
+                  yearOption.isFuture
+                )}
               `}
             >
               <div className="text-center min-w-[60px]">
