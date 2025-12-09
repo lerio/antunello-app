@@ -13,13 +13,11 @@ import { generateTransferTitle } from "@/utils/money-transfer-validation";
 import {
   MinusCircle,
   PlusCircle,
-  Calendar,
   Trash2,
   ChevronDown,
   ArrowRightLeft,
 } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
@@ -876,39 +874,15 @@ export default function TransactionFormModal({
 
           {/* Date */}
           <div>
-            <div className="relative">
-              <DatePicker
-                selected={selectedDate}
-                onChange={(date) =>
-                  !disabled && setSelectedDate(date || new Date())
-                }
-                showTimeSelect
-                timeFormat="HH:mm"
-                timeIntervals={15}
-                dateFormat="dd/MM/yyyy HH:mm"
-                placeholderText="Date"
-                popperClassName="z-50"
-                calendarClassName="shadow-lg border border-gray-200 dark:border-gray-600 rounded-lg"
-                wrapperClassName="w-full"
-                id="date-picker"
-                name="date-picker"
-                disabled={disabled}
-                customInput={
-                  <input
-                    inputMode="none"
-                    className={`${inputClass} ${
-                      disabled ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  />
-                }
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <Calendar
-                  size={20}
-                  className="text-gray-400 dark:text-gray-500"
-                />
-              </div>
-            </div>
+            <DateTimePicker
+              date={selectedDate}
+              onDateChange={(date) =>
+                !disabled && setSelectedDate(date || new Date())
+              }
+              placeholder="Date"
+              disabled={disabled}
+              className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            />
           </div>
         </div>
 
