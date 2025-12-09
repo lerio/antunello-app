@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, BadgeEuro, BadgeJapaneseYen, BadgeDollarSign, BadgePoundSterling, BadgeCent } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
+import { formatAmountWithoutSymbol } from "@/utils/format-utils";
+import { getCurrencyIcon } from "@/utils/currency-icons";
 import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BalanceSkeleton } from "@/components/ui/skeletons";
@@ -17,62 +19,40 @@ export default function Balance() {
 
   if (error) return null;
 
-  const formatAmount = (amount: number) =>
-    formatCurrency(amount, "EUR")
-      .replaceAll("€", "")
-      .replaceAll("$", "")
-      .replaceAll("£", "")
-      .replaceAll("¥", "")
-      .replaceAll("₹", "");
-
-  const getCurrencyIcon = (currency: string) => {
-    switch (currency) {
-      case "EUR":
-        return BadgeEuro;
-      case "JPY":
-        return BadgeJapaneseYen;
-      case "USD":
-      case "CAD":
-      case "AUD":
-        return BadgeDollarSign;
-      case "GBP":
-        return BadgePoundSterling;
-      default:
-        return BadgeCent;
-    }
-  };
-
   const amountColorClass = totalBalanceEUR >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
-  // Group funds by top-level category
-  const groupedFunds = fundCategories
-    .filter(fund => fund.is_active)
-    .reduce((acc, fund) => {
-      const category = fund.top_level_category || "Uncategorized";
-      if (!acc[category]) {
-        acc[category] = {
-          totalEUR: 0,
-          funds: []
-        };
+  // Memoize grouped and sorted categories to prevent recalculation on every render
+  const sortedCategories = useMemo(() => {
+    const grouped = fundCategories
+      .filter(fund => fund.is_active)
+      .reduce((acc, fund) => {
+        const category = fund.top_level_category || "Uncategorized";
+        if (!acc[category]) {
+          acc[category] = {
+            totalEUR: 0,
+            funds: []
+          };
+        }
+        acc[category].totalEUR += fund.current_eur_amount || 0;
+        acc[category].funds.push(fund);
+        return acc;
+      }, {} as Record<string, { totalEUR: number; funds: FundCategoryWithBalance[] }>);
+
+    return Object.entries(grouped)
+      .sort(([, a], [, b]) => b.totalEUR - a.totalEUR);
+  }, [fundCategories]);
+
+  const toggleCategory = useCallback((category: string) => {
+    setExpandedCategories(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(category)) {
+        newExpanded.delete(category);
+      } else {
+        newExpanded.add(category);
       }
-      acc[category].totalEUR += fund.current_eur_amount || 0;
-      acc[category].funds.push(fund);
-      return acc;
-    }, {} as Record<string, { totalEUR: number; funds: FundCategoryWithBalance[] }>);
-
-  // Sort categories by total amount (descending)
-  const sortedCategories = Object.entries(groupedFunds)
-    .sort(([, a], [, b]) => b.totalEUR - a.totalEUR);
-
-  const toggleCategory = (category: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(category)) {
-      newExpanded.delete(category);
-    } else {
-      newExpanded.add(category);
-    }
-    setExpandedCategories(newExpanded);
-  };
+      return newExpanded;
+    });
+  }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 mb-2">
@@ -85,7 +65,7 @@ export default function Balance() {
               <Skeleton className="inline-block w-20 h-5 align-middle" />
             ) : (
               <PrivacyBlur blur={privacyMode}>
-                €{formatAmount(Math.abs(totalBalanceEUR))}
+                €{formatAmountWithoutSymbol(Math.abs(totalBalanceEUR))}
               </PrivacyBlur>
             )}
           </div>
@@ -155,7 +135,7 @@ export default function Balance() {
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
                               <PrivacyBlur blur={privacyMode}>
-                                €{formatAmount(Math.abs(totalEUR))}
+                                €{formatAmountWithoutSymbol(Math.abs(totalEUR))}
                               </PrivacyBlur>
                             </div>
                           </button>

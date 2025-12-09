@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check, BadgeEuro, BadgeJapaneseYen, BadgeDollarSign, BadgePoundSterling, BadgeCent } from 'lucide-react'
+import { ChevronDown, Check } from 'lucide-react'
+import { getCurrencyIcon } from '@/utils/currency-icons'
 
 interface FundOption {
   id: string
@@ -16,23 +17,6 @@ interface FundSelectProps {
   readonly className?: string
   readonly error?: boolean
 }
-
-const getCurrencyIcon = (currency: string) => {
-  switch (currency) {
-    case "EUR":
-      return BadgeEuro;
-    case "JPY":
-      return BadgeJapaneseYen;
-    case "USD":
-    case "CAD":
-    case "AUD":
-      return BadgeDollarSign;
-    case "GBP":
-      return BadgePoundSterling;
-    default:
-      return BadgeCent;
-  }
-};
 
 export function FundSelect({
   options,

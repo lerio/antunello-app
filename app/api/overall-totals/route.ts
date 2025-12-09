@@ -30,7 +30,11 @@ export async function GET() {
     const first = Array.isArray(data) ? (data as unknown[])[0] : (data as unknown)
     const eurTotal = Number(first) || 0
 
-    return NextResponse.json({ eurTotal })
+    return NextResponse.json({ eurTotal }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Unknown error" }, { status: 500 })
   }

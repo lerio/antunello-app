@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/utils/currency";
+import { formatAmountWithoutSymbol } from "@/utils/format-utils";
 import { useOverallTotals } from "@/hooks/useOverallTotals";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -10,14 +10,6 @@ export default function OverallTotals() {
   const eurTotal = totals?.eurTotal || 0;
 
   if (error) return null;
-
-  const formatAmount = (amount: number) =>
-    formatCurrency(amount, "EUR")
-      .replaceAll("€", "")
-      .replaceAll("$", "")
-      .replaceAll("£", "")
-      .replaceAll("¥", "")
-      .replaceAll("₹", "");
 
   const amountColorClass = eurTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
@@ -29,7 +21,7 @@ export default function OverallTotals() {
           {isLoading ? (
             <Skeleton className="inline-block w-20 h-5" />
           ) : (
-            <>€{formatAmount(Math.abs(eurTotal))}</>
+            <>€{formatAmountWithoutSymbol(Math.abs(eurTotal))}</>
           )}
         </div>
       </div>

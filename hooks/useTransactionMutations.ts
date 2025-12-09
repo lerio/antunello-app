@@ -4,6 +4,7 @@ import { Transaction } from '@/types/database'
 import { convertToEUR } from '@/utils/currency-conversion'
 import { transactionCache } from '@/utils/simple-cache'
 import { createYearKey } from '@/utils/year-fetcher'
+import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
@@ -84,16 +85,6 @@ export function useTransactionMutations() {
     return {}
   }
 
-  // Helper to sort transactions by date descending, then by created_at descending
-  const sortTransactionsByDate = (transactions: Transaction[]): Transaction[] => {
-    return transactions.sort((a, b) => {
-      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
-      if (dateCompare !== 0) return dateCompare
-      // If dates are equal, sort by created_at
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    })
-  }
-
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     const monthKey = getMonthKey(data.date)
 
@@ -114,7 +105,7 @@ export function useTransactionMutations() {
 
     // Optimistically update the cache immediately
     updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
-      return sortTransactionsByDate([optimisticTransaction, ...transactions])
+      return sortTransactionsByDateInPlace([optimisticTransaction, ...transactions])
     })
 
     try {
@@ -139,7 +130,7 @@ export function useTransactionMutations() {
 
       // Replace optimistic transaction with real one
       updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
-        return sortTransactionsByDate(
+        return sortTransactionsByDateInPlace(
           transactions.map(t => t.id === optimisticTransaction.id ? newTransaction : t)
         )
       })
@@ -192,14 +183,14 @@ export function useTransactionMutations() {
       return transactions.filter(t => t.id !== id)
     })
     updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => {
-      return sortTransactionsByDate([updatedTransaction, ...transactions])
+      return sortTransactionsByDateInPlace([updatedTransaction, ...transactions])
     })
   }
 
   // Helper to update caches when transaction stays in same month
   const updateCachesInSameMonth = (monthKey: string, id: string, updatedTransaction: Transaction) => {
     updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
-      return sortTransactionsByDate(
+      return sortTransactionsByDateInPlace(
         transactions.map(t => (t.id === id ? updatedTransaction : t))
       )
     })
@@ -248,7 +239,7 @@ export function useTransactionMutations() {
   // Helper: finalize caches and invalidations after DB update
   const finalizeUpdate = (targetMonthKey: string, id: string, updatedTxn: Transaction, oldDate: string, newDate?: string) => {
     updateBothCaches(targetMonthKey, (transactions: Transaction[] = []) => {
-      return sortTransactionsByDate(transactions.map(t => (t.id === id ? updatedTxn : t)))
+      return sortTransactionsByDateInPlace(transactions.map(t => (t.id === id ? updatedTxn : t)))
     })
     mutate(getTransactionKey(id), updatedTxn, false)
     invalidateYearCache(oldDate)
@@ -266,7 +257,7 @@ export function useTransactionMutations() {
     } else {
       updateBothCaches(newMonthKey, (transactions: Transaction[] = []) => transactions.filter(t => t.id !== id))
       const txnToRestore = original
-      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => sortTransactionsByDate([...transactions, txnToRestore]))
+      updateBothCaches(oldMonthKey, (transactions: Transaction[] = []) => sortTransactionsByDateInPlace([...transactions, txnToRestore]))
     }
   }
 

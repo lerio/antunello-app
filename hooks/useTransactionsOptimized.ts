@@ -6,6 +6,7 @@ import { usePrefetch } from './usePrefetch'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
 import { createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
+import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 
 // Consolidated, optimized transactions hook
 export function useTransactionsOptimized(year: number, month: number) {
@@ -56,16 +57,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     }
   }
 
-  // Helper to sort transactions by date, then by created_at
-  const sortByDate = (transactions: Transaction[]): Transaction[] => {
-    return transactions.sort((a, b) => {
-      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
-      if (dateCompare !== 0) return dateCompare
-      // If dates are equal, sort by created_at
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    })
-  }
-
   // Helper to handle INSERT event
   const handleInsert = (newRecord: any) => {
     const recordInfo = getDateInfo(newRecord.date)
@@ -76,7 +67,7 @@ export function useTransactionsOptimized(year: number, month: number) {
         if (current.some(t => t.id === newRecord.id || t.id.startsWith('temp-'))) {
           return current.map(t => (t.id.startsWith('temp-') ? newRecord : t))
         }
-        return sortByDate([newRecord, ...current])
+        return sortTransactionsByDateInPlace([newRecord, ...current])
       }, false)
     }
 
@@ -96,12 +87,12 @@ export function useTransactionsOptimized(year: number, month: number) {
       }, false)
 
       globalMutate(newDateInfo.key, (transactions: Transaction[] = []) => {
-        return sortByDate([newRecord, ...transactions])
+        return sortTransactionsByDateInPlace([newRecord, ...transactions])
       }, false)
     } else if (newDateInfo.key === monthKey) {
       // Same month, update current view
       mutate((transactions: Transaction[] = []) => {
-        return sortByDate(transactions.map(t => (t.id === newRecord.id ? newRecord : t)))
+        return sortTransactionsByDateInPlace(transactions.map(t => (t.id === newRecord.id ? newRecord : t)))
       }, false)
     }
 
