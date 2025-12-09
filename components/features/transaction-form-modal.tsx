@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
-  MAIN_CATEGORIES,
   SUB_CATEGORIES,
   Transaction,
   CATEGORIES_WITH_TYPES,
@@ -8,7 +7,7 @@ import {
   TitleSuggestion,
 } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
-import { parseNumber, isValidPositiveNumber } from "@/utils/number";
+import { parseNumber } from "@/utils/number";
 import { generateTransferTitle } from "@/utils/money-transfer-validation";
 import {
   MinusCircle,
@@ -25,39 +24,22 @@ import { FundSelect } from "@/components/ui/fund-select";
 import { Switch } from "@/components/ui/switch";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
+import { getTypeButtonClass } from "@/utils/styling-utils";
+import {
+  validateTransactionFields,
+  validateMoneyTransferFields,
+  hasValidationErrors,
+  emptyValidationErrors,
+  type ValidationErrors,
+} from "@/utils/form-validation";
+import { CURRENCY_OPTIONS } from "@/constants/app-constants";
 
 function renderSubmitButtonContent(
   isLoading: boolean,
-  hasInitialData: boolean,
-  transactionType: "expense" | "income"
+  hasInitialData: boolean
 ): React.ReactNode {
   return hasInitialData ? "Save" : "Add";
 }
-
-// Helper: button styles for type toggle
-const getTypeButtonColorClass = (
-  type: "expense" | "income",
-  isSelected: boolean
-): string => {
-  if (type === "expense") {
-    return isSelected
-      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-500 dark:border-red-400"
-      : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-gray-200 dark:border-gray-600 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-400";
-  }
-  return isSelected
-    ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-500 dark:border-green-400"
-    : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-400 dark:hover:border-green-400";
-};
-
-const getTypeButtonClass = (
-  type: "expense" | "income",
-  isSelected: boolean
-) => {
-  const baseClass =
-    "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all";
-  const colorClass = getTypeButtonColorClass(type, isSelected);
-  return `${baseClass} ${colorClass}`;
-};
 
 // Subcomponent: Type selector toggle (3 buttons: expense, income, transfer)
 function TypeSelector({
@@ -79,11 +61,11 @@ function TypeSelector({
     <div>
       <div className="flex space-x-3">
         <button
-          className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-            !isMoneyTransferMode && transactionType === "expense"
-              ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-500 dark:border-red-400"
-              : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-gray-200 dark:border-gray-600 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-400"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={getTypeButtonClass(
+            "expense",
+            !isMoneyTransferMode && transactionType === "expense",
+            disabled
+          )}
           type="button"
           onClick={() => {
             if (!disabled) {
@@ -97,11 +79,11 @@ function TypeSelector({
           <MinusCircle size={20} />
         </button>
         <button
-          className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-            !isMoneyTransferMode && transactionType === "income"
-              ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-500 dark:border-green-400"
-              : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-400 dark:hover:border-green-400"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={getTypeButtonClass(
+            "income",
+            !isMoneyTransferMode && transactionType === "income",
+            disabled
+          )}
           type="button"
           onClick={() => {
             if (!disabled) {
@@ -115,11 +97,7 @@ function TypeSelector({
           <PlusCircle size={20} />
         </button>
         <button
-          className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-            isMoneyTransferMode
-              ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-900 dark:border-white"
-              : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-900 dark:hover:border-white"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={getTypeButtonClass("transfer", isMoneyTransferMode, disabled)}
           type="button"
           onClick={() => !disabled && setIsMoneyTransferMode(true)}
           disabled={disabled}
@@ -171,12 +149,6 @@ interface TransactionFormModalProps {
   readonly onDelete?: (transaction: Transaction) => Promise<void>;
   readonly onClose?: () => void;
 }
-
-const CURRENCY_OPTIONS = [
-  { value: "USD", label: "USD", symbol: "$" },
-  { value: "EUR", label: "EUR", symbol: "€" },
-  { value: "JPY", label: "JPY", symbol: "¥" },
-] as const;
 
 export default function TransactionFormModal({
   onSubmit,
@@ -365,12 +337,9 @@ export default function TransactionFormModal({
   }, []);
 
   // Validation state for tooltips
-  const [validationErrors, setValidationErrors] = useState({
-    amount: "",
-    mainCategory: "",
-    subCategory: "",
-    title: "",
-  });
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    emptyValidationErrors
+  );
 
   const { currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(
     () => ({
@@ -398,108 +367,30 @@ export default function TransactionFormModal({
     [mainCategory, selectedCurrency, transactionType]
   );
 
-  // Helper to validate form fields
-  const validateFormFields = (
-    amount: string,
-    mainCategory: string,
-    subCategory: string,
-    title: string
-  ) => {
-    const newErrors = {
-      amount: "",
-      mainCategory: "",
-      subCategory: "",
-      title: "",
-    };
-
-    if (!isValidPositiveNumber(amount)) {
-      newErrors.amount = "Please enter a valid amount";
-    }
-
-    if (!mainCategory) {
-      newErrors.mainCategory = "Please select a main category";
-    }
-
-    if (!subCategory?.trim()) {
-      newErrors.subCategory = "Please select a sub category";
-    }
-
-    if (!title?.trim()) {
-      newErrors.title = "Please enter a title";
-    }
-
-    return newErrors;
-  };
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
       // Clear previous validation errors
-      setValidationErrors({
-        amount: "",
-        mainCategory: "",
-        subCategory: "",
-        title: "",
-      });
+      setValidationErrors(emptyValidationErrors);
 
       // Validate all required fields
       const formData = new FormData(e.currentTarget);
       const amount = formData.get("amount") as string;
-      const title = formData.get("title") as string;
+      const formTitle = formData.get("title") as string;
       const formMainCategory = formData.get("main_category") as string;
       const formSubCategory = formData.get("sub_category") as string;
 
-      let newErrors = {
-        amount: "",
-        mainCategory: "",
-        subCategory: "",
-        title: "",
-      };
-
-      // Basic amount validation for all types
-      if (!isValidPositiveNumber(amount)) {
-        newErrors.amount = "Please enter a valid amount";
-      }
-
       // Conditional validation based on mode
-      if (isMoneyTransferMode) {
-        // Money transfer validation
-        if (!selectedFundCategoryId) {
-          newErrors.mainCategory = "Please select a source fund";
-        }
-        if (!targetFundCategoryId) {
-          newErrors.subCategory = "Please select a target fund";
-        }
-        if (
-          selectedFundCategoryId &&
-          targetFundCategoryId &&
-          selectedFundCategoryId === targetFundCategoryId
-        ) {
-          newErrors.subCategory = "Source and target funds must be different";
-        }
-      } else {
-        // Regular transaction validation
-        newErrors = validateFormFields(
-          amount,
-          formMainCategory,
-          formSubCategory,
-          title
-        );
-      }
+      const newErrors = isMoneyTransferMode
+        ? validateMoneyTransferFields(amount, selectedFundCategoryId, targetFundCategoryId)
+        : validateTransactionFields(amount, formMainCategory, formSubCategory, formTitle);
 
-      const hasErrors = Object.values(newErrors).some((error) => error !== "");
-
-      if (hasErrors) {
+      if (hasValidationErrors(newErrors)) {
         setValidationErrors(newErrors);
         // Auto-dismiss tooltips after 4 seconds
         setTimeout(() => {
-          setValidationErrors({
-            amount: "",
-            mainCategory: "",
-            subCategory: "",
-            title: "",
-          });
+          setValidationErrors(emptyValidationErrors);
         }, 4000);
         return;
       }
@@ -565,11 +456,7 @@ export default function TransactionFormModal({
   const inputClass =
     "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
 
-  const buttonContent = renderSubmitButtonContent(
-    isLoading,
-    !!initialData,
-    transactionType
-  );
+  const buttonContent = renderSubmitButtonContent(isLoading, !!initialData);
 
   return (
     <div

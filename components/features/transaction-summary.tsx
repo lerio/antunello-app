@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
@@ -6,6 +6,12 @@ import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
+import {
+  getDifferenceColorClass,
+  getCategoryNameClass,
+  getTotalAmountClass,
+  getMonthlyAmountClass,
+} from "@/utils/styling-utils";
 
 type CurrencyTotals = { [currency: string]: number };
 
@@ -76,15 +82,6 @@ function formatAmount(amount: number) {
   }).format(amount);
 }
 
-function getDifferenceColorClass(
-  difference: number,
-  isIncome: boolean = false
-): string {
-  const isPositive = difference > 0;
-  if (isIncome) return isPositive ? "text-green-500" : "text-red-500";
-  return isPositive ? "text-red-500" : "text-green-500";
-}
-
 function formatDifference(difference: number, isIncome: boolean = false, privacyMode: boolean = false) {
   const sign = difference > 0 ? "+" : "-";
   const colorClass = getDifferenceColorClass(difference, isIncome);
@@ -95,64 +92,6 @@ function formatDifference(difference: number, isIncome: boolean = false, privacy
       </PrivacyBlur>
     </span>
   );
-}
-
-function getCategoryNameClass(
-  isSubCategory: boolean,
-  isHiddenExpense: boolean,
-  isBalance: boolean,
-  isIncome: boolean,
-  total?: number
-): string {
-  const baseClass = "text-sm sm:text-sm";
-  if (isSubCategory) return `${baseClass} ml-4`;
-  if (isHiddenExpense)
-    return `${baseClass} text-red-600 dark:text-red-400 ml-2 sm:ml-4`;
-  if (isBalance) {
-    const colorClass =
-      (total || 0) >= 0
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400";
-    return `font-medium ${baseClass} ${colorClass}`;
-  }
-  if (isIncome)
-    return `font-medium ${baseClass} text-green-600 dark:text-green-400`;
-  return `font-medium ${baseClass} text-red-600 dark:text-red-400`;
-}
-
-function getTotalAmountClass(
-  isSubCategory: boolean,
-  itemType: string,
-  isHiddenExpense: boolean,
-  isBalance: boolean,
-  isIncome: boolean,
-  total?: number
-): string {
-  const baseClass = "text-sm sm:text-sm";
-  if (isSubCategory)
-    return `${baseClass} ${
-      itemType === "income" ? "text-green-500" : "text-red-500"
-    }`;
-  if (isHiddenExpense) return `${baseClass} text-red-500`;
-  if (isBalance)
-    return `font-medium ${baseClass} ${
-      (total || 0) >= 0 ? "text-green-500" : "text-red-500"
-    }`;
-  return `font-medium ${baseClass} ${
-    isIncome ? "text-green-500" : "text-red-500"
-  }`;
-}
-
-function getMonthlyAmountClass(
-  isBalance: boolean,
-  monthlyAverage?: number
-): string {
-  const baseClass = "text-sm sm:text-sm";
-  if (isBalance)
-    return `${baseClass} ${
-      (monthlyAverage || 0) >= 0 ? "text-green-500" : "text-red-500"
-    }`;
-  return baseClass;
 }
 
 function inc(map: Record<string, number>, key: string, amount: number) {
@@ -788,27 +727,132 @@ export default function TransactionSummary({
   const { transactions: previousYearTransactions } =
     useYearTransactions(previousYear);
 
-  // Compute current and previous year totals via helpers
+  // Memoize current year totals computation
   const {
     expenseTotal,
     incomeTotal,
     incomeCategoryTotals,
     expenseCategoryTotals,
     hiddenExpenseTotal,
-  } = computeYearTotals(transactions);
+  } = useMemo(() => computeYearTotals(transactions), [transactions]);
 
+  // Memoize previous year totals computation
   const {
     prevYearExpenseTotal,
     prevYearIncomeTotal,
     prevYearIncomeCategoryTotals,
     prevYearExpenseCategoryTotals,
     prevYearHiddenExpenseTotal,
-  } = computePrevYearTotals(previousYearTransactions);
+  } = useMemo(
+    () => computePrevYearTotals(previousYearTransactions),
+    [previousYearTransactions]
+  );
 
-  // Calculate balance
-  const balanceTotal = incomeTotal - expenseTotal;
-  const prevYearBalanceTotal = prevYearIncomeTotal - prevYearExpenseTotal;
+  // Memoize balance calculations
+  const { balanceTotal, prevYearBalanceTotal } = useMemo(
+    () => ({
+      balanceTotal: incomeTotal - expenseTotal,
+      prevYearBalanceTotal: prevYearIncomeTotal - prevYearExpenseTotal,
+    }),
+    [incomeTotal, expenseTotal, prevYearIncomeTotal, prevYearExpenseTotal]
+  );
 
+  // Memoized toggle handlers
+  const handleToggleIncome = useCallback(
+    () => setIsIncomeExpanded((prev) => !prev),
+    []
+  );
+  const handleToggleExpenses = useCallback(
+    () => setIsExpensesExpanded((prev) => !prev),
+    []
+  );
+  const handleToggleDetails = useCallback(
+    () => setIsDetailsExpanded((prev) => !prev),
+    []
+  );
+
+  // Memoize base data creation (must be before conditional returns)
+  const baseData = useMemo(
+    () =>
+      createBaseData({
+        balanceTotal,
+        incomeTotal,
+        expenseTotal,
+        hiddenExpenseTotal,
+        prevYearBalanceTotal,
+        prevYearIncomeTotal,
+        prevYearExpenseTotal,
+        prevYearHiddenExpenseTotal,
+        currentYear,
+        previousYear,
+      }),
+    [
+      balanceTotal,
+      incomeTotal,
+      expenseTotal,
+      hiddenExpenseTotal,
+      prevYearBalanceTotal,
+      prevYearIncomeTotal,
+      prevYearExpenseTotal,
+      prevYearHiddenExpenseTotal,
+      currentYear,
+      previousYear,
+    ]
+  );
+
+  // Memoize totals data with category rows
+  const totalsData = useMemo(
+    () =>
+      currentYear
+        ? baseData
+        : extendWithCategoryRows(
+            baseData,
+            isIncomeExpanded,
+            isExpensesExpanded,
+            incomeCategoryTotals,
+            expenseCategoryTotals,
+            currentYear
+          ),
+    [
+      currentYear,
+      baseData,
+      isIncomeExpanded,
+      isExpensesExpanded,
+      incomeCategoryTotals,
+      expenseCategoryTotals,
+    ]
+  );
+
+  // Memoize categories data
+  const categoriesData = useMemo(
+    () =>
+      buildCategoriesData(
+        incomeCategoryTotals,
+        expenseCategoryTotals,
+        prevYearIncomeCategoryTotals,
+        prevYearExpenseCategoryTotals,
+        currentYear,
+        previousYear
+      ),
+    [
+      incomeCategoryTotals,
+      expenseCategoryTotals,
+      prevYearIncomeCategoryTotals,
+      prevYearExpenseCategoryTotals,
+      currentYear,
+      previousYear,
+    ]
+  );
+
+  // Memoize hasData check
+  const hasData = useMemo(
+    () =>
+      Object.keys(incomeCategoryTotals).length > 0 ||
+      Object.keys(expenseCategoryTotals).length > 0,
+    [incomeCategoryTotals, expenseCategoryTotals]
+  );
+
+  // Loading state (after all hooks)
   if (isLoading) {
     // Year view shows both totals and category breakdown
     if (currentYear !== undefined) {
@@ -817,45 +861,6 @@ export default function TransactionSummary({
     // Monthly view shows collapsed summary
     return <SummarySkeleton collapsed={true} />;
   }
-
-  // Prepare totals data with categories for monthly view
-  const baseData = createBaseData({
-    balanceTotal,
-    incomeTotal,
-    expenseTotal,
-    hiddenExpenseTotal,
-    prevYearBalanceTotal,
-    prevYearIncomeTotal,
-    prevYearExpenseTotal,
-    prevYearHiddenExpenseTotal,
-    currentYear,
-    previousYear,
-  });
-
-  const totalsData = currentYear
-    ? baseData
-    : extendWithCategoryRows(
-        baseData,
-        isIncomeExpanded,
-        isExpensesExpanded,
-        incomeCategoryTotals,
-        expenseCategoryTotals,
-        currentYear
-      );
-
-  // Prepare categories data
-  const categoriesData: CategoryData[] = buildCategoriesData(
-    incomeCategoryTotals,
-    expenseCategoryTotals,
-    prevYearIncomeCategoryTotals,
-    prevYearExpenseCategoryTotals,
-    currentYear,
-    previousYear
-  );
-
-  const hasData =
-    Object.keys(incomeCategoryTotals).length > 0 ||
-    Object.keys(expenseCategoryTotals).length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
@@ -867,10 +872,10 @@ export default function TransactionSummary({
             previousYear={previousYear}
             isIncomeExpanded={isIncomeExpanded}
             isExpensesExpanded={isExpensesExpanded}
-            onToggleIncome={() => setIsIncomeExpanded(!isIncomeExpanded)}
-            onToggleExpenses={() => setIsExpensesExpanded(!isExpensesExpanded)}
+            onToggleIncome={handleToggleIncome}
+            onToggleExpenses={handleToggleExpenses}
             isDetailsExpanded={isDetailsExpanded}
-            onToggleDetails={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            onToggleDetails={handleToggleDetails}
             privacyMode={privacyMode}
           />
 
