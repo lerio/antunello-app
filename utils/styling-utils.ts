@@ -46,6 +46,17 @@ export function getInputClass(isDisabled: boolean = false): string {
   return cn(inputStyles.base, inputStyles.colors, isDisabled && inputStyles.disabled);
 }
 
+// Standard select styles
+export const selectStyles = {
+  base: "w-full px-3 py-2 border rounded-md text-sm focus:outline-none",
+  colors: "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+  disabled: "opacity-50 cursor-not-allowed",
+} as const;
+
+export function getSelectClass(isDisabled: boolean = false): string {
+  return cn(selectStyles.base, selectStyles.colors, isDisabled && selectStyles.disabled);
+}
+
 // Submit button styles
 export const buttonStyles = {
   primary:

@@ -9,8 +9,8 @@ import { createClient } from "@/utils/supabase/client";
 import { FundCategory, TOP_LEVEL_FUND_CATEGORIES } from "@/types/database";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
-
-const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY"];
+import { CURRENCIES } from "@/constants/app-constants";
+import { getSelectClass } from "@/utils/styling-utils";
 
 export default function FundCategoriesManager() {
   const { fundCategories, isLoading, mutate } = useFundCategories();
@@ -133,7 +133,7 @@ export default function FundCategoriesManager() {
                   id="top_level_category"
                   value={newFund.top_level_category || ""}
                   onChange={(e) => setNewFund({ ...newFund, top_level_category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                  className={getSelectClass()}
                 >
                   <option value="">No Category</option>
                   {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
@@ -149,7 +149,7 @@ export default function FundCategoriesManager() {
                   id="currency"
                   value={newFund.currency}
                   onChange={(e) => setNewFund({ ...newFund, currency: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                  className={getSelectClass()}
                 >
                   {CURRENCIES.map((currency) => (
                     <option key={currency} value={currency}>
@@ -262,7 +262,7 @@ export default function FundCategoriesManager() {
                                   false
                                 )
                               }
-                              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                              className={getSelectClass()}
                             >
                               <option value="">No Category</option>
                               {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
@@ -281,7 +281,7 @@ export default function FundCategoriesManager() {
                                   false
                                 )
                               }
-                              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
+                              className={getSelectClass()}
                             >
                               {CURRENCIES.map((currency) => (
                                 <option key={currency} value={currency}>

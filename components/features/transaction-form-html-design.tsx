@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
+import { CURRENCY_OPTIONS } from "@/constants/app-constants";
+import { getTypeButtonClass, getInputClass } from "@/utils/styling-utils";
 
 type TransactionFormProps = Readonly<{
   onSubmit: (
@@ -26,12 +28,6 @@ type TransactionFormProps = Readonly<{
   initialData?: Transaction;
   onBack?: () => void;
 }>;
-
-const CURRENCY_OPTIONS = [
-  { value: "USD", label: "USD", symbol: "$" },
-  { value: "EUR", label: "EUR", symbol: "€" },
-  { value: "JPY", label: "JPY", symbol: "¥" },
-];
 
 export default function TransactionFormHtmlDesign({
   onSubmit,
@@ -285,7 +281,7 @@ export default function TransactionFormHtmlDesign({
               Title
             </label>
             <input
-              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-12 px-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={getInputClass()}
               id="title"
               name="title"
               placeholder="e.g., Monthly groceries at the supermarket"
@@ -303,11 +299,7 @@ export default function TransactionFormHtmlDesign({
             </div>
             <div className="flex space-x-4">
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-                  transactionType === "expense"
-                    ? "bg-red-100 text-red-700 border-red-500"
-                    : "bg-red-50 text-red-700 border-gray-200 hover:bg-red-100 hover:border-red-400"
-                }`}
+                className={getTypeButtonClass("expense", transactionType === "expense")}
                 type="button"
                 onClick={() => setTransactionType("expense")}
               >
@@ -315,11 +307,7 @@ export default function TransactionFormHtmlDesign({
                 Expense
               </button>
               <button
-                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all ${
-                  transactionType === "income"
-                    ? "bg-green-100 text-green-700 border-green-500"
-                    : "bg-green-50 text-green-700 border-gray-200 hover:bg-green-100 hover:border-green-400"
-                }`}
+                className={getTypeButtonClass("income", transactionType === "income")}
                 type="button"
                 onClick={() => setTransactionType("income")}
               >
