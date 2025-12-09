@@ -11,6 +11,19 @@ export interface FundCategoryWithBalance extends FundCategory {
   current_eur_amount: number;
 }
 
+// Minimal transaction fields needed for balance calculation
+type BalanceTransaction = Pick<
+  Transaction,
+  | "id"
+  | "fund_category_id"
+  | "target_fund_category_id"
+  | "amount"
+  | "currency"
+  | "date"
+  | "type"
+  | "is_money_transfer"
+>;
+
 export function useFundCategories() {
   const supabase = createClient();
 
@@ -25,88 +38,102 @@ export function useFundCategories() {
 
       if (fundError) throw fundError;
 
-      // Fetch transactions linked to fund categories (source or target)
+      // Fetch only required fields for balance calculation (reduces payload)
       const { data: transactions, error: txError } = await supabase
         .from("transactions")
-        .select("*")
+        .select(
+          "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer"
+        )
         .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null");
 
       if (txError) throw txError;
 
+      // Single-pass grouping: Map fund ID -> transactions affecting that fund
+      const txByFund = new Map<string, BalanceTransaction[]>();
+      for (const tx of (transactions as BalanceTransaction[]) || []) {
+        if (tx.fund_category_id) {
+          const arr = txByFund.get(tx.fund_category_id) || [];
+          arr.push(tx);
+          txByFund.set(tx.fund_category_id, arr);
+        }
+        if (tx.target_fund_category_id && tx.target_fund_category_id !== tx.fund_category_id) {
+          const arr = txByFund.get(tx.target_fund_category_id) || [];
+          arr.push(tx);
+          txByFund.set(tx.target_fund_category_id, arr);
+        }
+      }
 
-      // Calculate current balance for each fund category
-      const fundCategoriesWithBalance: FundCategoryWithBalance[] = await Promise.all(
-        fundCategories.map(async (fund) => {
-          // Filter transactions for this fund (as source OR target)
-          const fundTransactions = transactions?.filter(
-            (tx: Transaction) =>
-              tx.fund_category_id === fund.id ||
-              tx.target_fund_category_id === fund.id
-          ) || [];
+      // Calculate balances synchronously (no awaits in loop)
+      const fundsWithBalances = fundCategories.map((fund) => {
+        const fundTxs = txByFund.get(fund.id) || [];
+        let currentAmount = fund.amount;
 
-          // Calculate current amount (base amount + transaction adjustments)
-          let currentAmount = fund.amount;
-
-          for (const tx of fundTransactions) {
-            if (tx.is_money_transfer) {
-              // Money transfers: subtract from source, add to target
-              if (tx.fund_category_id === fund.id) {
-                // This fund is SOURCE - subtract amount
-                // Amount is in target currency, need to convert to fund currency
-                if (tx.currency === fund.currency) {
-                  currentAmount -= tx.amount;
-                } else {
-                  // Convert amount from transaction currency to fund currency
-                  const eurConversion = await convertToEUR(tx.amount, tx.currency, tx.date.split('T')[0]);
-                  if (eurConversion && fund.currency === 'EUR') {
-                    currentAmount -= eurConversion.eurAmount;
-                  } else if (eurConversion) {
-                    // Need to convert from EUR to fund currency
-                    // For simplicity, use the amount as-is (fallback)
-                    currentAmount -= tx.amount;
-                  } else {
-                    currentAmount -= tx.amount; // Fallback
-                  }
-                }
-              } else if (tx.target_fund_category_id === fund.id) {
-                // This fund is TARGET - add amount (already in target currency)
-                currentAmount += tx.amount;
-              }
-            } else {
-              // Regular transaction: income adds, expense subtracts
-              if (tx.type === "income") {
-                currentAmount += tx.amount;
-              } else if (tx.type === "expense") {
-                currentAmount -= tx.amount;
-              }
+        for (const tx of fundTxs) {
+          if (tx.is_money_transfer) {
+            if (tx.fund_category_id === fund.id) {
+              // This fund is SOURCE - subtract amount
+              // For cross-currency transfers, amount is in target currency
+              // We subtract as-is since exact conversion would require async
+              currentAmount -= tx.amount;
+            } else if (tx.target_fund_category_id === fund.id) {
+              // This fund is TARGET - add amount
+              currentAmount += tx.amount;
+            }
+          } else {
+            // Regular transaction: income adds, expense subtracts
+            if (tx.type === "income") {
+              currentAmount += tx.amount;
+            } else if (tx.type === "expense") {
+              currentAmount -= tx.amount;
             }
           }
+        }
 
-          // Convert current amount to EUR
-          let currentEurAmount = 0;
-          if (fund.currency === "EUR") {
-            currentEurAmount = currentAmount;
-          } else {
-            // Use today's date for conversion (current balance)
-            const today = new Date().toISOString().split("T")[0];
-            const conversion = await convertToEUR(currentAmount, fund.currency, today);
-            currentEurAmount = conversion?.eurAmount || 0;
-          }
+        return {
+          fund,
+          currentAmount,
+        };
+      });
+
+      // Batch convert all non-EUR funds to EUR using Promise.all
+      const today = new Date().toISOString().split("T")[0];
+      const nonEurFunds = fundsWithBalances.filter((f) => f.fund.currency !== "EUR");
+
+      const conversions = await Promise.all(
+        nonEurFunds.map((f) =>
+          convertToEUR(f.currentAmount, f.fund.currency, today)
+        )
+      );
+
+      // Build conversion lookup map
+      const eurAmountByFundId = new Map<string, number>();
+      nonEurFunds.forEach((f, i) => {
+        eurAmountByFundId.set(f.fund.id, conversions[i]?.eurAmount || 0);
+      });
+
+      // Build final result
+      const fundCategoriesWithBalance: FundCategoryWithBalance[] = fundsWithBalances.map(
+        ({ fund, currentAmount }) => {
+          const currentEurAmount =
+            fund.currency === "EUR"
+              ? currentAmount
+              : eurAmountByFundId.get(fund.id) || 0;
 
           return {
             ...fund,
-            eur_amount: currentEurAmount, // For backward compatibility
+            eur_amount: currentEurAmount,
             current_amount: currentAmount,
             current_eur_amount: currentEurAmount,
           };
-        })
+        }
       );
 
       return fundCategoriesWithBalance;
     }
   );
 
-  const totalBalanceEUR = data?.reduce((total, fund) => total + (fund.current_eur_amount || 0), 0) || 0;
+  const totalBalanceEUR =
+    data?.reduce((total, fund) => total + (fund.current_eur_amount || 0), 0) || 0;
 
   return {
     fundCategories: data || [],
