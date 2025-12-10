@@ -32,6 +32,17 @@ const TransactionFormModal = dynamic(
   { ssr: false }
 );
 
+// Preload the form component after page hydration for smoother modal animations
+if (typeof window !== "undefined") {
+  // Use requestIdleCallback to preload when browser is idle
+  const preload = () => import("@/components/features/transaction-form-modal");
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(preload);
+  } else {
+    setTimeout(preload, 1000);
+  }
+}
+
 export default function ProtectedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

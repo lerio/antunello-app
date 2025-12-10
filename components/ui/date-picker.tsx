@@ -162,7 +162,7 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)] mx-auto" align="center">
         <SimpleDateCalendar selected={date} onSelect={handleSelect} />
       </PopoverContent>
     </Popover>
@@ -326,7 +326,7 @@ export function DateTimePicker({
           {date ? format(date, "dd/MM/yyyy HH:mm") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)] mx-auto" align="center">
         <div className="flex">
           {/* Calendar Section */}
           <div className="p-3 border-r border-border">
