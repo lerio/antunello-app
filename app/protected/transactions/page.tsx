@@ -79,6 +79,7 @@ export default function ProtectedPage() {
     openEditModal,
     closeEditModal,
     hasOpenModal,
+    isEditModalOpen,
   } = useModalState();
 
   const { transactions, isLoading, error, mutate } = useTransactionsOptimized(
@@ -372,7 +373,7 @@ export default function ProtectedPage() {
       </Modal>
 
       {/* Edit Entry Modal */}
-      <Modal isOpen={!!editingTransaction} onClose={closeEditModal}>
+      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
