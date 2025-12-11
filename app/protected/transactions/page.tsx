@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, ArrowUp, Search } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
 import { useModalState } from "@/hooks/useModalState";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useFundCategories } from "@/hooks/useFundCategories";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
@@ -27,21 +27,8 @@ import TransactionSummary from "@/components/features/transaction-summary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionListSkeleton } from "@/components/ui/skeletons";
 
-const TransactionFormModal = dynamic(
-  () => import("@/components/features/transaction-form-modal"),
-  { ssr: false }
-);
 
-// Preload the form component after page hydration for smoother modal animations
-if (typeof window !== "undefined") {
-  // Use requestIdleCallback to preload when browser is idle
-  const preload = () => import("@/components/features/transaction-form-modal");
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(preload);
-  } else {
-    setTimeout(preload, 1000);
-  }
-}
+import TransactionFormModal from "@/components/features/transaction-form-modal";
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -100,6 +87,10 @@ export default function ProtectedPage() {
   );
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
+
+  // Prefetch fund categories to avoid lag when opening the add modal
+  // The modal uses this data, and it's heavy to calculate (balances)
+  useFundCategories();
 
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
