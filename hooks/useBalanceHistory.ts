@@ -55,9 +55,10 @@ function calculateBalanceHistory(
   includeHidden: boolean,
   startBalance: number
 ): BalanceStats {
-  // Filter transactions in single pass (hide_from_totals and valid eur_amount)
+  // Filter transactions in single pass (hide_from_totals, money transfers, and valid eur_amount)
   const filtered = transactions.filter(t =>
     (includeHidden || !t.hide_from_totals) &&
+    !t.is_money_transfer && // Exclude money transfers from balance calculation
     t.eur_amount !== null &&
     t.eur_amount !== undefined
   );

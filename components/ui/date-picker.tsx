@@ -411,7 +411,7 @@ export function DateTimePicker({
                   className={cn(
                     "w-full h-10 px-3 text-sm text-center transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
-                    "focus:outline-none focus:bg-accent",
+                    "focus:outline-none focus:bg-white focus:text-gray-900 dark:focus:bg-white dark:focus:text-gray-900",
                     isTimeSelected(slot.hour, slot.minute) &&
                       "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                   )}

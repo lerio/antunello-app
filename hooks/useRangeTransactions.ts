@@ -10,6 +10,7 @@ export type BalanceTransaction = {
   type: 'expense' | 'income'
   eur_amount: number | null
   hide_from_totals: boolean | null
+  is_money_transfer: boolean | null
 }
 
 /**
@@ -52,7 +53,7 @@ const rangeTransactionsFetcher = async (
   // Only select fields needed for balance calculation (75% payload reduction)
   let query = supabase
     .from('transactions')
-    .select('date, type, eur_amount, hide_from_totals')
+    .select('date, type, eur_amount, hide_from_totals, is_money_transfer')
     .order('date', { ascending: true }); // Chronological order for balance calculation
 
   // Apply date filter if not 'all'

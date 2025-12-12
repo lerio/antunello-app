@@ -255,10 +255,12 @@ export default function TransactionFormHtmlDesign({
               {/* Hide Toggle with Switch and Label */}
               <div className="flex items-end">
                 <div className="flex items-center gap-2 h-12">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label htmlFor="hide-from-totals" className="text-sm font-medium text-gray-700">
                     Hide
                   </label>
                   <Switch
+                    id="hide-from-totals"
+                    name="hide_from_totals"
                     checked={hideFromTotals}
                     onCheckedChange={updateHideFromTotals}
                     title={
