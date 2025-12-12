@@ -1,6 +1,10 @@
 import React, { useMemo } from "react";
 import { Transaction } from "@/types/database";
-import { formatDate, formatDateHeader, formatDateHeaderWithYear } from "@/utils/date";
+import {
+  formatDate,
+  formatDateHeader,
+  formatDateHeaderWithYear,
+} from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import NoTransactions from "@/components/features/no-transactions";
@@ -39,8 +43,9 @@ const TransactionRow = React.memo(
         type="button"
         onClick={() => onClick(transaction)}
         aria-label={`Open transaction ${transaction.title}`}
-        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? 'opacity-50' : ''
-          }`}
+        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${
+          transaction.hide_from_totals ? "opacity-50" : ""
+        }`}
       >
         <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
           <Icon size={20} className="text-gray-500 dark:text-gray-400" />
@@ -106,21 +111,24 @@ const DateGroup = React.memo(
     readonly privacyMode: boolean;
   }) => {
     // Calculate hidden transactions count for this day
-    const hiddenCount = transactions.filter(t => t.hide_from_totals).length;
+    const hiddenCount = transactions.filter((t) => t.hide_from_totals).length;
 
     return (
       <div className="mb-3">
         {/* Sticky Date Header */}
-        <div className="sticky top-[66px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
+        <div className="sticky top-[63px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
           <div className="flex items-center">
             <h3 className="font-semibold text-gray-600 dark:text-gray-400">
-              {showYear ? formatDateHeaderWithYear(transactions[0].date) : formatDateHeader(transactions[0].date)}
+              {showYear
+                ? formatDateHeaderWithYear(transactions[0].date)
+                : formatDateHeader(transactions[0].date)}
             </h3>
             <DailyHiddenIndicator count={hiddenCount} />
           </div>
           <span
-            className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
-              }`}
+            className={`font-semibold ${
+              dailyTotal >= 0 ? "text-green-500" : "text-red-500"
+            }`}
           >
             <PrivacyBlur blur={privacyMode}>
               {formatCurrency(Math.abs(dailyTotal), "EUR")}
