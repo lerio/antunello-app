@@ -15,7 +15,7 @@ export function UpdateBanner({
   onDismiss,
 }: UpdateBannerProps) {
   return (
-    <div className="sticky top-0 z-[60] bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 animate-in slide-in-from-top duration-300">
+    <div className="z-[60] bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 animate-in slide-in-from-top duration-300">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1">
