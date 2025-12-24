@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Plus, ArrowLeft } from "lucide-react";
+import { ArrowUp, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useFilteredTransactions, FilterCriteria, initialFilterCriteria } from "@/hooks/useFilteredTransactions";
 import { useModalState } from "@/hooks/useModalState";
@@ -42,10 +42,7 @@ export default function FilterPage() {
   const [criteria, setCriteria] = useState<FilterCriteria>(initialFilterCriteria);
 
   const {
-    showAddModal,
     editingTransaction,
-    openAddModal,
-    closeAddModal,
     openEditModal,
     closeEditModal,
     hasOpenModal,
@@ -59,7 +56,7 @@ export default function FilterPage() {
     refetch: refetchFilter,
   } = useFilteredTransactions(criteria, hasInteracted);
 
-  const { addTransaction, updateTransaction, deleteTransaction } =
+  const { updateTransaction, deleteTransaction } =
     useTransactionMutations();
 
   // Fetch available currencies on mount
@@ -129,34 +126,11 @@ export default function FilterPage() {
     setHasInteracted(true);
   }, []);
 
-  const handleAddTransaction = useCallback(() => {
-    openAddModal();
-  }, [openAddModal]);
-
   const handleEditTransaction = useCallback(
     (transaction: Transaction) => {
       openEditModal(transaction);
     },
     [openEditModal]
-  );
-
-  const handleAddSubmit = useCallback(
-    async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
-      const toastPromise = addTransaction(data);
-
-      toast.promise(toastPromise, {
-        loading: "Adding transaction...",
-        success: () => {
-          closeAddModal();
-          refetchFilter();
-          return "Transaction added successfully!";
-        },
-        error: (err) => {
-          return `Failed to add transaction: ${err.message}`;
-        },
-      });
-    },
-    [addTransaction, closeAddModal, refetchFilter]
   );
 
   const handleEditSubmit = useCallback(
@@ -296,33 +270,15 @@ export default function FilterPage() {
         )}
       </div>
 
-      {/* Floating Buttons - Hidden when modals are open */}
-      {!hasOpenModal && (
-        <>
-          {showScrollTop && (
-            <FloatingButton
-              onClick={scrollToTop}
-              icon={ArrowUp}
-              label="Scroll to top"
-              position="stacked"
-              className="transition-all duration-300"
-            />
-          )}
-          <FloatingButton
-            onClick={handleAddTransaction}
-            icon={Plus}
-            label="Add transaction"
-          />
-        </>
-      )}
-
-      {/* Add Entry Modal */}
-      <Modal isOpen={showAddModal} onClose={closeAddModal}>
-        <TransactionFormModal
-          onSubmit={handleAddSubmit}
-          onClose={closeAddModal}
+      {/* Floating Button - Scroll to top */}
+      {!hasOpenModal && showScrollTop && (
+        <FloatingButton
+          onClick={scrollToTop}
+          icon={ArrowUp}
+          label="Scroll to top"
+          className="transition-all duration-300"
         />
-      </Modal>
+      )}
 
       {/* Edit Entry Modal */}
       <Modal isOpen={!!editingTransaction} onClose={closeEditModal}>
