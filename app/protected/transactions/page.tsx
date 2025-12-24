@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ArrowUp, Search } from "lucide-react";
+import { Plus, ArrowUp, Search, Filter } from "lucide-react";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
@@ -149,6 +149,17 @@ export default function ProtectedPage() {
 
     router.push(
       `/protected/search?from_year=${year}&from_month=${month
+        .toString()
+        .padStart(2, "0")}`
+    );
+  }, [router, currentDate]);
+
+  const handleFilterClick = useCallback(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+
+    router.push(
+      `/protected/filter?from_year=${year}&from_month=${month
         .toString()
         .padStart(2, "0")}`
     );
@@ -306,13 +317,22 @@ export default function ProtectedPage() {
             month={currentDate.getMonth() + 1}
           />
 
-          <button
-            className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            onClick={handleSearchClick}
-            aria-label="Search transactions"
-          >
-            <Search size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={handleFilterClick}
+              aria-label="Filter transactions"
+            >
+              <Filter size={20} />
+            </button>
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={handleSearchClick}
+              aria-label="Search transactions"
+            >
+              <Search size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Sticky Horizontal Month Selector */}

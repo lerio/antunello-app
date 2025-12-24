@@ -19,6 +19,9 @@ function computeSearchTotals(transactions: ReadonlyArray<Transaction>): SearchTo
   let hiddenTransactionCount = 0;
 
   for (const transaction of transactions) {
+    // Skip money transfers - they don't represent actual income/expenses
+    if (transaction.is_money_transfer) continue;
+
     const eurAmount = transaction.eur_amount || (transaction.currency === "EUR" ? transaction.amount : 0);
     if (eurAmount === 0 && transaction.currency !== "EUR") continue;
 
