@@ -42,11 +42,11 @@ const MONTHS = [
   { value: "12", label: "December" },
 ]
 
-// Generate years from 2017 to current year
+// Generate years from 2017 to current year (descending order)
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: currentYear - 2016 }, (_, i) => ({
-  value: String(2017 + i),
-  label: String(2017 + i),
+  value: String(currentYear - i),
+  label: String(currentYear - i),
 }))
 
 export function FilterControls({
@@ -184,11 +184,12 @@ export function FilterControls({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
         {/* Period Filter */}
         <div>
-          <label className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
             Period
-          </label>
+          </span>
           <div className="flex items-center gap-1.5 flex-wrap min-h-[32px]">
             <Select
+              name="filter-year"
               value={criteria.year?.toString() ?? "all"}
               onValueChange={handleYearChange}
             >
@@ -206,6 +207,7 @@ export function FilterControls({
             </Select>
 
             <Select
+              name="filter-month"
               value={criteria.month?.toString() ?? "all"}
               onValueChange={handleMonthChange}
               disabled={criteria.year === null}
@@ -229,9 +231,9 @@ export function FilterControls({
         {/* Currency Filter */}
         {currencyOptions.length > 0 && (
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
               Currency
-            </label>
+            </span>
             <div className="min-h-[32px] flex items-center">
               <MultiSelectChips
                 options={currencyOptions}
@@ -245,9 +247,9 @@ export function FilterControls({
 
         {/* Type Filter */}
         <div>
-          <label className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
             Type
-          </label>
+          </span>
           <div className="min-h-[32px] flex items-center">
             <MultiSelectChips
               options={TYPE_OPTIONS}
@@ -321,9 +323,9 @@ export function FilterControls({
             />
             {availableSubcategories.length > 0 && (
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-500 block mb-1.5">
+                <span className="text-xs text-gray-500 dark:text-gray-500 block mb-1.5">
                   Subcategory
-                </label>
+                </span>
                 <MultiSelectChips
                   options={availableSubcategories}
                   selected={criteria.subCategories}
@@ -338,10 +340,11 @@ export function FilterControls({
 
       {/* Amount Range */}
       <div>
-        <label className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
           Amount Range
-        </label>
+        </span>
         <DualRangeSlider
+          name="filter-amount"
           min={0}
           max={10000}
           step={100}

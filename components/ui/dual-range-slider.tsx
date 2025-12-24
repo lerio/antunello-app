@@ -13,6 +13,7 @@ type DualRangeSliderProps = {
   formatValue?: (value: number) => string
   className?: string
   disabled?: boolean
+  name?: string
 }
 
 export function DualRangeSlider({
@@ -24,6 +25,7 @@ export function DualRangeSlider({
   formatValue = (v) => v.toLocaleString(),
   className,
   disabled = false,
+  name,
 }: DualRangeSliderProps) {
   // Convert null values to min/max for the slider
   const sliderValue: [number, number] = [
@@ -52,6 +54,7 @@ export function DualRangeSlider({
         value={sliderValue}
         onValueChange={handleValueChange}
         disabled={disabled}
+        name={name}
       >
         <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <SliderPrimitive.Range className="absolute h-full bg-gray-900 dark:bg-gray-100" />

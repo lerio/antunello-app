@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Search } from "lucide-react";
+import { ArrowUp, Search, Filter } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
@@ -97,6 +97,10 @@ export default function YearSummaryPage() {
     router.push(`/protected/search?from_year=${currentYear}`);
   }, [router, currentYear]);
 
+  const handleFilterClick = useCallback(() => {
+    router.push(`/protected/filter?from_year=${currentYear}`);
+  }, [router, currentYear]);
+
   /* REMOVED: history.pushState manual handling */
   const handleYearSelect = useCallback((year: number) => {
     // Optimistic update
@@ -148,13 +152,22 @@ export default function YearSummaryPage() {
         <div className="flex items-center justify-between pt-4 pb-2">
           <TransactionViewTabs currentView="year" year={currentYear} />
 
-          <button
-            className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            onClick={handleSearchClick}
-            aria-label="Search transactions"
-          >
-            <Search size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={handleFilterClick}
+              aria-label="Filter transactions"
+            >
+              <Filter size={20} />
+            </button>
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={handleSearchClick}
+              aria-label="Search transactions"
+            >
+              <Search size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Sticky Horizontal Year Selector */}

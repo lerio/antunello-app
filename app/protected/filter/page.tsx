@@ -228,8 +228,8 @@ export default function FilterPage() {
             >
               <ArrowLeft size={16} />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Filter Transactions
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Filter
             </h1>
           </div>
         </div>
