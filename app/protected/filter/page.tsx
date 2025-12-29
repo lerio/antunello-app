@@ -46,6 +46,7 @@ export default function FilterPage() {
     openEditModal,
     closeEditModal,
     hasOpenModal,
+    isEditModalOpen,
   } = useModalState();
 
   const {
@@ -299,7 +300,7 @@ export default function FilterPage() {
       )}
 
       {/* Edit Entry Modal */}
-      <Modal isOpen={!!editingTransaction} onClose={closeEditModal}>
+      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
