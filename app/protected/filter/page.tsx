@@ -133,6 +133,22 @@ export default function FilterPage() {
     [openEditModal]
   );
 
+  const handleCategoryClick = useCallback(
+    (category: string) => {
+      router.push(`/protected/category/${encodeURIComponent(category)}`);
+    },
+    [router]
+  );
+
+  const handleSubCategoryClick = useCallback(
+    (category: string, subCategory: string) => {
+      router.push(
+        `/protected/category/${encodeURIComponent(category)}/${encodeURIComponent(subCategory)}`
+      );
+    },
+    [router]
+  );
+
   const handleEditSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
       if (!editingTransaction) return;
@@ -263,6 +279,8 @@ export default function FilterPage() {
               <TransactionsTable
                 transactions={filterResults}
                 onTransactionClick={handleEditTransaction}
+                onCategoryClick={handleCategoryClick}
+                onSubCategoryClick={handleSubCategoryClick}
                 showYear={isAllTime}
               />
             </div>

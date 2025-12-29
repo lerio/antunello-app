@@ -165,6 +165,22 @@ export default function ProtectedPage() {
     );
   }, [router, currentDate]);
 
+  const handleCategoryClick = useCallback(
+    (category: string) => {
+      router.push(`/protected/category/${encodeURIComponent(category)}`);
+    },
+    [router]
+  );
+
+  const handleSubCategoryClick = useCallback(
+    (category: string, subCategory: string) => {
+      router.push(
+        `/protected/category/${encodeURIComponent(category)}/${encodeURIComponent(subCategory)}`
+      );
+    },
+    [router]
+  );
+
   const handleAddTransaction = useCallback(() => {
     openAddModal();
   }, [openAddModal]);
@@ -359,6 +375,8 @@ export default function ProtectedPage() {
           <TransactionsTable
             transactions={transactions}
             onTransactionClick={handleEditTransaction}
+            onCategoryClick={handleCategoryClick}
+            onSubCategoryClick={handleSubCategoryClick}
             isLoading={isLoading}
           />
         </div>

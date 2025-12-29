@@ -17,6 +17,8 @@ import { PrivacyBlur } from "@/components/ui/privacy-blur";
 type TransactionsTableProps = {
   readonly transactions: ReadonlyArray<Transaction>;
   readonly onTransactionClick?: (transaction: Transaction) => void;
+  readonly onCategoryClick?: (category: string) => void;
+  readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
   readonly showYear?: boolean; // For search results - forces year display
   readonly isLoading?: boolean;
 };
@@ -26,10 +28,14 @@ const TransactionRow = React.memo(
   ({
     transaction,
     onClick,
+    onCategoryClick,
+    onSubCategoryClick,
     privacyMode,
   }: {
     readonly transaction: Transaction;
     readonly onClick: (transaction: Transaction) => void;
+    readonly onCategoryClick?: (category: string) => void;
+    readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
     readonly privacyMode: boolean;
   }) => {
     const Icon: React.ComponentType<LucideProps> =
@@ -38,16 +44,56 @@ const TransactionRow = React.memo(
     const showOriginalCurrency =
       transaction.eur_amount && transaction.currency !== "EUR";
 
+    // Handler for category icon click (navigates to main category)
+    const handleCategoryClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onCategoryClick) {
+        onCategoryClick(transaction.main_category);
+      }
+    };
+
+    // Handler for subcategory text click (navigates to subcategory)
+    const handleSubCategoryClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onSubCategoryClick && transaction.sub_category) {
+        onSubCategoryClick(transaction.main_category, transaction.sub_category);
+      }
+    };
+
     return (
       <button
         type="button"
         onClick={() => onClick(transaction)}
         aria-label={`Open transaction ${transaction.title}`}
-        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${
-          transaction.hide_from_totals ? "opacity-50" : ""
-        }`}
+        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? "opacity-50" : ""
+          }`}
       >
-        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+        <div
+          onClick={onCategoryClick ? handleCategoryClick : undefined}
+          className={`w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 ${onCategoryClick
+              ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              : ""
+            }`}
+          role={onCategoryClick ? "button" : undefined}
+          tabIndex={onCategoryClick ? 0 : undefined}
+          aria-label={
+            onCategoryClick
+              ? `View ${transaction.main_category} category`
+              : undefined
+          }
+          onKeyDown={
+            onCategoryClick
+              ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  handleCategoryClick(
+                    e as unknown as React.MouseEvent
+                  );
+                }
+              }
+              : undefined
+          }
+        >
           <Icon size={20} className="text-gray-500 dark:text-gray-400" />
         </div>
         <div className="ml-4 flex-1 min-w-0 overflow-hidden">
@@ -57,19 +103,43 @@ const TransactionRow = React.memo(
             </p>
             <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+          <p
+            onClick={onSubCategoryClick && transaction.sub_category ? handleSubCategoryClick : undefined}
+            className={`text-sm text-gray-500 dark:text-gray-400 truncate w-fit max-w-full ${onSubCategoryClick && transaction.sub_category
+                ? "cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                : ""
+              }`}
+            role={onSubCategoryClick && transaction.sub_category ? "button" : undefined}
+            tabIndex={onSubCategoryClick && transaction.sub_category ? 0 : undefined}
+            aria-label={
+              onSubCategoryClick && transaction.sub_category
+                ? `View ${transaction.sub_category} subcategory`
+                : undefined
+            }
+            onKeyDown={
+              onSubCategoryClick && transaction.sub_category
+                ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    handleSubCategoryClick(
+                      e as unknown as React.MouseEvent
+                    );
+                  }
+                }
+                : undefined
+            }
+          >
             {transaction.sub_category}
           </p>
         </div>
         <div className="flex-shrink-0 ml-4">
           <p
-            className={`font-medium text-right ${
-              transaction.is_money_transfer
+            className={`font-medium text-right ${transaction.is_money_transfer
                 ? "text-gray-900 dark:text-white"
                 : transaction.type === "expense"
-                ? "text-red-500"
-                : "text-green-500"
-            }`}
+                  ? "text-red-500"
+                  : "text-green-500"
+              }`}
           >
             <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
               {formatCurrency(
@@ -100,6 +170,8 @@ const DateGroup = React.memo(
     transactions,
     dailyTotal,
     onTransactionClick,
+    onCategoryClick,
+    onSubCategoryClick,
     showYear = false,
     privacyMode,
   }: {
@@ -107,6 +179,8 @@ const DateGroup = React.memo(
     readonly transactions: ReadonlyArray<Transaction>;
     readonly dailyTotal: number;
     readonly onTransactionClick: (transaction: Transaction) => void;
+    readonly onCategoryClick?: (category: string) => void;
+    readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
     readonly showYear?: boolean;
     readonly privacyMode: boolean;
   }) => {
@@ -126,9 +200,8 @@ const DateGroup = React.memo(
             <DailyHiddenIndicator count={hiddenCount} />
           </div>
           <span
-            className={`font-semibold ${
-              dailyTotal >= 0 ? "text-green-500" : "text-red-500"
-            }`}
+            className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
+              }`}
           >
             <PrivacyBlur blur={privacyMode}>
               {formatCurrency(Math.abs(dailyTotal), "EUR")}
@@ -143,6 +216,8 @@ const DateGroup = React.memo(
               key={transaction.id}
               transaction={transaction}
               onClick={onTransactionClick}
+              onCategoryClick={onCategoryClick}
+              onSubCategoryClick={onSubCategoryClick}
               privacyMode={privacyMode}
             />
           ))}
@@ -157,6 +232,8 @@ DateGroup.displayName = "DateGroup";
 export default function TransactionsTable({
   transactions,
   onTransactionClick,
+  onCategoryClick,
+  onSubCategoryClick,
   showYear = false,
   isLoading = false,
 }: TransactionsTableProps) {
@@ -210,6 +287,8 @@ export default function TransactionsTable({
             transactions={dateTransactions}
             dailyTotal={dailyTotal}
             onTransactionClick={handleTransactionClick}
+            onCategoryClick={onCategoryClick}
+            onSubCategoryClick={onSubCategoryClick}
             showYear={showYear}
             privacyMode={privacyMode}
           />

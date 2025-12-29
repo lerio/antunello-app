@@ -115,6 +115,22 @@ export default function SearchPage() {
     [openEditModal]
   );
 
+  const handleCategoryClick = useCallback(
+    (category: string) => {
+      router.push(`/protected/category/${encodeURIComponent(category)}`);
+    },
+    [router]
+  );
+
+  const handleSubCategoryClick = useCallback(
+    (category: string, subCategory: string) => {
+      router.push(
+        `/protected/category/${encodeURIComponent(category)}/${encodeURIComponent(subCategory)}`
+      );
+    },
+    [router]
+  );
+
   const handleAddSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
       const toastPromise = addTransaction(data);
@@ -254,6 +270,8 @@ export default function SearchPage() {
               <TransactionsTable
                 transactions={searchResults}
                 onTransactionClick={handleEditTransaction}
+                onCategoryClick={handleCategoryClick}
+                onSubCategoryClick={handleSubCategoryClick}
                 showYear={true}
               />
             </div>
