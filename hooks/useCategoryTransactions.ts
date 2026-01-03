@@ -47,7 +47,7 @@ const categoryTransactionsFetcher = async (
     .from('transactions')
     .select('*')
     .eq('main_category', category)
-    .order('date', { ascending: true }); // Chronological order for aggregation
+    .order('date', { ascending: false }); // Latest first (descending)
 
   // Apply subcategory filter if provided
   if (subCategory) {
