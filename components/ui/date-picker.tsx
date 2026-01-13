@@ -114,7 +114,7 @@ function SimpleDateCalendar({
                   "hover:bg-accent hover:text-accent-foreground",
                   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                   isSelected(day) &&
-                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                   isToday(day) && !isSelected(day) && "bg-accent text-accent-foreground"
                 )}
               >
@@ -380,7 +380,7 @@ export function DateTimePicker({
                         "hover:bg-accent hover:text-accent-foreground",
                         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                         isSelected(day) &&
-                          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                        "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                         isToday(day) && !isSelected(day) && "bg-accent text-accent-foreground"
                       )}
                     >
@@ -411,9 +411,9 @@ export function DateTimePicker({
                   className={cn(
                     "w-full h-10 px-3 text-sm text-center transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
-                    "focus:outline-none focus:bg-white focus:text-gray-900 dark:focus:bg-white dark:focus:text-gray-900",
+                    "focus:outline-none focus:bg-accent focus:text-accent-foreground",
                     isTimeSelected(slot.hour, slot.minute) &&
-                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"
                   )}
                 >
                   {slot.label}
