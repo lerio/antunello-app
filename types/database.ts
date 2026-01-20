@@ -23,6 +23,15 @@ export type Transaction = {
   target_fund_category_id?: string | null
 }
 
+export type Budget = {
+  id: string
+  user_id: string
+  category: string
+  amount: number
+  created_at: string
+  updated_at: string
+}
+
 export type ExchangeRate = {
   id: string
   date: string
