@@ -79,58 +79,58 @@ export default function RootLayout({
             <PrivacyProvider>
               <SWRConfig value={getClientSwrConfig()}>
                 <CacheManager />
-              <div className="min-h-screen flex flex-col overflow-x-clip">
-                <Toaster position="top-right" />
+                <div className="min-h-screen flex flex-col overflow-x-clip">
+                  <Toaster position="top-right" />
 
-                {/* New Header Design */}
-                <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
-                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-                    <div className="flex items-center gap-8">
-                      <Link
-                        href="/protected"
-                        className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
+                  {/* New Header Design */}
+                  <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
+                    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+                      <div className="flex items-center gap-8">
+                        <Link
+                          href="/protected"
+                          className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
+                        >
+                          <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
+                            A
+                          </div>
+                          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 hidden sm:block">
+                            Antunello
+                          </h1>
+                        </Link>
+
+                        {/* Desktop Navigation */}
+                        <DesktopNavigation />
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <ThemeToggle />
+                        <PrivacyToggle />
+                        {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
+                      </div>
+                    </div>
+                  </header>
+
+                  {/* Main Content */}
+                  <main className="flex-grow pb-20 md:pb-0">{children}</main>
+
+                  <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 mb-16 md:mb-0">
+                    <p>
+                      Made in 🇯🇵&nbsp;&nbsp;by{" "}
+                      <a
+                        href="https://www.linkedin.com/in/valerio-donati-b0b0b21/"
+                        target="_blank"
+                        className="font-bold hover:underline"
+                        rel="noreferrer"
                       >
-                        <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
-                          A
-                        </div>
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 hidden sm:block">
-                          Antunello
-                        </h1>
-                      </Link>
+                        Lerio
+                      </a>
+                    </p>
+                  </footer>
 
-                      {/* Desktop Navigation */}
-                      <DesktopNavigation />
-                    </div>
-
-                    <div className="flex items-center space-x-4">
-                      <ThemeToggle />
-                      <PrivacyToggle />
-                      {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
-                    </div>
-                  </div>
-                </header>
-
-                {/* Main Content */}
-                <main className="flex-grow pb-20 md:pb-0">{children}</main>
-
-                <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 mb-16 md:mb-0">
-                  <p>
-                    Made in 🇯🇵&nbsp;&nbsp;by{" "}
-                    <a
-                      href="https://www.linkedin.com/in/valerio-donati-b0b0b21/"
-                      target="_blank"
-                      className="font-bold hover:underline"
-                      rel="noreferrer"
-                    >
-                      Lerio
-                    </a>
-                  </p>
-                </footer>
-
-                {/* Mobile Navigation */}
-                <MobileNavigation />
-              </div>
-            </SWRConfig>
+                  {/* Mobile Navigation */}
+                  <MobileNavigation />
+                </div>
+              </SWRConfig>
             </PrivacyProvider>
           </ThemeProvider>
         </Suspense>

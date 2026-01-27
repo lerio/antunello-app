@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ArrowUp, Search, Filter } from "lucide-react";
+import { Plus, ArrowUp, Search, Filter, RefreshCw } from "lucide-react";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
@@ -10,6 +10,7 @@ import { useModalState } from "@/hooks/useModalState";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useFundCategories } from "@/hooks/useFundCategories";
+import { usePendingTransactionModal } from "@/hooks/usePendingTransactionModal";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
@@ -21,6 +22,7 @@ import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { transactionCache } from "@/utils/simple-cache";
 import toast from "react-hot-toast";
+import useSWR from "swr";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
@@ -29,6 +31,9 @@ import { TransactionListSkeleton } from "@/components/ui/skeletons";
 
 
 import TransactionFormModal from "@/components/features/transaction-form-modal";
+import { usePendingTransactions } from "@/hooks/usePendingTransactions";
+import { PendingTransactionsButton } from "@/components/features/pending-transactions-button";
+import { cn } from "@/lib/utils"; // Will verify if this exists in next steps, otherwise remove
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -81,6 +86,21 @@ export default function ProtectedPage() {
     hasOpenModal,
     isEditModalOpen,
   } = useModalState();
+
+
+  // ... inside component ...
+
+  // Pending transaction modal state
+  const {
+    isOpen: isPendingModalOpen,
+    currentTransaction,
+    nextTransaction,
+    closeModal: closePendingModal,
+    openModal // Added openModal
+  } = usePendingTransactionModal();
+
+  // Fetch pending transactions
+  const { data: pendingTransactions, mutate: mutatePending } = usePendingTransactions();
 
   const { transactions, isLoading, error, mutate } = useTransactionsOptimized(
     currentDate.getFullYear(),
@@ -213,6 +233,59 @@ export default function ProtectedPage() {
     [addTransaction, closeAddModal, recordLocalMutation]
   );
 
+  // Handle pending transaction submit
+  const handlePendingSubmit = useCallback(
+    async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
+      const currentPending = currentTransaction();
+      if (!currentPending) return;
+
+      try {
+        // Add the transaction
+        await addTransaction(data);
+        await recordLocalMutation();
+
+        // Mark as processed
+        await supabase
+          .from('pending_transactions')
+          .update({ status: 'added' })
+          .eq('id', currentPending.id);
+
+        // Refresh pending list
+        await mutatePending();
+
+        // Move to next or close
+        toast.success("Transaction added!");
+        nextTransaction();
+      } catch (error: any) {
+        toast.error(`Failed to add transaction: ${error.message}`);
+      }
+    },
+    [addTransaction, currentTransaction, nextTransaction, recordLocalMutation, supabase, mutatePending]
+  );
+
+  // Handle skip (cancel) pending transaction
+  const handleSkipPending = useCallback(
+    async () => {
+      const currentPending = currentTransaction();
+      if (!currentPending) return;
+
+      try {
+        // Mark as processed (skipped)
+        await supabase
+          .from('pending_transactions')
+          .update({ status: 'dismissed' })
+          .eq('id', currentPending.id);
+
+        await mutatePending();
+        toast("Skipped");
+        nextTransaction();
+      } catch (error: any) {
+        toast.error(`Failed to skip: ${error.message}`);
+      }
+    },
+    [currentTransaction, nextTransaction, supabase, mutatePending]
+  );
+
   const handleEditSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
       if (!editingTransaction) return;
@@ -336,6 +409,37 @@ export default function ProtectedPage() {
           <div className="flex items-center gap-2">
             <button
               className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={async () => {
+                const toastId = toast.loading("Fetching transactions...");
+                try {
+                  const res = await fetch("/api/transactions/bulk-fetch", {
+                    method: "POST",
+                  });
+                  const data = await res.json();
+
+                  if (!res.ok) throw new Error(data.error || "Fetch failed");
+
+                  if (data.results && data.results.length > 0) {
+                    const totalNew = data.results.reduce((acc: number, r: any) => acc + (r.new_pending || 0), 0);
+                    if (totalNew > 0) {
+                      toast.success(`Found ${totalNew} new transactions!`, { id: toastId });
+                      mutatePending(); // Refresh pending list bubble
+                    } else {
+                      toast.success("Fetch complete. No new transactions.", { id: toastId });
+                    }
+                  } else {
+                    toast.success(data.message || "Fetch complete", { id: toastId });
+                  }
+                } catch (e: any) {
+                  toast.error(`Fetch error: ${e.message}`, { id: toastId });
+                }
+              }}
+              aria-label="Fetch transactions"
+            >
+              <RefreshCw size={20} />
+            </button>
+            <button
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={handleFilterClick}
               aria-label="Filter transactions"
             >
@@ -385,13 +489,25 @@ export default function ProtectedPage() {
       {/* Floating Buttons - Hidden when modals are open */}
       {!hasOpenModal && (
         <>
+          {/* Pending Transactions Button */}
+          {pendingTransactions && pendingTransactions.length > 0 && (
+            <PendingTransactionsButton
+              count={pendingTransactions.length}
+              onClick={() => openModal(pendingTransactions)}
+              bottomOffsetClass="bottom-40"
+            />
+          )}
+
           {showScrollTop && (
             <FloatingButton
               onClick={scrollToTop}
               icon={ArrowUp}
               label="Scroll to top"
               position="stacked"
-              className="transition-all duration-300"
+              className={cn(
+                "transition-all duration-300",
+                pendingTransactions && pendingTransactions.length > 0 ? "bottom-60" : ""
+              )}
             />
           )}
           <FloatingButton
@@ -420,6 +536,32 @@ export default function ProtectedPage() {
             onClose={closeEditModal}
           />
         )}
+      </Modal>
+
+      {/* Pending Transaction Modal */}
+      <Modal isOpen={isPendingModalOpen} onClose={closePendingModal}>
+        {(() => {
+          const pending = currentTransaction();
+          if (!pending) return null;
+
+          const initialData = {
+            amount: Math.abs(pending.data.amount),
+            currency: pending.data.currency,
+            date: pending.data.date,
+            title: pending.data.title,
+            type: pending.data.type || 'expense', // Use the type from pending data
+            fund_category_id: pending.data.fund_category_id || null,
+          } as any;
+
+          return (
+            <TransactionFormModal
+              key={pending.id}
+              initialData={initialData}
+              onSubmit={handlePendingSubmit}
+              onClose={handleSkipPending}
+            />
+          );
+        })()}
       </Modal>
     </div>
   );

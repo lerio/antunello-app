@@ -128,9 +128,8 @@ function DeleteSection({
       <button
         type="button"
         onClick={() => setShowDeleteConfirm(true)}
-        className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${
-          showDeleteConfirm ? "invisible pointer-events-none" : ""
-        }`}
+        className={`w-full text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors py-1 focus:outline-none ${showDeleteConfirm ? "invisible pointer-events-none" : ""
+          }`}
         tabIndex={showDeleteConfirm ? -1 : 0}
         aria-hidden={showDeleteConfirm}
       >
@@ -498,9 +497,8 @@ export default function TransactionFormModal({
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2">
                       <div className="relative">
                         <select
-                          className={`h-full py-0 pl-2 pr-6 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md appearance-none cursor-pointer ${
-                            disabled ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
+                          className={`h-full py-0 pl-2 pr-6 border-transparent bg-transparent text-gray-500 dark:text-gray-400 focus:outline-none text-base rounded-md appearance-none cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
                           id="currency"
                           name="currency"
                           value={selectedCurrency}
@@ -539,8 +537,8 @@ export default function TransactionFormModal({
                       isMoneyTransferMode
                         ? "Money transfers are automatically excluded from totals"
                         : hideFromTotals
-                        ? "Hidden from monthly totals"
-                        : "Visible in monthly totals"
+                          ? "Hidden from monthly totals"
+                          : "Visible in monthly totals"
                     }
                   />
                 </div>
@@ -555,7 +553,7 @@ export default function TransactionFormModal({
               setTransactionType={handleTypeChange}
               isMoneyTransferMode={isMoneyTransferMode}
               setIsMoneyTransferMode={setIsMoneyTransferMode}
-              disabled={disabled || !!initialData}
+              disabled={disabled}
             />
           </div>
 
@@ -780,9 +778,8 @@ export default function TransactionFormModal({
           <div className="mt-3 sm:mt-6 md:mt-8 pb-2">
             <div className="flex gap-3">
               <button
-                className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${
-                  isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 type="button"
                 onClick={onClose}
                 disabled={isLoading || disabled}
@@ -790,9 +787,8 @@ export default function TransactionFormModal({
                 Cancel
               </button>
               <button
-                className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${
-                  isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 ${isLoading || disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 type="submit"
                 disabled={isLoading || disabled}
               >
