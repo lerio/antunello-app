@@ -1,34 +1,10 @@
 import useSWR from 'swr'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
+import { fetchAllBatches } from '@/utils/supabase/fetch-all'
+import { getStartDateForTimeRange, type TimeRange as SharedTimeRange } from '@/utils/time-range'
 
-export type TimeRange = '1m' | '1y' | '5y' | 'all';
-
-/**
- * Calculate start date for a given time range
- * Returns null for 'all' (no filter)
- */
-function getStartDate(timeRange: TimeRange): string | null {
-  const now = new Date();
-  let daysAgo: number;
-
-  switch (timeRange) {
-    case '1m':
-      daysAgo = 30;
-      break;
-    case '1y':
-      daysAgo = 365;
-      break;
-    case '5y':
-      daysAgo = 5 * 365;
-      break;
-    case 'all':
-      return null; // No filter, fetch all
-  }
-
-  const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-  return startDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
-}
+export type TimeRange = SharedTimeRange
 
 /**
  * Fetcher function that queries transactions for a specific category/subcategory and date range
@@ -39,51 +15,27 @@ const categoryTransactionsFetcher = async (
   category: string,
   subCategory?: string
 ): Promise<Transaction[]> => {
-  const supabase = createClient();
-  const startDate = getStartDate(timeRange);
+  const supabase = createClient()
+  const startDate = getStartDateForTimeRange(timeRange)
 
   // Build query with category and optional subcategory/date filter
   let query = supabase
     .from('transactions')
     .select('*')
     .eq('main_category', category)
-    .order('date', { ascending: false }); // Latest first (descending)
+    .order('date', { ascending: false })
 
   // Apply subcategory filter if provided
   if (subCategory) {
-    query = query.eq('sub_category', subCategory);
+    query = query.eq('sub_category', subCategory)
   }
 
-  // Apply date filter if not 'all'
   if (startDate) {
-    query = query.gte('date', startDate);
+    query = query.gte('date', startDate)
   }
 
-  // For large datasets, use pagination
-  let allTransactions: Transaction[] = [];
-  let from = 0;
-  const batchSize = 1000;
-
-  while (true) {
-    const { data, error } = await query.range(from, from + batchSize - 1);
-
-    if (error) throw error;
-
-    if (!data || data.length === 0) {
-      break; // No more data
-    }
-
-    allTransactions = [...allTransactions, ...data];
-
-    if (data.length < batchSize) {
-      break; // Got less than full batch, we're done
-    }
-
-    from += batchSize;
-  }
-
-  return allTransactions;
-};
+  return fetchAllBatches<Transaction>((from, to) => query.range(from, to))
+}
 
 /**
  * Hook to fetch transactions for a specific category/subcategory and time range
@@ -94,10 +46,9 @@ export function useCategoryTransactions(
   category: string | null,
   subCategory?: string | null
 ) {
-  // Create unique cache key per category, subcategory, and time range
   const cacheKey = category
     ? `category-transactions-${category}-${subCategory || 'all'}-${timeRange}`
-    : null;
+    : null
 
   const {
     data: transactions,
@@ -115,7 +66,7 @@ export function useCategoryTransactions(
       focusThrottleInterval: 300000, // 5 minutes
       refreshInterval: 0,
     }
-  );
+  )
 
   return {
     transactions: transactions || [],
@@ -123,5 +74,5 @@ export function useCategoryTransactions(
     isLoading,
     mutate,
     refresh: () => mutate(),
-  };
+  }
 }
