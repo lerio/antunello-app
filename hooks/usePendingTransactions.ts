@@ -32,6 +32,7 @@ export function usePendingTransactions() {
         const { data, error } = await supabase
             .from('pending_transactions')
             .select('*')
+            .eq('user_id', user.id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
 
