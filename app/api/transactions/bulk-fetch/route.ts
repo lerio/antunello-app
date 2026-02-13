@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const { userId, unauthorizedResponse } = await requireUserId(supabase);
+        if (!userId) {
+            return unauthorizedResponse!;
         }
 
         // 1. Get all integration configs for the user
         const { data: configs, error: fetchError } = await supabase
             .from('integration_configs')
-            .select('*')
-            .eq('user_id', user.id);
+            .select('id, user_id, account_id, last_sync_at, settings')
+            .eq('user_id', userId);
 
         if (fetchError) {
             throw fetchError;
@@ -59,6 +59,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('Bulk fetch error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return jsonError(getErrorMessage(error), 500);
     }
 }

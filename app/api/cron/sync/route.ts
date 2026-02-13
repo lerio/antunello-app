@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch integration configs
     let configQuery = supabase
         .from('integration_configs')
-        .select('*');
+        .select('id, user_id, account_id, last_sync_at, settings');
 
     // Always filter by user_id if authenticated via session
     if (internalUserId) {

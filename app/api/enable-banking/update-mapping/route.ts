@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const { userId, unauthorizedResponse } = await requireUserId(supabase);
+        if (!userId) {
+            return unauthorizedResponse!;
         }
 
         const { account_id, fund_category_id, bulk_fetch_enabled } = await request.json();
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
         // 1. Get existing config
         const { data: config, error: fetchError } = await supabase
             .from('integration_configs')
-            .select('*')
-            .eq('user_id', user.id)
+            .select('id, settings')
+            .eq('user_id', userId)
             .eq('account_id', account_id)
             .single();
 
@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('Update mapping error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return jsonError(getErrorMessage(error), 500);
     }
 }

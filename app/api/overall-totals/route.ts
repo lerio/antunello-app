@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { getErrorMessage, jsonError, requireUserId } from "@/app/api/_lib/route-utils"
 
 export async function GET() {
   try {
     const supabase = await createClient()
-    const { data: { user }, error: userErr } = await supabase.auth.getUser()
-
-    if (userErr || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { userId, unauthorizedResponse } = await requireUserId(supabase)
+    if (!userId) {
+      return unauthorizedResponse!
     }
 
     // Call RPC to get only the overall EUR total
-    const { data, error } = await supabase.rpc("get_overall_total_eur", { p_user_id: user.id })
+    const { data, error } = await supabase.rpc("get_overall_total_eur", { p_user_id: userId })
     if (error) {
       // Detect missing function
       const msg = (error.message || '').toLowerCase()
@@ -23,7 +23,7 @@ export async function GET() {
         }, { status: 501 })
       }
       console.error('[overall-totals] RPC error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return jsonError(error.message, 500)
     }
 
     // RPC returns a scalar numeric; normalize and return
@@ -36,6 +36,6 @@ export async function GET() {
       },
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Unknown error" }, { status: 500 })
+    return jsonError(getErrorMessage(err), 500)
   }
 }
