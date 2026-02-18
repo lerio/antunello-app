@@ -5,6 +5,11 @@ import { convertToEUR } from '@/utils/currency-conversion'
 import { transactionCache } from '@/utils/simple-cache'
 import { createYearKey } from '@/utils/year-fetcher'
 import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
+import { getCurrencyFractionDigits } from '@/utils/currency-amount-input'
+import {
+  getRoundedOptionalSplitAmountForMonth,
+  getRoundedSplitAmountForMonth,
+} from '@/utils/split-transactions'
 
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
@@ -85,6 +90,26 @@ export function useTransactionMutations() {
     return {}
   }
 
+  const withSplitDisplayIfNeeded = (transaction: Transaction): Transaction => {
+    if (!transaction.split_across_year) {
+      return {
+        ...transaction,
+        split_display_amount: undefined,
+        split_display_eur_amount: undefined,
+      }
+    }
+
+    const transactionDate = new Date(transaction.date)
+    const transactionMonth = Number.isNaN(transactionDate.getTime()) ? 1 : transactionDate.getMonth() + 1
+    const amountFractionDigits = getCurrencyFractionDigits(transaction.currency)
+
+    return {
+      ...transaction,
+      split_display_amount: getRoundedSplitAmountForMonth(transaction.amount, transactionMonth, amountFractionDigits),
+      split_display_eur_amount: getRoundedOptionalSplitAmountForMonth(transaction.eur_amount, transactionMonth, 2),
+    }
+  }
+
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     const monthKey = getMonthKey(data.date)
 
@@ -100,12 +125,15 @@ export function useTransactionMutations() {
       eur_amount: optimisticEurAmount,
       fund_category_id: data.fund_category_id || undefined,
       is_money_transfer: data.is_money_transfer || false,
-      target_fund_category_id: data.target_fund_category_id || undefined
+      target_fund_category_id: data.target_fund_category_id || undefined,
+      split_across_year: data.split_across_year || false
     }
+
+    const optimisticDisplayTransaction = withSplitDisplayIfNeeded(optimisticTransaction)
 
     // Optimistically update the cache immediately
     updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
-      return sortTransactionsByDateInPlace([optimisticTransaction, ...transactions])
+      return sortTransactionsByDateInPlace([optimisticDisplayTransaction, ...transactions])
     })
 
     try {
@@ -115,7 +143,8 @@ export function useTransactionMutations() {
         ...(data.eur_amount === undefined ? await convertAndUpdateCurrency(data.amount, data.currency, data.date) : {}),
         fund_category_id: data.fund_category_id || undefined,
         is_money_transfer: data.is_money_transfer || false,
-        target_fund_category_id: data.target_fund_category_id || undefined
+        target_fund_category_id: data.target_fund_category_id || undefined,
+        split_across_year: data.split_across_year || false
       }
 
 
@@ -128,10 +157,12 @@ export function useTransactionMutations() {
       if (error) throw error
 
 
+      const persistedDisplayTransaction = withSplitDisplayIfNeeded(newTransaction)
+
       // Replace optimistic transaction with real one
       updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
         return sortTransactionsByDateInPlace(
-          transactions.map(t => t.id === optimisticTransaction.id ? newTransaction : t)
+          transactions.map(t => t.id === optimisticTransaction.id ? persistedDisplayTransaction : t)
         )
       })
 
@@ -144,7 +175,7 @@ export function useTransactionMutations() {
       // Revalidate fund categories to update balance
       mutate('fund-categories', undefined, true)
 
-      return newTransaction
+      return persistedDisplayTransaction
     } catch (error) {
       // Rollback optimistic update on error
       updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
@@ -277,7 +308,9 @@ export function useTransactionMutations() {
       fund_category_id: data.fund_category_id
     }
 
-    applyOptimisticUpdate(oldMonthKey, newMonthKey, id, optimisticUpdated)
+    const optimisticDisplayUpdated = withSplitDisplayIfNeeded(optimisticUpdated)
+
+    applyOptimisticUpdate(oldMonthKey, newMonthKey, id, optimisticDisplayUpdated)
 
     try {
       const updateData = await buildUpdateData(data, originalTransaction)
@@ -294,8 +327,9 @@ export function useTransactionMutations() {
 
 
       const targetMonthKey = oldMonthKey === newMonthKey ? oldMonthKey : newMonthKey
-      finalizeUpdate(targetMonthKey, id, persisted, oldDate, data.date)
-      return persisted
+      const persistedDisplay = withSplitDisplayIfNeeded(persisted)
+      finalizeUpdate(targetMonthKey, id, persistedDisplay, oldDate, data.date)
+      return persistedDisplay
     } catch (error) {
       rollbackOptimisticUpdate(oldMonthKey, newMonthKey, id, originalTransaction)
       throw error

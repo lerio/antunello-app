@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
+import { expandSplitTransactionsForMonth, expandSplitTransactionsForYear } from '@/utils/split-transactions'
+import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 
 export type FilterCriteria = {
   types: Array<'income' | 'expense' | 'movement'>
@@ -100,21 +102,54 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
       }
 
       // Date filter (month/year)
+      const hasMonthAndYear = year !== null && month !== null
+
       if (year !== null && month !== null) {
-        const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-        const lastDay = new Date(year, month, 0).getDate()
-        const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-        query = query.gte('date', startDate).lte('date', endDate)
+        // Use [start, nextMonthStart) to avoid dropping boundary-day timestamps.
+        const startDate = new Date(year, month - 1, 1).toISOString()
+        const nextMonthStart = new Date(year, month, 1).toISOString()
+        query = query.gte('date', startDate).lt('date', nextMonthStart)
       } else if (year !== null) {
-        // Year only filter
-        query = query.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`)
+        // Use [yearStart, nextYearStart) for timestamp-safe year filtering.
+        const yearStart = new Date(year, 0, 1).toISOString()
+        const nextYearStart = new Date(year + 1, 0, 1).toISOString()
+        query = query.gte('date', yearStart).lt('date', nextYearStart)
       }
       // If both are null, no date filter (all time)
 
       const { data, error: queryError } = await query
 
       if (queryError) throw new Error(queryError.message)
-      setResults(data || [])
+
+      let finalResults = data || []
+
+      // Align split-transaction behavior with month/year views so totals use split values.
+      if (year !== null && month !== null) {
+        const yearStart = new Date(year, 0, 1).toISOString()
+        const nextYearStart = new Date(year + 1, 0, 1).toISOString()
+
+        const { data: splitInYear, error: splitError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('split_across_year', true)
+          .gte('date', yearStart)
+          .lt('date', nextYearStart)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(500)
+
+        if (splitError) throw new Error(splitError.message)
+
+        finalResults = sortTransactionsByDateInPlace(
+          expandSplitTransactionsForMonth(finalResults, splitInYear || [], year, month)
+        )
+      } else if (year !== null && !hasMonthAndYear) {
+        finalResults = sortTransactionsByDateInPlace(
+          expandSplitTransactionsForYear(finalResults, year)
+        )
+      }
+
+      setResults(finalResults)
     } catch (err) {
       setError(err as Error)
       setResults([])

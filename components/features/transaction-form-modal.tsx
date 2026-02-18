@@ -8,6 +8,10 @@ import {
 } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { parseNumber } from "@/utils/number";
+import {
+  formatAmountForCurrencyInput,
+  normalizeAmountForCurrencyInput,
+} from "@/utils/currency-amount-input";
 import { generateTransferTitle } from "@/utils/money-transfer-validation";
 import {
   MinusCircle,
@@ -15,6 +19,8 @@ import {
   Trash2,
   ChevronDown,
   ArrowRightLeft,
+  EyeOff,
+  GitFork,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/ui/date-picker";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
@@ -116,13 +122,15 @@ function DeleteSection({
   onDelete,
   showDeleteConfirm,
   setShowDeleteConfirm,
+  disabled,
 }: {
   readonly initialData?: Transaction;
   readonly onDelete?: (transaction: Transaction) => Promise<void>;
   readonly showDeleteConfirm: boolean;
   readonly setShowDeleteConfirm: (v: boolean) => void;
+  readonly disabled?: boolean;
 }) {
-  if (!onDelete || !initialData) return null;
+  if (!onDelete || !initialData || disabled) return null;
   return (
     <div className="pt-1 pb-1">
       <button
@@ -174,6 +182,11 @@ export default function TransactionFormModal({
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
   );
+  const [amountInput, setAmountInput] = useState(() =>
+    initialData?.amount !== undefined && initialData?.amount !== null
+      ? formatAmountForCurrencyInput(String(initialData.amount), initialData.currency || "EUR")
+      : ""
+  );
   const [selectedDate, setSelectedDate] = useState<Date>(
     initialData?.date ? new Date(initialData.date) : new Date()
   );
@@ -196,6 +209,11 @@ export default function TransactionFormModal({
       setSubCategory("");
     }
   }, [transactionType, mainCategory]);
+
+  useEffect(() => {
+    if (!amountInput) return;
+    setAmountInput((prev) => formatAmountForCurrencyInput(prev, selectedCurrency));
+  }, [selectedCurrency]);
 
   // Auto-set defaults when entering/exiting money transfer mode
   useEffect(() => {
@@ -328,11 +346,19 @@ export default function TransactionFormModal({
   const [hideFromTotals, setHideFromTotals] = useState(
     initialData?.hide_from_totals || false
   );
+  const [splitAcrossYear, setSplitAcrossYear] = useState(
+    initialData?.split_across_year || false
+  );
   const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
+  const splitAcrossYearRef = useRef(initialData?.split_across_year || false);
 
   const updateHideFromTotals = useCallback((value: boolean) => {
     setHideFromTotals(value);
     hideFromTotalsRef.current = value;
+  }, []);
+  const updateSplitAcrossYear = useCallback((value: boolean) => {
+    setSplitAcrossYear(value);
+    splitAcrossYearRef.current = value;
   }, []);
 
   // Validation state for tooltips
@@ -406,7 +432,7 @@ export default function TransactionFormModal({
 
         const submitData = {
           user_id: user.id,
-          amount: parseNumber(formData.get("amount") as string),
+          amount: parseNumber(amountInput),
           currency: selectedCurrency,
           type: isMoneyTransferMode ? ("expense" as const) : transactionType,
           main_category: isMoneyTransferMode ? "Money Transfer" : mainCategory,
@@ -416,6 +442,7 @@ export default function TransactionFormModal({
             : (formData.get("title") as string),
           date: selectedDate.toISOString(),
           hide_from_totals: hideFromTotalsRef.current,
+          split_across_year: splitAcrossYearRef.current,
           fund_category_id: selectedFundCategoryId,
           is_money_transfer: isMoneyTransferMode,
           target_fund_category_id: isMoneyTransferMode
@@ -434,6 +461,7 @@ export default function TransactionFormModal({
       onSubmit,
       transactionType,
       selectedCurrency,
+      amountInput,
       selectedDate,
       mainCategory,
       subCategory,
@@ -450,6 +478,18 @@ export default function TransactionFormModal({
     },
     []
   );
+
+  const handleAmountChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const normalized = normalizeAmountForCurrencyInput(e.target.value, selectedCurrency);
+      setAmountInput(normalized);
+    },
+    [selectedCurrency]
+  );
+
+  const handleAmountBlur = useCallback(() => {
+    setAmountInput((prev) => formatAmountForCurrencyInput(prev, selectedCurrency));
+  }, [selectedCurrency]);
 
   // Reusable class strings
   const inputClass =
@@ -489,7 +529,9 @@ export default function TransactionFormModal({
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]*"
                       placeholder="Amount"
-                      defaultValue={initialData?.amount}
+                      value={amountInput}
+                      onChange={handleAmountChange}
+                      onBlur={handleAmountBlur}
                       autoComplete="transaction-amount"
                       data-lpignore="true"
                       disabled={disabled}
@@ -523,7 +565,7 @@ export default function TransactionFormModal({
               <div className="flex items-end">
                 <div className="flex items-center gap-2 h-12">
                   <label htmlFor="hide-from-totals" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Hide
+                    <EyeOff size={16} aria-hidden="true" />
                   </label>
                   <Switch
                     id="hide-from-totals"
@@ -540,6 +582,23 @@ export default function TransactionFormModal({
                           ? "Hidden from monthly totals"
                           : "Visible in monthly totals"
                     }
+                    aria-label="Hide from monthly totals"
+                  />
+                </div>
+              </div>
+              <div className="flex items-end">
+                <div className="flex items-center gap-2 h-12">
+                  <label htmlFor="split-across-year" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <GitFork size={16} aria-hidden="true" />
+                  </label>
+                  <Switch
+                    id="split-across-year"
+                    name="split_across_year"
+                    checked={splitAcrossYear}
+                    onCheckedChange={updateSplitAcrossYear}
+                    disabled={disabled}
+                    title="Split this transaction across all months in the same year"
+                    aria-label="Split transaction throughout the year"
                   />
                 </div>
               </div>
@@ -782,7 +841,7 @@ export default function TransactionFormModal({
                   }`}
                 type="button"
                 onClick={onClose}
-                disabled={isLoading || disabled}
+                disabled={isLoading}
               >
                 Cancel
               </button>
@@ -833,6 +892,7 @@ export default function TransactionFormModal({
         onDelete={onDelete}
         showDeleteConfirm={showDeleteConfirm}
         setShowDeleteConfirm={setShowDeleteConfirm}
+        disabled={disabled}
       />
     </div>
   );

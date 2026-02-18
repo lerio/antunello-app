@@ -2,6 +2,10 @@ import { Transaction } from "@/types/database";
 import { formatCurrency } from "@/utils/currency";
 import { HiddenTransactionsTooltip } from "@/components/ui/hidden-transactions-tooltip";
 import { SummarySkeleton } from "@/components/ui/skeletons";
+import {
+  getTransactionDisplayAmount,
+  getTransactionDisplayEurAmount,
+} from "@/utils/split-transactions";
 
 type SearchTotals = {
   expenseTotal: number;
@@ -22,7 +26,11 @@ function computeSearchTotals(transactions: ReadonlyArray<Transaction>): SearchTo
     // Skip money transfers - they don't represent actual income/expenses
     if (transaction.is_money_transfer) continue;
 
-    const eurAmount = transaction.eur_amount || (transaction.currency === "EUR" ? transaction.amount : 0);
+    const eurAmount =
+      getTransactionDisplayEurAmount(transaction) ||
+      (transaction.currency === "EUR"
+        ? getTransactionDisplayAmount(transaction)
+        : 0);
     if (eurAmount === 0 && transaction.currency !== "EUR") continue;
 
     if (transaction.hide_from_totals) {

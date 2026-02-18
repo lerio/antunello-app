@@ -1,6 +1,8 @@
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { transactionCache } from './simple-cache'
+import { expandSplitTransactionsForMonth } from './split-transactions'
+import { sortTransactionsByDateInPlace } from './transaction-utils'
 
 // Track in-flight requests to avoid duplicate fetches
 const inflightRequests = new Map<string, Promise<Transaction[]>>()
@@ -48,8 +50,39 @@ async function fetchTransactions(key: string): Promise<Transaction[]> {
     .range(0, 9999) // Get up to 10,000 transactions to avoid the 1000 limit
 
   if (error) throw error
-  
-  return data || []
+
+  const monthTransactions = data || []
+
+  const yearStart = `${targetYear}-01-01T00:00:00.000Z`
+  const yearEnd = `${targetYear}-12-31T23:59:59.999Z`
+
+  const { data: splitData, error: splitError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('split_across_year', true)
+    .gte('date', yearStart)
+    .lte('date', yearEnd)
+    .order('date', { ascending: false })
+    .range(0, 9999)
+
+  if (splitError) {
+    const msg = (splitError.message || '').toLowerCase()
+    const errObj = splitError as unknown as Record<string, unknown>
+    const code = typeof errObj.code === 'string' ? errObj.code : undefined
+    if (code === '42703' || msg.includes('split_across_year')) {
+      return monthTransactions
+    }
+    throw splitError
+  }
+
+  return sortTransactionsByDateInPlace(
+    expandSplitTransactionsForMonth(
+      monthTransactions,
+      splitData || [],
+      targetYear,
+      targetMonth
+    )
+  )
 }
 
 // Helper to create month keys consistently

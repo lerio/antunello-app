@@ -7,6 +7,7 @@ import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
 import { createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
 import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
+import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/utils/split-transactions'
 
 // Consolidated, optimized transactions hook
 export function useTransactionsOptimized(year: number, month: number) {
@@ -131,8 +132,9 @@ export function useTransactionsOptimized(year: number, month: number) {
       
       const currency = t.currency
       if (!acc[currency]) acc[currency] = { income: 0, expense: 0, count: 0 }
-      
-      acc[currency][t.type] += t.eur_amount || t.amount
+
+      const amount = getTransactionDisplayEurAmount(t) ?? getTransactionDisplayAmount(t)
+      acc[currency][t.type] += amount
       acc[currency].count += 1
       
       return acc

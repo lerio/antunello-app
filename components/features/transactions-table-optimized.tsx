@@ -9,10 +9,14 @@ import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
 import NoTransactions from "@/components/features/no-transactions";
 import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
-import { LucideProps } from "lucide-react";
+import { GitFork, LucideProps } from "lucide-react";
 import { TransactionListSkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
+import {
+  getTransactionDisplayAmount,
+  getTransactionDisplayEurAmount,
+} from "@/utils/split-transactions";
 
 type TransactionsTableProps = {
   readonly transactions: ReadonlyArray<Transaction>;
@@ -40,9 +44,12 @@ const TransactionRow = React.memo(
   }) => {
     const Icon: React.ComponentType<LucideProps> =
       CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"];
-    const amount = transaction.eur_amount || transaction.amount;
+    const amount =
+      getTransactionDisplayEurAmount(transaction) ??
+      getTransactionDisplayAmount(transaction);
     const showOriginalCurrency =
-      transaction.eur_amount && transaction.currency !== "EUR";
+      (getTransactionDisplayEurAmount(transaction) ?? transaction.eur_amount) &&
+      transaction.currency !== "EUR";
 
     // Handler for category icon click (navigates to main category)
     const handleCategoryClick = (e: React.MouseEvent) => {
@@ -66,6 +73,7 @@ const TransactionRow = React.memo(
         onClick={() => onClick(transaction)}
         aria-label={`Open transaction ${transaction.title}`}
         className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? "opacity-50" : ""
+          } ${transaction.split_is_read_only ? "bg-gray-100 dark:bg-gray-800/70 grayscale-[0.2]" : ""
           }`}
       >
         <div
@@ -98,8 +106,15 @@ const TransactionRow = React.memo(
         </div>
         <div className="ml-4 flex-1 min-w-0 overflow-hidden">
           <div className="relative">
-            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden uppercase">
-              {transaction.title}
+            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden uppercase flex items-center gap-2">
+              <span>{transaction.title}</span>
+              {transaction.split_across_year && (
+                <GitFork
+                  size={14}
+                  className="text-gray-400 dark:text-gray-500 flex-shrink-0"
+                  aria-label="Split transaction"
+                />
+              )}
             </p>
             <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
           </div>
@@ -151,7 +166,10 @@ const TransactionRow = React.memo(
           {showOriginalCurrency && (
             <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
               <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
-                ({formatCurrency(transaction.amount, transaction.currency)})
+                ({formatCurrency(
+                  getTransactionDisplayAmount(transaction),
+                  transaction.currency
+                )})
               </PrivacyBlur>
             </p>
           )}
@@ -276,7 +294,9 @@ export default function TransactionsTable({
           // Skip transactions that are hidden from totals or are money transfers
           if (t.hide_from_totals || t.is_money_transfer) return total;
 
-          const amount = t.eur_amount || (t.currency === "EUR" ? t.amount : 0);
+          const amount =
+            getTransactionDisplayEurAmount(t) ??
+            (t.currency === "EUR" ? getTransactionDisplayAmount(t) : 0);
           return total + (t.type === "expense" ? -amount : amount);
         }, 0);
 

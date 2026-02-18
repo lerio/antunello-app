@@ -2,6 +2,8 @@ import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { transactionCache } from './simple-cache'
 import { fetchAllBatches } from './supabase/fetch-all'
+import { expandSplitTransactionsForYear } from './split-transactions'
+import { sortTransactionsByDateInPlace } from './transaction-utils'
 
 // Track in-flight requests to avoid duplicate fetches
 const inflightYearRequests = new Map<string, Promise<Transaction[]>>()
@@ -40,20 +42,26 @@ async function fetchYearTransactions(key: string): Promise<Transaction[]> {
     throw new Error(`Invalid year extracted from key: ${key}`)
   }
   
-  const startDate = `${year}-01-01`
-  const endDate = `${year}-12-31`
+  // Business rule: yearly boundaries are CET-based (Jan 1st 00:00 CET).
+  // 00:00 CET corresponds to 23:00 UTC on the previous day in January.
+  const yearStart = new Date(Date.UTC(year, 0, 1, -1, 0, 0, 0)).toISOString()
+  const nextYearStart = new Date(Date.UTC(year + 1, 0, 1, -1, 0, 0, 0)).toISOString()
 
   const supabase = createClient()
 
-  return fetchAllBatches<Transaction>((from, to) =>
+  const yearTransactions = await fetchAllBatches<Transaction>((from, to) =>
     supabase
       .from('transactions')
       .select('*')
-      .gte('date', startDate)
-      .lte('date', endDate)
+      .gte('date', yearStart)
+      .lt('date', nextYearStart)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .range(from, to)
+  )
+
+  return sortTransactionsByDateInPlace(
+    expandSplitTransactionsForYear(yearTransactions, year)
   )
 }
 

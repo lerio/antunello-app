@@ -27,13 +27,15 @@ import useSWR from "swr";
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TransactionListSkeleton } from "@/components/ui/skeletons";
-
+import {
+  calculateExpectedSplitAmountEur,
+  expandSplitTransactionsForMonth,
+} from "@/utils/split-transactions";
 
 import TransactionFormModal from "@/components/features/transaction-form-modal";
 import { usePendingTransactions } from "@/hooks/usePendingTransactions";
 import { PendingTransactionsButton } from "@/components/features/pending-transactions-button";
-import { cn } from "@/lib/utils"; // Will verify if this exists in next steps, otherwise remove
+import { cn } from "@/lib/utils";
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -88,15 +90,13 @@ export default function ProtectedPage() {
   } = useModalState();
 
 
-  // ... inside component ...
-
   // Pending transaction modal state
   const {
     isOpen: isPendingModalOpen,
     currentTransaction,
     nextTransaction,
     closeModal: closePendingModal,
-    openModal // Added openModal
+    openModal
   } = usePendingTransactionModal();
 
   // Fetch pending transactions
@@ -106,6 +106,59 @@ export default function ProtectedPage() {
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
+  const selectedYear = currentDate.getFullYear();
+  const selectedMonth = currentDate.getMonth() + 1;
+
+  const { data: splitSources = [] } = useSWR<Transaction[]>(
+    `split-sources-${selectedYear}`,
+    async () => {
+      const yearStart = `${selectedYear}-01-01T00:00:00.000Z`;
+      const yearEnd = `${selectedYear}-12-31T23:59:59.999Z`;
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("split_across_year", true)
+        .gte("date", yearStart)
+        .lte("date", yearEnd)
+        .range(0, 9999);
+
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        const code =
+          typeof (error as unknown as Record<string, unknown>).code === "string"
+            ? ((error as unknown as Record<string, unknown>).code as string)
+            : undefined;
+
+        if (code === "42703" || msg.includes("split_across_year")) {
+          return [];
+        }
+        throw error;
+      }
+
+      return (data || []) as Transaction[];
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
+    }
+  );
+
+  const expectedSplitAmountEur = useMemo(() => {
+    if (!splitSources.length) return 0;
+
+    const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+    const allSplitForMonth = expandSplitTransactionsForMonth(
+      [],
+      splitSources,
+      selectedYear,
+      selectedMonth,
+      monthEnd
+    );
+    return calculateExpectedSplitAmountEur(allSplitForMonth, transactions);
+  }, [splitSources, selectedYear, selectedMonth, transactions]);
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
 
@@ -473,7 +526,11 @@ export default function ProtectedPage() {
           )}
         </div>
 
-        <TransactionSummary transactions={transactions} isLoading={isLoading} />
+        <TransactionSummary
+          transactions={transactions}
+          isLoading={isLoading}
+          expectedSplitAmountEur={expectedSplitAmountEur}
+        />
 
         <div className="transactions-list mt-4">
           <TransactionsTable
@@ -532,7 +589,10 @@ export default function ProtectedPage() {
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
-            onDelete={handleDeleteTransaction}
+            onDelete={
+              editingTransaction.split_is_read_only ? undefined : handleDeleteTransaction
+            }
+            disabled={!!editingTransaction.split_is_read_only}
             onClose={closeEditModal}
           />
         )}

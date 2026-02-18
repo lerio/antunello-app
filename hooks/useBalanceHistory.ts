@@ -59,8 +59,10 @@ function calculateBalanceHistory(
   const filtered = transactions.filter(t =>
     (includeHidden || !t.hide_from_totals) &&
     !t.is_money_transfer && // Exclude money transfers from balance calculation
-    t.eur_amount !== null &&
-    t.eur_amount !== undefined
+    (t.split_display_eur_amount !== null &&
+      t.split_display_eur_amount !== undefined
+      ? true
+      : t.eur_amount !== null && t.eur_amount !== undefined)
   );
 
   // No need to sort - useRangeTransactions already orders by date ascending
@@ -97,7 +99,11 @@ function calculateBalanceHistory(
     }
 
     const period = periods.get(periodKey)!;
-    const amount = tx.eur_amount as number;
+    const amount =
+      tx.split_display_eur_amount !== null &&
+      tx.split_display_eur_amount !== undefined
+        ? tx.split_display_eur_amount
+        : (tx.eur_amount as number);
 
     // Update running balance and period statistics
     if (tx.type === 'income') {

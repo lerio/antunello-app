@@ -1,21 +1,18 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronRight, GitFork } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
+import { getTransactionDisplayEurAmount } from "@/utils/split-transactions";
 import {
   getDifferenceColorClass,
   getCategoryNameClass,
   getTotalAmountClass,
   getMonthlyAmountClass,
 } from "@/utils/styling-utils";
-
-type CurrencyTotals = { [currency: string]: number };
-
-type CategoryTotals = { [category: string]: { [currency: string]: number } };
 
 type CategoryData = {
   type: "income" | "expense";
@@ -68,7 +65,7 @@ function getMonthlyAverage(total: number, year?: number) {
 
 function getDifferenceFromPrevYear(
   currentTotal: number,
-  prevYearTotal: number
+  prevYearTotal: number,
 ): number {
   const currentMonthlyAvg = getMonthlyAverage(currentTotal);
   const prevYearMonthlyAvg = getMonthlyAverage(prevYearTotal);
@@ -82,13 +79,18 @@ function formatAmount(amount: number) {
   }).format(amount);
 }
 
-function formatDifference(difference: number, isIncome: boolean = false, privacyMode: boolean = false) {
+function formatDifference(
+  difference: number,
+  isIncome: boolean = false,
+  privacyMode: boolean = false,
+) {
   const sign = difference > 0 ? "+" : "-";
   const colorClass = getDifferenceColorClass(difference, isIncome);
   return (
     <span className={`${colorClass} text-sm sm:text-sm`}>
       <PrivacyBlur blur={privacyMode}>
-        {sign}{formatAmount(Math.abs(difference))}
+        {sign}
+        {formatAmount(Math.abs(difference))}
       </PrivacyBlur>
     </span>
   );
@@ -99,7 +101,7 @@ function inc(map: Record<string, number>, key: string, amount: number) {
 }
 
 function computeYearTotals(
-  transactions: ReadonlyArray<Transaction>
+  transactions: ReadonlyArray<Transaction>,
 ): SummaryTotals {
   let expenseTotal = 0;
   let incomeTotal = 0;
@@ -108,21 +110,21 @@ function computeYearTotals(
   let hiddenExpenseTotal = 0;
 
   const converted = transactions.filter(
-    (t) => t.eur_amount !== null && t.eur_amount !== undefined
+    (t) =>
+      getTransactionDisplayEurAmount(t) !== null &&
+      getTransactionDisplayEurAmount(t) !== undefined,
   );
-  const hidden = converted.filter(
-    (t) => t.hide_from_totals && !t.is_money_transfer
-  );
-  const visible = converted.filter(
-    (t) => !t.hide_from_totals && !t.is_money_transfer
-  );
+  for (const t of converted) {
+    if (t.is_money_transfer) continue;
 
-  for (const t of hidden) {
-    if (t.type === "expense") hiddenExpenseTotal += t.eur_amount as number;
-  }
+    if (t.hide_from_totals) {
+      if (t.type === "expense") {
+        hiddenExpenseTotal += getTransactionDisplayEurAmount(t) as number;
+      }
+      continue;
+    }
 
-  for (const t of visible) {
-    const eur = t.eur_amount as number;
+    const eur = getTransactionDisplayEurAmount(t) as number;
     if (t.type === "expense") {
       expenseTotal += eur;
       inc(expenseCategoryTotals, t.main_category, eur);
@@ -142,7 +144,7 @@ function computeYearTotals(
 }
 
 function computePrevYearTotals(
-  transactions?: ReadonlyArray<Transaction>
+  transactions?: ReadonlyArray<Transaction>,
 ): PrevYearTotals {
   let prevYearExpenseTotal = 0;
   let prevYearIncomeTotal = 0;
@@ -152,22 +154,23 @@ function computePrevYearTotals(
 
   const list = transactions ?? [];
   const converted = list.filter(
-    (t) => t.eur_amount !== null && t.eur_amount !== undefined
+    (t) =>
+      getTransactionDisplayEurAmount(t) !== null &&
+      getTransactionDisplayEurAmount(t) !== undefined,
   );
-  const hidden = converted.filter(
-    (t) => t.hide_from_totals && !t.is_money_transfer
-  );
-  const visible = converted.filter(
-    (t) => !t.hide_from_totals && !t.is_money_transfer
-  );
+  for (const t of converted) {
+    if (t.is_money_transfer) continue;
 
-  for (const t of hidden) {
-    if (t.type === "expense")
-      prevYearHiddenExpenseTotal += t.eur_amount as number;
-  }
+    if (t.hide_from_totals) {
+      if (t.type === "expense") {
+        prevYearHiddenExpenseTotal += getTransactionDisplayEurAmount(
+          t,
+        ) as number;
+      }
+      continue;
+    }
 
-  for (const t of visible) {
-    const eur = t.eur_amount as number;
+    const eur = getTransactionDisplayEurAmount(t) as number;
     if (t.type === "expense") {
       prevYearExpenseTotal += eur;
       inc(prevYearExpenseCategoryTotals, t.main_category, eur);
@@ -191,7 +194,7 @@ function getDifferenceIfAvailable(
   previous: number,
   currentYear?: number,
   previousYear?: number,
-  isBalance: boolean = false
+  isBalance: boolean = false,
 ) {
   return currentYear && previousYear
     ? getDifferenceFromPrevYear(current, previous)
@@ -204,13 +207,13 @@ function buildCategoriesData(
   prevYearIncomeCategoryTotals: Record<string, number>,
   prevYearExpenseCategoryTotals: Record<string, number>,
   currentYear?: number,
-  previousYear?: number
+  previousYear?: number,
 ): CategoryData[] {
   const categoriesData: CategoryData[] = [];
 
   if (Object.keys(incomeCategoryTotals).length > 0) {
     const entries = Object.entries(incomeCategoryTotals).sort(
-      ([, a], [, b]) => b - a
+      ([, a], [, b]) => b - a,
     );
     for (const [category, amount] of entries) {
       const prevYearAmount = prevYearIncomeCategoryTotals[category] || 0;
@@ -230,7 +233,7 @@ function buildCategoriesData(
 
   if (Object.keys(expenseCategoryTotals).length > 0) {
     const entries = Object.entries(expenseCategoryTotals).sort(
-      ([, a], [, b]) => b - a
+      ([, a], [, b]) => b - a,
     );
     for (const [category, amount] of entries) {
       const prevYearAmount = prevYearExpenseCategoryTotals[category] || 0;
@@ -288,7 +291,7 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
         prevYearBalanceTotal,
         currentYear,
         previousYear,
-        true
+        true,
       ),
       isBalance: true,
     },
@@ -300,7 +303,7 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
         incomeTotal,
         prevYearIncomeTotal,
         currentYear,
-        previousYear
+        previousYear,
       ),
       isIncome: true,
       isCollapsible: !currentYear,
@@ -313,7 +316,7 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
         expenseTotal,
         prevYearExpenseTotal,
         currentYear,
-        previousYear
+        previousYear,
       ),
       isExpense: true,
       isCollapsible: !currentYear,
@@ -329,7 +332,7 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
         hiddenExpenseTotal,
         prevYearHiddenExpenseTotal,
         currentYear,
-        previousYear
+        previousYear,
       ),
       isHiddenExpense: true,
     });
@@ -344,7 +347,7 @@ function extendWithCategoryRows(
   isExpensesExpanded: boolean,
   incomeCategoryTotals: Record<string, number>,
   expenseCategoryTotals: Record<string, number>,
-  currentYear?: number
+  currentYear?: number,
 ): TotalsItem[] {
   const extended: TotalsItem[] = [];
 
@@ -353,7 +356,7 @@ function extendWithCategoryRows(
 
     if (item.isIncome && isIncomeExpanded) {
       for (const [category, amount] of Object.entries(
-        incomeCategoryTotals
+        incomeCategoryTotals,
       ).sort(([, a], [, b]) => b - a)) {
         extended.push({
           category,
@@ -369,7 +372,7 @@ function extendWithCategoryRows(
 
     if (item.isExpense && isExpensesExpanded) {
       for (const [category, amount] of Object.entries(
-        expenseCategoryTotals
+        expenseCategoryTotals,
       ).sort(([, a], [, b]) => b - a)) {
         extended.push({
           category,
@@ -387,18 +390,26 @@ function extendWithCategoryRows(
   return extended;
 }
 
-function renderComparisonCell(item: TotalsItem, privacyMode: boolean = false): React.ReactNode {
+function renderComparisonCell(
+  item: TotalsItem,
+  privacyMode: boolean = false,
+): React.ReactNode {
   if (item.isHiddenExpense)
     return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
   if (item.difference === null)
     return <span className="text-muted-foreground text-sm sm:text-sm">-</span>;
-  return formatDifference(item.difference, !!(item.isIncome || item.isBalance), privacyMode);
+  return formatDifference(
+    item.difference,
+    !!(item.isIncome || item.isBalance),
+    privacyMode,
+  );
 }
 
 type TotalsTableProps = {
   readonly totalsData: TotalsItem[];
   readonly currentYear?: number;
   readonly previousYear?: number;
+  readonly expectedSplitAmountEur?: number;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
   readonly onToggleIncome: () => void;
@@ -412,6 +423,7 @@ function TotalsTable({
   totalsData,
   currentYear,
   previousYear,
+  expectedSplitAmountEur = 0,
   isIncomeExpanded,
   isExpensesExpanded,
   onToggleIncome,
@@ -423,12 +435,8 @@ function TotalsTable({
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
-  const isGains = balanceTotal >= 0;
-  const amountDisplay = (
-    <PrivacyBlur blur={privacyMode}>
-      €{formatAmount(Math.abs(balanceTotal))}
-    </PrivacyBlur>
-  );
+  const displayedBalanceTotal = balanceTotal - expectedSplitAmountEur;
+  const isGains = displayedBalanceTotal >= 0;
   const title = isGains ? "Gains" : "Losses";
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
@@ -446,19 +454,42 @@ function TotalsTable({
               : "text-red-600 dark:text-red-400"
           }`}
         >
-          {title} ({amountDisplay})
+          {title}
         </h3>
-        <button
-          onClick={onToggleDetails}
-          className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
-          aria-label={isDetailsExpanded ? "Collapse details" : "Expand details"}
-        >
-          {isDetailsExpanded ? (
-            <ChevronDown size={18} className="text-muted-foreground" />
-          ) : (
-            <ChevronRight size={18} className="text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-base sm:text-lg font-semibold ${
+              isGains
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            <PrivacyBlur blur={privacyMode}>
+              €{formatAmount(Math.abs(displayedBalanceTotal))}
+            </PrivacyBlur>
+          </span>
+          {expectedSplitAmountEur > 0 && (
+            <span className="text-sm text-foreground inline-flex items-center gap-1">
+              <span>(</span>
+              <GitFork size={14} />
+              <PrivacyBlur blur={privacyMode}>
+                <span>€{formatAmount(Math.abs(expectedSplitAmountEur))}</span>
+              </PrivacyBlur>
+              <span>)</span>
+            </span>
           )}
-        </button>
+          <button
+            onClick={onToggleDetails}
+            className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
+            aria-label={isDetailsExpanded ? "Collapse details" : "Expand details"}
+          >
+            {isDetailsExpanded ? (
+              <ChevronDown size={18} className="text-muted-foreground" />
+            ) : (
+              <ChevronRight size={18} className="text-muted-foreground" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="overflow-hidden">
         <table className="w-full">
@@ -531,7 +562,7 @@ function TotalsTable({
                           !!isHiddenExpense,
                           item.isBalance || false,
                           item.isIncome || false,
-                          item.total
+                          item.total,
                         )}
                       >
                         {item.category}
@@ -546,7 +577,7 @@ function TotalsTable({
                         !!isHiddenExpense,
                         item.isBalance || false,
                         item.isIncome || false,
-                        item.total
+                        item.total,
                       )}
                     >
                       <PrivacyBlur blur={privacyMode}>
@@ -564,7 +595,7 @@ function TotalsTable({
                         <span
                           className={getMonthlyAmountClass(
                             item.isBalance || false,
-                            item.monthlyAverage
+                            item.monthlyAverage,
                           )}
                         >
                           <PrivacyBlur blur={privacyMode}>
@@ -679,7 +710,9 @@ function CategoriesTable({
                   >
                     <PrivacyBlur blur={privacyMode}>
                       {formatAmount(
-                        Math.abs(currentYear ? item.monthlyAverage : item.total)
+                        Math.abs(
+                          currentYear ? item.monthlyAverage : item.total,
+                        ),
                       )}
                     </PrivacyBlur>
                   </span>
@@ -689,7 +722,11 @@ function CategoriesTable({
                     {item.difference === null ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
-                      formatDifference(item.difference, item.type === "income", privacyMode)
+                      formatDifference(
+                        item.difference,
+                        item.type === "income",
+                        privacyMode,
+                      )
                     )}
                   </td>
                 )}
@@ -704,15 +741,15 @@ function CategoriesTable({
 type TransactionSummaryProps = {
   readonly transactions: Transaction[];
   readonly isLoading?: boolean;
-  readonly includeHiddenInTotals?: boolean;
   readonly currentYear?: number;
+  readonly expectedSplitAmountEur?: number;
 };
 
 export default function TransactionSummary({
   transactions,
   isLoading = false,
-  includeHiddenInTotals = false,
   currentYear,
+  expectedSplitAmountEur = 0,
 }: TransactionSummaryProps) {
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
@@ -745,7 +782,7 @@ export default function TransactionSummary({
     prevYearHiddenExpenseTotal,
   } = useMemo(
     () => computePrevYearTotals(previousYearTransactions),
-    [previousYearTransactions]
+    [previousYearTransactions],
   );
 
   // Memoize balance calculations
@@ -754,21 +791,21 @@ export default function TransactionSummary({
       balanceTotal: incomeTotal - expenseTotal,
       prevYearBalanceTotal: prevYearIncomeTotal - prevYearExpenseTotal,
     }),
-    [incomeTotal, expenseTotal, prevYearIncomeTotal, prevYearExpenseTotal]
+    [incomeTotal, expenseTotal, prevYearIncomeTotal, prevYearExpenseTotal],
   );
 
   // Memoized toggle handlers
   const handleToggleIncome = useCallback(
     () => setIsIncomeExpanded((prev) => !prev),
-    []
+    [],
   );
   const handleToggleExpenses = useCallback(
     () => setIsExpensesExpanded((prev) => !prev),
-    []
+    [],
   );
   const handleToggleDetails = useCallback(
     () => setIsDetailsExpanded((prev) => !prev),
-    []
+    [],
   );
 
   // Memoize base data creation (must be before conditional returns)
@@ -797,7 +834,7 @@ export default function TransactionSummary({
       prevYearHiddenExpenseTotal,
       currentYear,
       previousYear,
-    ]
+    ],
   );
 
   // Memoize totals data with category rows
@@ -811,7 +848,7 @@ export default function TransactionSummary({
             isExpensesExpanded,
             incomeCategoryTotals,
             expenseCategoryTotals,
-            currentYear
+            currentYear,
           ),
     [
       currentYear,
@@ -820,7 +857,7 @@ export default function TransactionSummary({
       isExpensesExpanded,
       incomeCategoryTotals,
       expenseCategoryTotals,
-    ]
+    ],
   );
 
   // Memoize categories data
@@ -832,7 +869,7 @@ export default function TransactionSummary({
         prevYearIncomeCategoryTotals,
         prevYearExpenseCategoryTotals,
         currentYear,
-        previousYear
+        previousYear,
       ),
     [
       incomeCategoryTotals,
@@ -841,7 +878,7 @@ export default function TransactionSummary({
       prevYearExpenseCategoryTotals,
       currentYear,
       previousYear,
-    ]
+    ],
   );
 
   // Memoize hasData check
@@ -849,7 +886,7 @@ export default function TransactionSummary({
     () =>
       Object.keys(incomeCategoryTotals).length > 0 ||
       Object.keys(expenseCategoryTotals).length > 0,
-    [incomeCategoryTotals, expenseCategoryTotals]
+    [incomeCategoryTotals, expenseCategoryTotals],
   );
 
   // Loading state (after all hooks)
@@ -862,31 +899,34 @@ export default function TransactionSummary({
     return <SummarySkeleton collapsed={true} />;
   }
 
+  const shouldShowTotals = currentYear === undefined || hasData;
+
   return (
     <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
-      {hasData ? (
-        <>
-          <TotalsTable
-            totalsData={totalsData}
-            currentYear={currentYear}
-            previousYear={previousYear}
-            isIncomeExpanded={isIncomeExpanded}
-            isExpensesExpanded={isExpensesExpanded}
-            onToggleIncome={handleToggleIncome}
-            onToggleExpenses={handleToggleExpenses}
-            isDetailsExpanded={isDetailsExpanded}
-            onToggleDetails={handleToggleDetails}
-            privacyMode={privacyMode}
-          />
+      {shouldShowTotals && (
+        <TotalsTable
+          totalsData={totalsData}
+          currentYear={currentYear}
+          previousYear={previousYear}
+          expectedSplitAmountEur={expectedSplitAmountEur}
+          isIncomeExpanded={isIncomeExpanded}
+          isExpensesExpanded={isExpensesExpanded}
+          onToggleIncome={handleToggleIncome}
+          onToggleExpenses={handleToggleExpenses}
+          isDetailsExpanded={isDetailsExpanded}
+          onToggleDetails={handleToggleDetails}
+          privacyMode={privacyMode}
+        />
+      )}
 
-          <CategoriesTable
-            categoriesData={categoriesData}
-            currentYear={currentYear}
-            previousYear={previousYear}
-            privacyMode={privacyMode}
-          />
-        </>
-      ) : (
+      <CategoriesTable
+        categoriesData={categoriesData}
+        currentYear={currentYear}
+        previousYear={previousYear}
+        privacyMode={privacyMode}
+      />
+
+      {!hasData && currentYear !== undefined && (
         <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6">
           <div className="text-center py-8 text-muted-foreground">
             No transactions this year

@@ -10,11 +10,17 @@ import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
 import { parseNumber } from "@/utils/number";
 import {
+  formatAmountForCurrencyInput,
+  normalizeAmountForCurrencyInput,
+} from "@/utils/currency-amount-input";
+import {
   ArrowLeft,
   Calendar,
   MinusCircle,
   PlusCircle,
   ChevronDown,
+  EyeOff,
+  GitFork,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
@@ -52,10 +58,29 @@ export default function TransactionFormHtmlDesign({
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
   );
+  const [amountInput, setAmountInput] = useState(() =>
+    initialData?.amount !== undefined && initialData?.amount !== null
+      ? formatAmountForCurrencyInput(
+          String(initialData.amount),
+          initialData.currency || "EUR"
+        )
+      : ""
+  );
   const [hideFromTotals, setHideFromTotals] = useState(
     initialData?.hide_from_totals || false
   );
+  const [splitAcrossYear, setSplitAcrossYear] = useState(
+    initialData?.split_across_year || false
+  );
   const hideFromTotalsRef = useRef(initialData?.hide_from_totals || false);
+  const splitAcrossYearRef = useRef(initialData?.split_across_year || false);
+
+  useEffect(() => {
+    if (!amountInput) return;
+    setAmountInput((prev) =>
+      formatAmountForCurrencyInput(prev, selectedCurrency)
+    );
+  }, [selectedCurrency]);
 
   // Protect amount field from browser extension errors
   useFormFieldProtection("amount");
@@ -102,6 +127,10 @@ export default function TransactionFormHtmlDesign({
     setHideFromTotals(value);
     hideFromTotalsRef.current = value;
   }, []);
+  const updateSplitAcrossYear = useCallback((value: boolean) => {
+    setSplitAcrossYear(value);
+    splitAcrossYearRef.current = value;
+  }, []);
 
   const subCategories = useMemo(() => {
     return SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [];
@@ -140,7 +169,7 @@ export default function TransactionFormHtmlDesign({
 
         const data = {
           user_id: user.id,
-          amount: parseNumber(formData.get("amount") as string),
+          amount: parseNumber(amountInput),
           currency: selectedCurrency,
           type: transactionType,
           main_category: formData.get("main-category") as string,
@@ -148,6 +177,7 @@ export default function TransactionFormHtmlDesign({
           title: formData.get("title") as string,
           date: parseDateTime(formData.get("date") as string),
           hide_from_totals: hideFromTotalsRef.current,
+          split_across_year: splitAcrossYearRef.current,
         };
 
         await onSubmit(data);
@@ -157,7 +187,7 @@ export default function TransactionFormHtmlDesign({
         setIsLoading(false);
       }
     },
-    [onSubmit, transactionType, selectedCurrency]
+    [onSubmit, transactionType, selectedCurrency, amountInput]
   );
 
   const handleCategoryChange = useCallback(
@@ -173,6 +203,23 @@ export default function TransactionFormHtmlDesign({
     },
     []
   );
+
+  const handleAmountChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const normalized = normalizeAmountForCurrencyInput(
+        e.target.value,
+        selectedCurrency
+      );
+      setAmountInput(normalized);
+    },
+    [selectedCurrency]
+  );
+
+  const handleAmountBlur = useCallback(() => {
+    setAmountInput((prev) =>
+      formatAmountForCurrencyInput(prev, selectedCurrency)
+    );
+  }, [selectedCurrency]);
 
   // Helper to get submit button color class
   const getSubmitButtonColorClass = (): string => {
@@ -229,7 +276,9 @@ export default function TransactionFormHtmlDesign({
                     inputMode="decimal"
                     pattern="[0-9]*[.,]?[0-9]*"
                     required
-                    defaultValue={initialData?.amount}
+                    value={amountInput}
+                    onChange={handleAmountChange}
+                    onBlur={handleAmountBlur}
                     autoComplete="transaction-amount"
                     data-lpignore="true"
                   />
@@ -256,7 +305,7 @@ export default function TransactionFormHtmlDesign({
               <div className="flex items-end">
                 <div className="flex items-center gap-2 h-12">
                   <label htmlFor="hide-from-totals" className="text-sm font-medium text-gray-700">
-                    Hide
+                    <EyeOff size={16} aria-hidden="true" />
                   </label>
                   <Switch
                     id="hide-from-totals"
@@ -268,6 +317,22 @@ export default function TransactionFormHtmlDesign({
                         ? "Hidden from monthly totals"
                         : "Visible in monthly totals"
                     }
+                    aria-label="Hide from monthly totals"
+                  />
+                </div>
+              </div>
+              <div className="flex items-end">
+                <div className="flex items-center gap-2 h-12">
+                  <label htmlFor="split-across-year" className="text-sm font-medium text-gray-700">
+                    <GitFork size={16} aria-hidden="true" />
+                  </label>
+                  <Switch
+                    id="split-across-year"
+                    name="split_across_year"
+                    checked={splitAcrossYear}
+                    onCheckedChange={updateSplitAcrossYear}
+                    title="Split this transaction across all months in the same year"
+                    aria-label="Split transaction throughout the year"
                   />
                 </div>
               </div>

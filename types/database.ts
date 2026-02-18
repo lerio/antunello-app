@@ -21,6 +21,13 @@ export type Transaction = {
   // Money transfer fields
   is_money_transfer?: boolean
   target_fund_category_id?: string | null
+  // Annual split behavior
+  split_across_year?: boolean
+  // UI-only split instance metadata (not persisted as DB columns)
+  split_source_transaction_id?: string | null
+  split_is_read_only?: boolean
+  split_display_amount?: number
+  split_display_eur_amount?: number | null
 }
 
 export type Budget = {

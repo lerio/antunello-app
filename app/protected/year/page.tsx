@@ -15,6 +15,12 @@ import { UpdateBanner } from "@/components/ui/update-banner";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
+import { Transaction } from "@/types/database";
+import useSWR from "swr";
+import {
+  calculateExpectedSplitAmountEur,
+  expandSplitTransactionsForYear,
+} from "@/utils/split-transactions";
 
 import TransactionSummary from "@/components/features/transaction-summary";
 
@@ -55,6 +61,58 @@ export default function YearSummaryPage() {
 
   const { transactions, isLoading, error, mutate } =
     useYearTransactions(currentYear);
+  const { data: splitSources = [] } = useSWR<Transaction[]>(
+    `split-sources-year-${currentYear}`,
+    async () => {
+      const yearStart = new Date(
+        Date.UTC(currentYear, 0, 1, -1, 0, 0, 0)
+      ).toISOString();
+      const nextYearStart = new Date(
+        Date.UTC(currentYear + 1, 0, 1, -1, 0, 0, 0)
+      ).toISOString();
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("split_across_year", true)
+        .gte("date", yearStart)
+        .lt("date", nextYearStart)
+        .range(0, 9999);
+
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        const code =
+          typeof (error as unknown as Record<string, unknown>).code === "string"
+            ? ((error as unknown as Record<string, unknown>).code as string)
+            : undefined;
+
+        if (code === "42703" || msg.includes("split_across_year")) {
+          return [];
+        }
+        throw error;
+      }
+
+      return (data || []) as Transaction[];
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
+    }
+  );
+
+  const expectedSplitAmountEur = useMemo(() => {
+    if (!splitSources.length) return 0;
+
+    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+    const allSplitForYear = expandSplitTransactionsForYear(
+      splitSources,
+      currentYear,
+      yearEnd
+    );
+    return calculateExpectedSplitAmountEur(allSplitForYear, transactions);
+  }, [splitSources, currentYear, transactions]);
   const { availableYears, isLoading: yearsLoading } = useAvailableYears();
 
   // Background sync for detecting updates
@@ -189,8 +247,8 @@ export default function YearSummaryPage() {
         <TransactionSummary
           transactions={transactions}
           isLoading={isLoading}
-          includeHiddenInTotals={true}
           currentYear={currentYear}
+          expectedSplitAmountEur={expectedSplitAmountEur}
         />
       </div>
 
