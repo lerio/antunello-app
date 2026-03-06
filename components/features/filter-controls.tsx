@@ -19,6 +19,7 @@ type FilterControlsProps = {
   criteria: FilterCriteria
   onCriteriaChange: (criteria: FilterCriteria) => void
   availableCurrencies: string[]
+  availableFundSources: Array<{ id: string; name: string }>
 }
 
 const TYPE_OPTIONS: ChipOption[] = [
@@ -53,6 +54,7 @@ export function FilterControls({
   criteria,
   onCriteriaChange,
   availableCurrencies,
+  availableFundSources,
 }: FilterControlsProps) {
   const [showCategories, setShowCategories] = React.useState(false)
 
@@ -100,6 +102,12 @@ export function FilterControls({
   const currencyOptions: ChipOption[] = availableCurrencies.map(c => ({
     value: c,
     label: c,
+  }))
+
+  // Fund source options
+  const fundSourceOptions: ChipOption[] = availableFundSources.map(fund => ({
+    value: fund.id,
+    label: fund.name,
   }))
 
   // Handle type change
@@ -158,6 +166,11 @@ export function FilterControls({
   // Handle currency change
   const handleCurrencyChange = (currencies: string[]) => {
     onCriteriaChange({ ...criteria, currencies })
+  }
+
+  // Handle fund source change
+  const handleFundSourceChange = (fundSourceIds: string[]) => {
+    onCriteriaChange({ ...criteria, fundSourceIds })
   }
 
   // Handle month change
@@ -337,6 +350,23 @@ export function FilterControls({
           </div>
         )}
       </div>
+
+      {/* Fund Source */}
+      {fundSourceOptions.length > 0 && (
+        <div>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
+            Fund Source
+          </span>
+          <div className="min-h-[32px] flex items-center">
+            <MultiSelectChips
+              options={fundSourceOptions}
+              selected={criteria.fundSourceIds}
+              onChange={handleFundSourceChange}
+              size="md"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Amount Range */}
       <div>

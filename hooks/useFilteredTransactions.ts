@@ -8,6 +8,7 @@ export type FilterCriteria = {
   types: Array<'income' | 'expense' | 'movement'>
   mainCategories: string[]
   subCategories: string[]
+  fundSourceIds: string[]
   amountMin: number | null
   amountMax: number | null
   currencies: string[]
@@ -19,6 +20,7 @@ export const initialFilterCriteria: FilterCriteria = {
   types: [],
   mainCategories: [],
   subCategories: [],
+  fundSourceIds: [],
   amountMin: null,
   amountMax: null,
   currencies: [],
@@ -53,7 +55,7 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
         .order('created_at', { ascending: false })
         .limit(500)
 
-      const { types, mainCategories, subCategories, amountMin, amountMax, currencies, month, year } = criteriaRef.current
+      const { types, mainCategories, subCategories, fundSourceIds, amountMin, amountMax, currencies, month, year } = criteriaRef.current
 
       // Type filter with is_money_transfer handling
       if (types.length > 0) {
@@ -86,6 +88,11 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
       if (subCategories.length > 0) {
         const subCategoryNames = subCategories.map(sub => sub.split('::')[1] || sub)
         query = query.in('sub_category', subCategoryNames)
+      }
+
+      // Fund source filter
+      if (fundSourceIds.length > 0) {
+        query = query.in('fund_category_id', fundSourceIds)
       }
 
       // Amount range filter
@@ -174,6 +181,7 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
     criteria.types.join(','),
     criteria.mainCategories.join(','),
     criteria.subCategories.join(','),
+    criteria.fundSourceIds.join(','),
     criteria.amountMin,
     criteria.amountMax,
     criteria.currencies.join(','),

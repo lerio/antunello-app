@@ -38,6 +38,7 @@ export default function FilterPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
+  const [availableFundSources, setAvailableFundSources] = useState<Array<{ id: string; name: string }>>([]);
 
   const [criteria, setCriteria] = useState<FilterCriteria>(initialFilterCriteria);
 
@@ -60,22 +61,36 @@ export default function FilterPage() {
   const { updateTransaction, deleteTransaction } =
     useTransactionMutations();
 
-  // Fetch available currencies on mount
+  // Fetch available currencies and fund sources on mount
   useEffect(() => {
-    const fetchCurrencies = async () => {
+    const fetchFilterOptions = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("currency")
-        .limit(1000);
+      const [{ data: currencyData, error: currencyError }, { data: fundData, error: fundError }] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("currency")
+          .limit(1000),
+        supabase
+          .from("fund_categories")
+          .select("id, name, is_active")
+          .order("order_index", { ascending: true })
+          .order("name", { ascending: true }),
+      ]);
 
-      if (!error && data) {
-        const currencies = Array.from(new Set(data.map((t) => t.currency))).sort();
+      if (!currencyError && currencyData) {
+        const currencies = Array.from(new Set(currencyData.map((t) => t.currency))).sort();
         setAvailableCurrencies(currencies);
+      }
+
+      if (!fundError && fundData) {
+        const activeFunds = fundData
+          .filter((fund) => fund.is_active)
+          .map((fund) => ({ id: fund.id, name: fund.name }));
+        setAvailableFundSources(activeFunds);
       }
     };
 
-    fetchCurrencies();
+    fetchFilterOptions();
   }, []);
 
   // Handle scroll to show/hide scroll-to-top button
@@ -231,6 +246,7 @@ export default function FilterPage() {
             criteria={criteria}
             onCriteriaChange={handleCriteriaChange}
             availableCurrencies={availableCurrencies}
+            availableFundSources={availableFundSources}
           />
         </div>
 
