@@ -72,8 +72,9 @@ const TransactionRow = React.memo(
         type="button"
         onClick={() => onClick(transaction)}
         aria-label={`Open transaction ${transaction.title}`}
+        aria-disabled={transaction.split_is_read_only || undefined}
         className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? "opacity-50" : ""
-          } ${transaction.split_is_read_only ? "bg-gray-100 dark:bg-gray-800/70 grayscale-[0.2]" : ""
+          } ${transaction.split_is_read_only ? "opacity-60 saturate-50" : ""
           }`}
       >
         <div
