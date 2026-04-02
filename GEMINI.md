@@ -181,7 +181,9 @@ Auto-tracked transaction titles for suggestions:
 
 ### Environment Variables
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` (preferred)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (legacy fallback)
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ### State Management Strategy
 - Dual cache system ensures data is available immediately on reload via localStorage while SWR revalidates in the background.

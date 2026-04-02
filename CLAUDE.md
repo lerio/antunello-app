@@ -207,7 +207,9 @@ Auto-tracked transaction titles for suggestions:
 
 ### Environment Variables
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (required)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key (required)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` - Supabase publishable key (preferred)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Legacy anonymous key fallback
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key for admin routes
 
 ### Key Implementation Details
 - Transaction forms support both creation and editing modes with validation

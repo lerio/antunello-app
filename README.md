@@ -76,10 +76,11 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
 
    ```
    NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE KEY]
+   SUPABASE_SERVICE_ROLE_KEY=[INSERT SUPABASE PROJECT SERVICE ROLE KEY]
    ```
 
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api)
+   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` and `SUPABASE_SERVICE_ROLE_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api). `NEXT_PUBLIC_SUPABASE_ANON_KEY` is also supported as a legacy fallback.
 
 5. You can now run the Next.js local development server:
 
