@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 function getYearButtonVariant(
   isSelected: boolean,
   isToday: boolean,
-  isFuture: boolean
+  isFuture: boolean,
 ): string {
   if (isSelected) {
     return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md";
@@ -77,7 +77,7 @@ export function HorizontalYearSelector({
       {/* Scrollable years container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden"
+        className="flex gap-2 overflow-x-auto px-4 py-2 [&::-webkit-scrollbar]:hidden"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -98,7 +98,7 @@ export function HorizontalYearSelector({
                 ${getYearButtonVariant(
                   isSelected,
                   yearOption.isToday,
-                  yearOption.isFuture
+                  yearOption.isFuture,
                 )}
               `}
             >

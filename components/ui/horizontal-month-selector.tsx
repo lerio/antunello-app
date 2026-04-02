@@ -4,7 +4,7 @@ import { MonthOption } from "@/hooks/useAvailableMonths";
 function getMonthButtonVariant(
   isSelected: boolean,
   isToday: boolean,
-  isFuture: boolean
+  isFuture: boolean,
 ): string {
   if (isSelected) {
     return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md";
@@ -72,7 +72,7 @@ export function HorizontalMonthSelector({
       {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden"
+        className="flex gap-2 overflow-x-auto px-4 py-2[&::-webkit-scrollbar]:hidden"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -95,7 +95,7 @@ export function HorizontalMonthSelector({
                 ${getMonthButtonVariant(
                   isSelected,
                   month.isToday,
-                  month.isFuture
+                  month.isFuture,
                 )}
               `}
             >
