@@ -529,6 +529,8 @@ export default function ProtectedPage() {
         <TransactionSummary
           transactions={transactions}
           isLoading={isLoading}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
           expectedSplitAmountEur={expectedSplitAmountEur}
         />
 

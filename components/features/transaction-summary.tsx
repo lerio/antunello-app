@@ -6,13 +6,20 @@ import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
-import { getTransactionDisplayEurAmount } from "@/utils/split-transactions";
+import {
+  calculateExpectedSplitAmountEur,
+  expandSplitTransactionsForMonth,
+  getTransactionDisplayEurAmount,
+} from "@/utils/split-transactions";
 import {
   getDifferenceColorClass,
   getCategoryNameClass,
   getTotalAmountClass,
   getMonthlyAmountClass,
 } from "@/utils/styling-utils";
+import { createClient } from "@/utils/supabase/client";
+import { createMonthKey, transactionFetcher } from "@/utils/transaction-fetcher";
+import useSWR from "swr";
 
 type CategoryData = {
   type: "income" | "expense";
@@ -54,6 +61,12 @@ type TotalsItem = {
   icon?: React.ComponentType<LucideProps>;
 };
 
+type MonthlyComparisonRow = {
+  label: string;
+  percentage: number | null;
+  referenceValue: number | null;
+};
+
 function getMonthlyAverage(total: number, year?: number) {
   if (year && year === new Date().getFullYear()) {
     const currentMonth = new Date().getMonth();
@@ -91,6 +104,38 @@ function formatDifference(
       <PrivacyBlur blur={privacyMode}>
         {sign}
         {formatAmount(Math.abs(difference))}
+      </PrivacyBlur>
+    </span>
+  );
+}
+
+function formatPercentage(
+  percentage: number,
+  privacyMode: boolean = false,
+) {
+  const sign = percentage > 0 ? "+" : "-";
+  const colorClass = getDifferenceColorClass(percentage, true);
+  return (
+    <span className={`${colorClass} text-sm sm:text-sm`}>
+      <PrivacyBlur blur={privacyMode}>
+        {sign}
+        {formatAmount(Math.abs(percentage))}%
+      </PrivacyBlur>
+    </span>
+  );
+}
+
+function formatReferenceAmount(
+  amount: number,
+  privacyMode: boolean = false,
+) {
+  const sign = amount < 0 ? "-" : "";
+
+  return (
+    <span className="text-xs sm:text-xs text-muted-foreground">
+      <PrivacyBlur blur={privacyMode}>
+        {" "}
+        ({sign}€{formatAmount(Math.abs(amount))})
       </PrivacyBlur>
     </span>
   );
@@ -141,6 +186,173 @@ function computeYearTotals(
     expenseCategoryTotals,
     hiddenExpenseTotal,
   };
+}
+
+function computeBalanceTotal(transactions: ReadonlyArray<Transaction>): number {
+  const { incomeTotal, expenseTotal } = computeYearTotals(transactions);
+  return incomeTotal - expenseTotal;
+}
+
+function getPreviousMonth(selectedYear: number, selectedMonth: number) {
+  if (selectedMonth === 1) {
+    return { year: selectedYear - 1, month: 12 };
+  }
+
+  return { year: selectedYear, month: selectedMonth - 1 };
+}
+
+function formatPreviousMonthComparisonLabel(
+  selectedYear: number,
+  previousYear: number,
+  previousMonth: number,
+) {
+  const monthLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  })
+    .format(new Date(previousYear, previousMonth - 1, 1))
+    .toUpperCase();
+
+  if (selectedYear === previousYear) {
+    return `VS ${monthLabel}`;
+  }
+
+  const shortYear = String(previousYear).slice(-2);
+  return `VS ${monthLabel} '${shortYear}`;
+}
+
+function formatSameMonthLastYearComparisonLabel(
+  selectedYear: number,
+  selectedMonth: number,
+) {
+  const monthLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  })
+    .format(new Date(selectedYear - 1, selectedMonth - 1, 1))
+    .toUpperCase();
+  const shortYear = String(selectedYear - 1).slice(-2);
+
+  return `VS ${monthLabel} '${shortYear}`;
+}
+
+function calculatePercentageDifference(
+  currentValue: number,
+  previousValue: number,
+): number | null {
+  if (previousValue === 0) return null;
+  return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+}
+
+function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
+  const now = new Date();
+  const currentMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+  ).getTime();
+  const selectedMonthStart = new Date(selectedYear, selectedMonth - 1, 1).getTime();
+
+  if (selectedMonthStart > currentMonthStart) {
+    return { isFutureMonth: true, cutoffDay: null as number | null };
+  }
+
+  if (selectedMonthStart === currentMonthStart) {
+    return { isFutureMonth: false, cutoffDay: now.getDate() };
+  }
+
+  return {
+    isFutureMonth: false,
+    cutoffDay: new Date(selectedYear, selectedMonth, 0).getDate(),
+  };
+}
+
+function filterTransactionsThroughDay(
+  transactions: ReadonlyArray<Transaction>,
+  cutoffDay: number,
+) {
+  return transactions.filter((transaction) => {
+    const transactionDate = new Date(transaction.date);
+    return transactionDate.getDate() <= cutoffDay;
+  });
+}
+
+function getExpectedMonthlySplitAmountEur(
+  splitSources: ReadonlyArray<Transaction>,
+  visibleTransactions: ReadonlyArray<Transaction>,
+  year: number,
+  month: number,
+  cutoffDay?: number,
+) {
+  if (!splitSources.length) return 0;
+
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const effectiveCutoffDay =
+    cutoffDay === undefined ? lastDayOfMonth : Math.min(cutoffDay, lastDayOfMonth);
+  const monthEnd = new Date(year, month - 1, effectiveCutoffDay, 23, 59, 59, 999);
+  const allSplitForMonth = expandSplitTransactionsForMonth(
+    [],
+    [...splitSources],
+    year,
+    month,
+    monthEnd,
+  );
+
+  return calculateExpectedSplitAmountEur(allSplitForMonth, visibleTransactions);
+}
+
+function useSplitSourcesForYear(year?: number) {
+  const supabase = createClient();
+
+  return useSWR<Transaction[]>(
+    year !== undefined ? `transaction-summary-split-sources-${year}` : null,
+    async () => {
+      const yearStart = `${year}-01-01T00:00:00.000Z`;
+      const yearEnd = `${year}-12-31T23:59:59.999Z`;
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("split_across_year", true)
+        .gte("date", yearStart)
+        .lte("date", yearEnd)
+        .range(0, 9999);
+
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        const code =
+          typeof (error as unknown as Record<string, unknown>).code === "string"
+            ? ((error as unknown as Record<string, unknown>).code as string)
+            : undefined;
+
+        if (code === "42703" || msg.includes("split_across_year")) {
+          return [];
+        }
+
+        throw error;
+      }
+
+      return (data || []) as Transaction[];
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
+    },
+  );
+}
+
+function useMonthTransactions(year?: number, month?: number) {
+  const monthKey =
+    year !== undefined && month !== undefined ? createMonthKey(year, month) : null;
+
+  const { data } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 10000,
+    keepPreviousData: true,
+  });
+
+  return data || [];
 }
 
 function computePrevYearTotals(
@@ -410,6 +622,7 @@ type TotalsTableProps = {
   readonly currentYear?: number;
   readonly previousYear?: number;
   readonly expectedSplitAmountEur?: number;
+  readonly monthlyComparisonRows?: ReadonlyArray<MonthlyComparisonRow>;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
   readonly onToggleIncome: () => void;
@@ -424,6 +637,7 @@ function TotalsTable({
   currentYear,
   previousYear,
   expectedSplitAmountEur = 0,
+  monthlyComparisonRows = [],
   isIncomeExpanded,
   isExpensesExpanded,
   onToggleIncome,
@@ -512,6 +726,30 @@ function TotalsTable({
             </thead>
           )}
           <tbody>
+            {currentYear === undefined &&
+              isDetailsExpanded &&
+              monthlyComparisonRows.map((row) => (
+                <tr key={row.label}>
+                  <td className="py-2 sm:py-3 px-1 sm:px-2">
+                    <span className="font-medium text-muted-foreground text-sm sm:text-sm">
+                      {row.label}
+                    </span>
+                  </td>
+                  <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
+                    {row.percentage === null ? (
+                      <span className="text-muted-foreground text-sm sm:text-sm">
+                        -
+                      </span>
+                    ) : (
+                      <>
+                        {formatPercentage(row.percentage, privacyMode)}
+                        {row.referenceValue !== null &&
+                          formatReferenceAmount(row.referenceValue, privacyMode)}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
             {filteredData.map((item) => {
               const isHiddenExpense = item.isHiddenExpense;
               const isSubCategory = item.isSubCategory;
@@ -742,6 +980,8 @@ type TransactionSummaryProps = {
   readonly transactions: Transaction[];
   readonly isLoading?: boolean;
   readonly currentYear?: number;
+  readonly selectedMonth?: number;
+  readonly selectedYear?: number;
   readonly expectedSplitAmountEur?: number;
 };
 
@@ -749,6 +989,8 @@ export default function TransactionSummary({
   transactions,
   isLoading = false,
   currentYear,
+  selectedMonth,
+  selectedYear,
   expectedSplitAmountEur = 0,
 }: TransactionSummaryProps) {
   // State for collapsible categories in monthly view
@@ -763,6 +1005,30 @@ export default function TransactionSummary({
   const previousYear = currentYear ? currentYear - 1 : undefined;
   const { transactions: previousYearTransactions } =
     useYearTransactions(previousYear);
+  const comparisonYear = selectedYear ?? currentYear;
+  const comparisonMonth = selectedMonth;
+  const previousMonthDate =
+    comparisonYear !== undefined && comparisonMonth !== undefined
+      ? getPreviousMonth(comparisonYear, comparisonMonth)
+      : undefined;
+  const previousMonthTransactions = useMonthTransactions(
+    previousMonthDate?.year,
+    previousMonthDate?.month,
+  );
+  const sameMonthLastYearTransactions = useMonthTransactions(
+    comparisonYear !== undefined && comparisonMonth !== undefined
+      ? comparisonYear - 1
+      : undefined,
+    comparisonMonth,
+  );
+  const { data: currentSplitSources = [] } =
+    useSplitSourcesForYear(comparisonYear);
+  const { data: previousMonthSplitSources = [] } = useSplitSourcesForYear(
+    previousMonthDate?.year,
+  );
+  const { data: sameMonthLastYearSplitSources = [] } = useSplitSourcesForYear(
+    comparisonYear !== undefined ? comparisonYear - 1 : undefined,
+  );
 
   // Memoize current year totals computation
   const {
@@ -889,6 +1155,104 @@ export default function TransactionSummary({
     [incomeCategoryTotals, expenseCategoryTotals],
   );
 
+  const monthlyComparisonRows = useMemo<MonthlyComparisonRow[]>(() => {
+    if (
+      currentYear !== undefined ||
+      comparisonYear === undefined ||
+      comparisonMonth === undefined ||
+      previousMonthDate === undefined
+    ) {
+      return [];
+    }
+
+    const { isFutureMonth, cutoffDay } = getMonthComparisonMode(
+      comparisonYear,
+      comparisonMonth,
+    );
+
+    if (isFutureMonth || cutoffDay === null) {
+      return [];
+    }
+
+    const currentComparisonTransactions = filterTransactionsThroughDay(
+      transactions,
+      cutoffDay,
+    );
+    const previousMonthComparisonTransactions = filterTransactionsThroughDay(
+      previousMonthTransactions,
+      cutoffDay,
+    );
+    const sameMonthLastYearComparisonTransactions = filterTransactionsThroughDay(
+      sameMonthLastYearTransactions,
+      cutoffDay,
+    );
+
+    const currentDisplayedBalance =
+      computeBalanceTotal(currentComparisonTransactions) -
+      getExpectedMonthlySplitAmountEur(
+        currentSplitSources,
+        currentComparisonTransactions,
+        comparisonYear,
+        comparisonMonth,
+        cutoffDay,
+      );
+    const previousMonthDisplayedBalance =
+      computeBalanceTotal(previousMonthComparisonTransactions) -
+      getExpectedMonthlySplitAmountEur(
+        previousMonthSplitSources,
+        previousMonthComparisonTransactions,
+        previousMonthDate.year,
+        previousMonthDate.month,
+        cutoffDay,
+      );
+    const sameMonthLastYearDisplayedBalance =
+      computeBalanceTotal(sameMonthLastYearComparisonTransactions) -
+      getExpectedMonthlySplitAmountEur(
+        sameMonthLastYearSplitSources,
+        sameMonthLastYearComparisonTransactions,
+        comparisonYear - 1,
+        comparisonMonth,
+        cutoffDay,
+      );
+
+    return [
+      {
+        label: formatPreviousMonthComparisonLabel(
+          comparisonYear,
+          previousMonthDate.year,
+          previousMonthDate.month,
+        ),
+        percentage: calculatePercentageDifference(
+          currentDisplayedBalance,
+          previousMonthDisplayedBalance,
+        ),
+        referenceValue: previousMonthDisplayedBalance,
+      },
+      {
+        label: formatSameMonthLastYearComparisonLabel(
+          comparisonYear,
+          comparisonMonth,
+        ),
+        percentage: calculatePercentageDifference(
+          currentDisplayedBalance,
+          sameMonthLastYearDisplayedBalance,
+        ),
+        referenceValue: sameMonthLastYearDisplayedBalance,
+      },
+    ];
+  }, [
+    currentYear,
+    comparisonYear,
+    comparisonMonth,
+    previousMonthDate,
+    transactions,
+    currentSplitSources,
+    previousMonthTransactions,
+    previousMonthSplitSources,
+    sameMonthLastYearTransactions,
+    sameMonthLastYearSplitSources,
+  ]);
+
   // Loading state (after all hooks)
   if (isLoading) {
     // Year view shows both totals and category breakdown
@@ -909,6 +1273,7 @@ export default function TransactionSummary({
           currentYear={currentYear}
           previousYear={previousYear}
           expectedSplitAmountEur={expectedSplitAmountEur}
+          monthlyComparisonRows={monthlyComparisonRows}
           isIncomeExpanded={isIncomeExpanded}
           isExpensesExpanded={isExpensesExpanded}
           onToggleIncome={handleToggleIncome}
