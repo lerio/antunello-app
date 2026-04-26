@@ -19,24 +19,21 @@ import toast from "react-hot-toast";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { getSelectClass } from "@/utils/styling-utils";
 
+function normalizeBankName(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function bankNamesMatch(storedBankName: unknown, bankName: string) {
+  const stored = normalizeBankName(storedBankName);
+  const expected = normalizeBankName(bankName);
+
+  return stored === expected || stored.includes(expected);
+}
+
 function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { mutate: globalMutate } = useSWRConfig();
-
-  // Show toast based on URL params
-  useEffect(() => {
-    const integration = searchParams.get("integration");
-    if (integration === "success") {
-      toast.success("Bank account connected successfully!", {
-        id: "auth-success",
-      });
-      router.replace("/protected/settings");
-    } else if (integration === "error") {
-      toast.error("Failed to connect bank account.", { id: "auth-error" });
-      router.replace("/protected/settings");
-    }
-  }, [searchParams, router]);
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
@@ -55,16 +52,39 @@ function SettingsContent() {
     },
   );
 
+  // Show toast based on URL params
+  useEffect(() => {
+    const integration = searchParams.get("integration");
+    if (integration === "success") {
+      toast.success("Bank account connected successfully!", {
+        id: "auth-success",
+      });
+      mutate();
+      router.replace("/protected/settings");
+    } else if (integration === "error") {
+      toast.error("Failed to connect bank account.", { id: "auth-error" });
+      router.replace("/protected/settings");
+    }
+  }, [searchParams, router, mutate]);
+
   const { fundCategories, isLoading: isFundsLoading } = useFundCategories();
 
   const handleConnect = (bank: string, country: string) => {
     window.location.href = `/api/enable-banking/auth?bank=${encodeURIComponent(bank)}&country=${country}`;
   };
 
-  const handleDisconnect = async (bankName: string) => {
+  const handleDisconnect = async ({
+    bankName,
+    accountId,
+    label,
+  }: {
+    bankName?: string;
+    accountId?: string;
+    label: string;
+  }) => {
     // Logic: disconnect by bank name if available, otherwise try to map Bunq legacy
     if (
-      !confirm(`Are you sure you want to disconnect all ${bankName} accounts?`)
+      !confirm(`Are you sure you want to disconnect ${label}?`)
     )
       return;
 
@@ -73,15 +93,18 @@ function SettingsContent() {
       const res = await fetch("/api/enable-banking/disconnect", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bank_name: bankName }),
+        body: JSON.stringify(accountId ? { account_id: accountId } : { bank_name: bankName }),
       });
 
-      if (!res.ok) throw new Error("Failed to disconnect");
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to disconnect");
 
       await mutate(); // Refresh list
       toast.success("Disconnected successfully", { id: toastId });
     } catch (e) {
-      toast.error("Error disconnecting", { id: toastId });
+      const message = e instanceof Error ? e.message : "Error disconnecting";
+      toast.error(message, { id: toastId });
     }
   };
 
@@ -154,8 +177,7 @@ function SettingsContent() {
   const isConnected = (bankName: string) => {
     return connectedAccounts?.some((acc) => {
       const settings = (acc.settings as any) || {};
-      // Check explicit bank name stored in settings
-      if (settings.bank_name === bankName) return true;
+      if (bankNamesMatch(settings.bank_name, bankName)) return true;
       // Fallback: Check if Bunq and no bank name (legacy existing connection)
       if (
         bankName === "Bunq" &&
@@ -245,7 +267,12 @@ function SettingsContent() {
                       </div>
                       {connected ? (
                         <Button
-                          onClick={() => handleDisconnect(bank.name)}
+                          onClick={() =>
+                            handleDisconnect({
+                              bankName: bank.name,
+                              label: `all ${bank.name} accounts`,
+                            })
+                          }
                           variant="destructive"
                           size="sm"
                         >
@@ -319,6 +346,19 @@ function SettingsContent() {
                                 title="Fetch transactions now"
                               >
                                 <RefreshCw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                onClick={() =>
+                                  handleDisconnect({
+                                    accountId: acc.account_id,
+                                    label: iban ? `${bankName} ${iban}` : `${bankName} account`,
+                                  })
+                                }
+                              >
+                                Disconnect
                               </Button>
                             </div>
 

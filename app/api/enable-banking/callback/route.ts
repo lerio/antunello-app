@@ -73,6 +73,21 @@ export async function GET(request: NextRequest) {
         const accounts = sessionData.accounts || [];
 
         for (const acc of accounts) {
+            const { data: existingConfig, error: existingConfigError } = await supabase
+                .from('integration_configs')
+                .select('settings')
+                .eq('user_id', user.id)
+                .eq('provider', 'enable_banking')
+                .eq('account_id', acc.uid)
+                .maybeSingle();
+
+            if (existingConfigError) {
+                console.error('DB Existing Config Lookup Error:', existingConfigError);
+                throw existingConfigError;
+            }
+
+            const existingSettings = (existingConfig?.settings as any) || {};
+
             // Upsert integration config
             const { error: dbError } = await supabase
                 .from('integration_configs')
@@ -81,6 +96,7 @@ export async function GET(request: NextRequest) {
                     provider: 'enable_banking',
                     account_id: acc.uid,
                     settings: {
+                        ...existingSettings,
                         session_id: sessionData.session_id,
                         iban: acc.account_id?.iban,
                         currency: acc.account_id?.currency,

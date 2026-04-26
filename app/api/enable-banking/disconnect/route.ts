@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
+function normalizeBankName(value: unknown) {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 export async function DELETE(request: NextRequest) {
     try {
         const supabase = await createClient();
@@ -16,23 +20,64 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'Must provide bank_name or account_id' }, { status: 400 });
         }
 
-        let query = supabase.from('integration_configs').delete().eq('user_id', userId);
+        let matchingIds: string[] = [];
 
         if (account_id) {
-            query = query.eq('account_id', account_id);
+            const { data: configs, error } = await supabase
+                .from('integration_configs')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('account_id', account_id);
+
+            if (error) {
+                throw error;
+            }
+
+            matchingIds = configs?.map((config) => config.id) ?? [];
         } else if (bank_name) {
-            // We stored bank_name in the 'settings' jsonb column.
-            // Postgres JSONB query: settings->>'bank_name' = value
-            query = query.eq('settings->>bank_name', bank_name);
+            const { data: configs, error } = await supabase
+                .from('integration_configs')
+                .select('id, provider, settings')
+                .eq('user_id', userId);
+
+            if (error) {
+                throw error;
+            }
+
+            const requestedBank = normalizeBankName(bank_name);
+            matchingIds = (configs ?? [])
+                .filter((config) => {
+                    const settings = (config.settings as any) || {};
+                    const storedBank = normalizeBankName(settings.bank_name);
+
+                    if (storedBank) {
+                        return storedBank === requestedBank || storedBank.includes(requestedBank);
+                    }
+
+                    return requestedBank === 'bunq' && config.provider === 'enable_banking';
+                })
+                .map((config) => config.id);
         }
 
-        const { error } = await query;
+        if (matchingIds.length === 0) {
+            return NextResponse.json({ error: 'Integration config not found' }, { status: 404 });
+        }
+
+        const { data: deletedConfigs, error } = await supabase
+            .from('integration_configs')
+            .delete()
+            .in('id', matchingIds)
+            .select('id');
 
         if (error) {
             throw error;
         }
 
-        return NextResponse.json({ success: true });
+        if (!deletedConfigs || deletedConfigs.length === 0) {
+            return NextResponse.json({ error: 'No integration configs were deleted' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, deleted: deletedConfigs.length });
 
     } catch (error: any) {
         return jsonError(getErrorMessage(error), 500);
