@@ -16,6 +16,10 @@ import {
   TimeRange,
   BalanceDataPoint,
 } from "@/hooks/useBalanceHistory";
+import {
+  useBalanceComparisonHistory,
+  BalanceComparisonDataPoint,
+} from "@/hooks/useBalanceComparisonHistory";
 import { formatCurrency } from "@/utils/currency";
 import { ChartSkeleton } from "@/components/ui/skeletons";
 
@@ -25,7 +29,7 @@ import { ChartSkeleton } from "@/components/ui/skeletons";
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{
-    payload: BalanceDataPoint;
+    payload: BalanceDataPoint | BalanceComparisonDataPoint;
     value: number;
   }>;
 }
@@ -96,6 +100,16 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
             {formatCurrency(data.balance, "EUR")}
           </span>
         </div>
+        {"previousBalance" in data && data.previousBalance !== null && (
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-gray-600 dark:text-gray-400">
+              Previous period:
+            </span>
+            <span className="font-medium text-gray-500 dark:text-gray-400">
+              {formatCurrency(data.previousBalance, "EUR")}
+            </span>
+          </div>
+        )}
         {data.income > 0 && (
           <div className="flex justify-between items-center gap-4">
             <span className="text-gray-600 dark:text-gray-400">Income:</span>
@@ -194,8 +208,22 @@ export default function BalanceChart() {
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const isComparisonMode = timeRange === "1m" || timeRange === "1y" || timeRange === "5y";
 
-  const { dataPoints, isLoading } = useBalanceHistory(timeRange, true);
+  const {
+    dataPoints: balanceDataPoints,
+    isLoading: balanceLoading,
+  } = useBalanceHistory(timeRange, true);
+  const {
+    dataPoints: comparisonDataPoints,
+    isLoading: comparisonLoading,
+  } = useBalanceComparisonHistory(
+    timeRange === "all" ? "1m" : timeRange,
+    true
+  );
+  const dataPoints: Array<BalanceDataPoint | BalanceComparisonDataPoint> =
+    isComparisonMode ? comparisonDataPoints : balanceDataPoints;
+  const isLoading = isComparisonMode ? comparisonLoading : balanceLoading;
 
   // Detect mobile screen size
   useEffect(() => {
@@ -216,7 +244,11 @@ export default function BalanceChart() {
   }
 
   // Calculate min and max balance for Y-axis domain
-  const balances = dataPoints.map((d) => d.balance);
+  const balances = isComparisonMode
+    ? (dataPoints as BalanceComparisonDataPoint[]).flatMap((d) =>
+        d.previousBalance !== null ? [d.balance, d.previousBalance] : [d.balance]
+      )
+    : dataPoints.map((d) => d.balance);
   const minBalance = Math.min(...balances);
   const maxBalance = Math.max(...balances);
 
@@ -298,6 +330,19 @@ export default function BalanceChart() {
               strokeDasharray="3 3"
               opacity={0.5}
             />
+
+            {isComparisonMode && (
+              <Line
+                type="monotone"
+                dataKey="previousBalance"
+                stroke="hsl(var(--foreground))"
+                strokeOpacity={0.28}
+                strokeWidth={2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
 
             <Line
               type="monotone"

@@ -71,6 +71,32 @@ const startingBalanceFetcher = async (
   return Number(data) || 0;
 };
 
+const startingBalanceBeforeDateFetcher = async (
+  _key: string,
+  cutoffDate: string,
+  includeHidden: boolean,
+  userId: string | undefined
+): Promise<number> => {
+  if (!userId) {
+    return 0;
+  }
+
+  const supabase = createClient();
+
+  const { data, error } = await supabase.rpc('get_balance_before_date', {
+    p_user_id: userId,
+    p_date: cutoffDate,
+    p_include_hidden: includeHidden,
+  });
+
+  if (error) {
+    console.error('Error fetching starting balance before date:', error);
+    throw error;
+  }
+
+  return Number(data) || 0;
+};
+
 /**
  * Hook to fetch the starting balance before a time range
  * This replaces client-side iteration through all prior transactions
@@ -96,6 +122,44 @@ export function useStartingBalance(
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute
       focusThrottleInterval: 300000, // 5 minutes
+      refreshInterval: 0,
+    }
+  );
+
+  return {
+    startingBalance: startingBalance ?? 0,
+    error,
+    isLoading,
+    mutate,
+    refresh: () => mutate(),
+  };
+}
+
+/**
+ * Hook to fetch the starting balance before an explicit cutoff date.
+ * Used for comparison charts that need a prior period baseline.
+ */
+export function useStartingBalanceBeforeDate(
+  cutoffDate: string,
+  includeHidden: boolean,
+  userId: string | undefined
+) {
+  const cacheKey = `starting-balance-before-${cutoffDate}-${includeHidden}`;
+
+  const {
+    data: startingBalance,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<number>(
+    userId ? [cacheKey, cutoffDate, includeHidden, userId] : null,
+    ([_, date, hidden, uid]: [string, string, boolean, string]) =>
+      startingBalanceBeforeDateFetcher(cacheKey, date, hidden, uid),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+      focusThrottleInterval: 300000,
       refreshInterval: 0,
     }
   );

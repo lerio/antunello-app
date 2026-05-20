@@ -252,27 +252,53 @@ function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
   const selectedMonthStart = new Date(selectedYear, selectedMonth - 1, 1).getTime();
 
   if (selectedMonthStart > currentMonthStart) {
-    return { isFutureMonth: true, cutoffDay: null as number | null };
+    return {
+      isFutureMonth: true,
+      isCurrentMonth: false,
+      cutoffDay: null as number | null,
+      previousMonthCutoffDay: null as number | null,
+    };
   }
 
   if (selectedMonthStart === currentMonthStart) {
-    return { isFutureMonth: false, cutoffDay: now.getDate() };
+    return {
+      isFutureMonth: false,
+      isCurrentMonth: true,
+      cutoffDay: now.getDate(),
+      previousMonthCutoffDay: now.getDate(),
+    };
   }
 
   return {
     isFutureMonth: false,
+    isCurrentMonth: false,
     cutoffDay: new Date(selectedYear, selectedMonth, 0).getDate(),
+    previousMonthCutoffDay: null as number | null,
   };
 }
 
 function filterTransactionsThroughDay(
   transactions: ReadonlyArray<Transaction>,
-  cutoffDay: number,
+  cutoffDay?: number | null,
 ) {
+  if (cutoffDay === undefined || cutoffDay === null) {
+    return transactions;
+  }
+
   return transactions.filter((transaction) => {
     const transactionDate = new Date(transaction.date);
     return transactionDate.getDate() <= cutoffDay;
   });
+}
+
+function prorateMonthlyValue(
+  total: number,
+  year: number,
+  month: number,
+  day: number,
+) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return (total / daysInMonth) * day;
 }
 
 function getExpectedMonthlySplitAmountEur(
@@ -1165,10 +1191,8 @@ export default function TransactionSummary({
       return [];
     }
 
-    const { isFutureMonth, cutoffDay } = getMonthComparisonMode(
-      comparisonYear,
-      comparisonMonth,
-    );
+    const { isFutureMonth, isCurrentMonth, cutoffDay, previousMonthCutoffDay } =
+      getMonthComparisonMode(comparisonYear, comparisonMonth);
 
     if (isFutureMonth || cutoffDay === null) {
       return [];
@@ -1180,13 +1204,8 @@ export default function TransactionSummary({
     );
     const previousMonthComparisonTransactions = filterTransactionsThroughDay(
       previousMonthTransactions,
-      cutoffDay,
+      previousMonthCutoffDay,
     );
-    const sameMonthLastYearComparisonTransactions = filterTransactionsThroughDay(
-      sameMonthLastYearTransactions,
-      cutoffDay,
-    );
-
     const currentDisplayedBalance =
       computeBalanceTotal(currentComparisonTransactions) -
       getExpectedMonthlySplitAmountEur(
@@ -1205,15 +1224,22 @@ export default function TransactionSummary({
         previousMonthDate.month,
         cutoffDay,
       );
-    const sameMonthLastYearDisplayedBalance =
-      computeBalanceTotal(sameMonthLastYearComparisonTransactions) -
+    const sameMonthLastYearFullMonthDisplayedBalance =
+      computeBalanceTotal(sameMonthLastYearTransactions) -
       getExpectedMonthlySplitAmountEur(
         sameMonthLastYearSplitSources,
-        sameMonthLastYearComparisonTransactions,
+        sameMonthLastYearTransactions,
         comparisonYear - 1,
         comparisonMonth,
-        cutoffDay,
       );
+    const sameMonthLastYearDisplayedBalance = isCurrentMonth
+      ? prorateMonthlyValue(
+          sameMonthLastYearFullMonthDisplayedBalance,
+          comparisonYear - 1,
+          comparisonMonth,
+          cutoffDay,
+        )
+      : sameMonthLastYearFullMonthDisplayedBalance;
 
     return [
       {
