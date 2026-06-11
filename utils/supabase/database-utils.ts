@@ -1,3 +1,10 @@
+/**
+ * Provides high-level database utility functions for managing user
+ * transactions in bulk: deleting all transactions, counting transactions,
+ * and importing transactions from CSV or other sources with validation
+ * and retry logic.
+ */
+
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { ImportResult, validateTransactionData } from '@/utils/csv-import'
@@ -5,11 +12,14 @@ import { ImportResult, validateTransactionData } from '@/utils/csv-import'
 type TransactionInput = Omit<Transaction, 'id' | 'created_at' | 'updated_at'>
 
 /**
- * Delete all transactions for the current authenticated user
+ * Deletes all transactions for the currently authenticated user.
+ *
+ * @returns An object with `{ success: true }` when the operation completes.
+ * @throws {Error} If the user is not authenticated or the database delete fails.
  */
 export async function deleteAllUserTransactions() {
   const supabase = createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('User not authenticated')
@@ -28,11 +38,14 @@ export async function deleteAllUserTransactions() {
 }
 
 /**
- * Get transaction count for the current user
+ * Returns the total number of transactions belonging to the current user.
+ *
+ * @returns The transaction count (0 if none).
+ * @throws {Error} If the user is not authenticated or the count query fails.
  */
 export async function getUserTransactionCount() {
   const supabase = createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('User not authenticated')
@@ -51,7 +64,14 @@ export async function getUserTransactionCount() {
 }
 
 /**
- * Validate and prepare transactions for import
+ * Validates each transaction in the input list and enriches it with the
+ * user ID, collecting any validation errors into the shared `ImportResult`.
+ *
+ * @param transactions - Array of transaction data to validate.
+ * @param userId - The authenticated user's ID to assign to each transaction.
+ * @param result - Accumulator object where skipped-count and error messages
+ *   are recorded.
+ * @returns A filtered array of valid transaction inputs ready for insertion.
  */
 async function validateAndPrepareTransactions(
   transactions: TransactionInput[],
@@ -83,7 +103,15 @@ async function validateAndPrepareTransactions(
 }
 
 /**
- * Import a batch of transactions with retry logic
+ * Inserts a single batch of transactions into the database, retrying up to
+ * 3 times with exponential backoff on failure.
+ *
+ * @param supabase - The Supabase client instance.
+ * @param batch - Array of validated transaction inputs to insert.
+ * @param batchNumber - Human-readable batch number (for logging).
+ * @param result - Accumulator object where error messages are recorded on
+ *   final failure.
+ * @returns The number of transactions successfully imported in this batch.
  */
 async function importBatchWithRetry(
   supabase: any,
@@ -131,7 +159,18 @@ async function importBatchWithRetry(
 }
 
 /**
- * Import multiple transactions for the current user
+ * Imports a list of transactions for the currently authenticated user.
+ *
+ * The import process:
+ * 1. Authenticates the current user.
+ * 2. Validates each transaction (skipping invalid entries).
+ * 3. Inserts valid transactions in batches of 100 with retry logic.
+ * 4. Triggers a revalidation of the overall-totals API cache.
+ *
+ * @param transactions - Array of transaction data to import.
+ * @returns An `ImportResult` summarising the number of successfully imported
+ *   transactions, any errors encountered, and skipped rows.
+ * @throws {Error} If the user is not authenticated.
  */
 export async function importTransactions(
   transactions: TransactionInput[]
@@ -179,7 +218,7 @@ export async function importTransactions(
 
   result.imported = totalImported
   result.success = totalImported > 0
-  
+
   console.log('Import complete. Total imported:', totalImported);
 
   // Revalidate overall totals
@@ -193,6 +232,6 @@ export async function importTransactions(
     // Handle gracefully if SWR is not available in this context
     console.warn('Skipping SWR revalidation after import:', e)
   }
-  
+
   return result
 }

@@ -1,3 +1,9 @@
+/**
+ * @file Next.js configuration file. Configures security headers, image
+ * optimisation settings, Turbopack, experimental package optimisations,
+ * development origin allowlist, and production console stripping.
+ */
+
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {

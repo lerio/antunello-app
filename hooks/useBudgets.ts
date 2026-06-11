@@ -16,11 +16,33 @@ const budgetsFetcher = async () => {
     return data as Budget[]
 }
 
+/**
+ * Hook to fetch all budget definitions.
+ *
+ * Uses SWR with the cache key `"budgets"`. Returns budgets ordered by category name.
+ *
+ * @returns An object containing:
+ *  - `budgets`: Array of `Budget` objects (defaults to `[]`).
+ *  - `error`: Any fetch error, or `undefined`.
+ *  - `isLoading`: `true` while the initial fetch is in-flight.
+ *  - `mutate`: SWR mutate function for manual cache invalidation.
+ */
 export function useBudgets() {
     const { data, error, isLoading, mutate } = useSWR('budgets', budgetsFetcher)
     return { budgets: data || [], error, isLoading, mutate }
 }
 
+/**
+ * Hook to calculate budget progress for the current month.
+ *
+ * Reuses `useTransactionsOptimized` to get the current month's transactions,
+ * then aggregates expense amounts by main category. Money transfers and
+ * hidden transactions are excluded from the calculation.
+ *
+ * @returns An object containing:
+ *  - `spendingByCategory`: A record mapping `main_category` strings to total EUR amounts spent.
+ *  - `isLoading`: `true` while transactions are loading.
+ */
 export function useBudgetProgress() {
     const now = new Date()
     const currentYear = now.getFullYear()
@@ -53,9 +75,24 @@ export function useBudgetProgress() {
     return { spendingByCategory, isLoading }
 }
 
+/**
+ * Hook providing CRUD operations for budgets.
+ *
+ * Each mutation function performs the database operation and then
+ * triggers a global revalidation of the `"budgets"` SWR cache key.
+ *
+ * @returns An object with `addBudget`, `updateBudget`, and `deleteBudget` functions.
+ */
 export function useBudgetMutations() {
     const supabase = createClient()
 
+    /**
+     * Create a new budget.
+     *
+     * @param budget - The budget data (excluding auto-generated `id`, `created_at`, `updated_at`).
+     * @returns The newly created `Budget` record.
+     * @throws When the insert fails.
+     */
     const addBudget = async (budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>) => {
         const { data, error } = await supabase
             .from('budgets')
@@ -70,6 +107,14 @@ export function useBudgetMutations() {
         return data
     }
 
+    /**
+     * Update an existing budget.
+     *
+     * @param id - The budget's UUID.
+     * @param updates - Partial budget fields to update.
+     * @returns The updated `Budget` record.
+     * @throws When the update fails.
+     */
     const updateBudget = async (id: string, updates: Partial<Budget>) => {
         const { data, error } = await supabase
             .from('budgets')
@@ -85,6 +130,12 @@ export function useBudgetMutations() {
         return data
     }
 
+    /**
+     * Delete a budget by ID.
+     *
+     * @param id - The budget's UUID.
+     * @throws When the delete fails.
+     */
     const deleteBudget = async (id: string) => {
         const { error } = await supabase
             .from('budgets')

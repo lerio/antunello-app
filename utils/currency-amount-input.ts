@@ -1,3 +1,21 @@
+/**
+ * Currency amount input utilities for handling user input in currency fields.
+ *
+ * Provides functions for normalizing, formatting, and determining the number of
+ * fraction digits for a given currency, ensuring proper handling of decimal and
+ * thousand separators during user input.
+ *
+ * @module utils/currency-amount-input
+ */
+
+/**
+ * Returns the number of fraction (decimal) digits for a given currency code.
+ * Uses `Intl.NumberFormat` to determine the locale-specific fraction digits
+ * for the currency. Falls back to 2 if the currency is unknown or invalid.
+ *
+ * @param currency - Three-letter ISO 4217 currency code (e.g. "EUR", "USD", "JPY")
+ * @returns The maximum number of fraction digits for the currency
+ */
 export function getCurrencyFractionDigits(currency: string): number {
   try {
     const options = new Intl.NumberFormat('en-US', {
@@ -10,6 +28,15 @@ export function getCurrencyFractionDigits(currency: string): number {
   }
 }
 
+/**
+ * Normalizes a raw user input string by removing invalid characters, converting
+ * comma decimal separators to dots, and limiting the number of decimal digits
+ * to the currency's maximum fraction digits.
+ *
+ * @param value - The raw input string to normalize
+ * @param currency - Three-letter ISO 4217 currency code for determining decimal precision
+ * @returns The normalized amount string suitable for parsing
+ */
 export function normalizeAmountForCurrencyInput(value: string, currency: string): string {
   const maxFractionDigits = getCurrencyFractionDigits(currency)
   const normalized = value.replace(/,/g, '.').replace(/[^\d.]/g, '')
@@ -29,6 +56,15 @@ export function normalizeAmountForCurrencyInput(value: string, currency: string)
   return `${integerPart}.${decimalsRaw.slice(0, maxFractionDigits)}`
 }
 
+/**
+ * Formats a normalized amount string for display in an input field.
+ * Parses the value as a number and formats it with the appropriate number
+ * of decimal places for the given currency, without grouping separators.
+ *
+ * @param value - The normalized amount string to format
+ * @param currency - Three-letter ISO 4217 currency code for formatting
+ * @returns The formatted amount string, or an empty string if the input is empty
+ */
 export function formatAmountForCurrencyInput(value: string, currency: string): string {
   const normalized = normalizeAmountForCurrencyInput(value, currency)
   if (!normalized) return ''

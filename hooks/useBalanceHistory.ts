@@ -3,21 +3,44 @@ import { useRangeTransactions, type BalanceTransaction } from './useRangeTransac
 import { useStartingBalance } from './useStartingBalance';
 import { createClient } from '@/utils/supabase/client';
 
+/**
+ * Supported time-range selectors for balance history charts.
+ * - `"1m"`: Daily buckets for 30 days.
+ * - `"1y"`: Daily buckets for 12 months.
+ * - `"5y"`: Weekly buckets for 5 years.
+ * - `"all"`: Monthly buckets for all available data.
+ */
 export type TimeRange = '1m' | '1y' | '5y' | 'all';
 
+/**
+ * A single data point in the balance time series.
+ */
 export interface BalanceDataPoint {
+  /** ISO date string representing the start of this bucket (e.g. `"2024-01-01"`). */
   date: string;
+  /** Running balance at the end of this bucket. */
   balance: number;
+  /** Total income amount accumulated within this bucket. */
   income: number;
+  /** Total expense amount accumulated within this bucket. */
   expense: number;
+  /** Number of transactions that fell within this bucket. */
   transactionCount: number;
 }
 
+/**
+ * Aggregate balance statistics for the selected time range.
+ */
 export interface BalanceStats {
+  /** Balance at the beginning of the time range. */
   startBalance: number;
+  /** Balance at the end of the time range. */
   currentBalance: number;
+  /** Absolute change (`currentBalance - startBalance`). */
   changeAmount: number;
+  /** Percentage change relative to `|startBalance|` (0 when startBalance is 0). */
   changePercent: number;
+  /** Array of periodic data points composing the time series. */
   dataPoints: BalanceDataPoint[];
 }
 
@@ -139,7 +162,15 @@ function calculateBalanceHistory(
 }
 
 /**
- * Hook to get balance history data with optimized range-based queries
+ * Hook to get balance history data with optimized range-based queries.
+ *
+ * Fetches transactions for the selected `TimeRange` and the starting balance
+ * from the database (via an efficient RPC call), then computes a running-balance
+ * time series bucketed by day, week, or month depending on the range.
+ *
+ * @param timeRange - The time window to analyze (`"1m"`, `"1y"`, `"5y"`, or `"all"`).
+ * @param includeHidden - When `true`, transactions flagged with `hide_from_totals` are included.
+ * @returns A `BalanceStats` object extended with `isLoading` and `error` fields.
  */
 export function useBalanceHistory(
   timeRange: TimeRange,

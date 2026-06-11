@@ -38,8 +38,21 @@ const categoryTransactionsFetcher = async (
 }
 
 /**
- * Hook to fetch transactions for a specific category/subcategory and time range
- * Uses separate cache keys per category, subcategory, and time range for optimal performance
+ * Hook to fetch transactions for a specific category/subcategory and time range.
+ *
+ * Uses separate SWR cache keys per category, subcategory, and time range for
+ * optimal caching. When `category` is `null`, the hook short-circuits and returns
+ * an empty array without making any network request.
+ *
+ * @param timeRange - The time window (`"1m"`, `"1y"`, `"5y"`, or `"all"`).
+ * @param category - The main category to filter by. Pass `null` to disable the query.
+ * @param subCategory - Optional subcategory to further narrow results.
+ * @returns An object containing:
+ *  - `transactions`: Array of matching `Transaction` objects (defaults to `[]`).
+ *  - `error`: Any fetch error, or `undefined`.
+ *  - `isLoading`: `true` while the initial fetch is in-flight.
+ *  - `mutate`: SWR mutate function for manual cache invalidation.
+ *  - `refresh`: Convenience wrapper that calls `mutate()`.
  */
 export function useCategoryTransactions(
   timeRange: TimeRange,

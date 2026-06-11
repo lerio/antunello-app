@@ -4,15 +4,27 @@ import { Transaction } from '@/types/database';
 
 export type { TimeRange } from './useCategoryTransactions';
 
+/**
+ * A single data point in a category expense time series.
+ */
 export interface CategoryDataPoint {
+  /** ISO date string representing the start of the period bucket (e.g. `"2024-01-01"`). */
   date: string;
+  /** Total expense amount accumulated within this bucket. */
   amount: number;
+  /** Number of transactions that fell within this bucket. */
   transactionCount: number;
 }
 
+/**
+ * Aggregate category expense statistics for the selected time range.
+ */
 export interface CategoryStats {
+  /** Total expense amount across the entire time range. */
   totalAmount: number;
+  /** Total number of transactions across the entire time range. */
   totalTransactions: number;
+  /** Array of periodic data points composing the time series. */
   dataPoints: CategoryDataPoint[];
 }
 
@@ -40,9 +52,6 @@ function getPeriodKey(date: Date, timeRange: TimeRange): string {
   }
 }
 
-/**
- * Calculate category expense history from transactions
- */
 /**
  * Calculate category expense history from transactions
  */
@@ -153,7 +162,16 @@ function calculateCategoryHistory(
 }
 
 /**
- * Hook to get category/subcategory expense history with optimized range-based queries
+ * Hook to get category/subcategory expense history with optimized range-based queries.
+ *
+ * Fetches transactions for a specific category (and optional subcategory) within the
+ * selected time range, then computes a bucketed time series. Bucket granularity depends
+ * on the `TimeRange`: daily for `1m`, monthly for `1y`, yearly for `5y` and `all`.
+ *
+ * @param timeRange - The time window to analyze (`"1m"`, `"1y"`, `"5y"`, or `"all"`).
+ * @param category - The main category to filter by (required). Pass `null` to disable the query.
+ * @param subCategory - Optional subcategory to further narrow results.
+ * @returns A `CategoryStats` object extended with `isLoading` and `error` fields.
  */
 export function useCategoryHistory(
   timeRange: TimeRange,

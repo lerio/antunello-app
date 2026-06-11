@@ -1,4 +1,21 @@
+/**
+ * Date formatting and parsing utilities.
+ *
+ * Provides functions for converting between ISO date strings, local datetime-local
+ * input format values, and user-friendly display formats including relative labels
+ * (Today, Yesterday), day-of-week, and locale-aware formatting.
+ *
+ * @module utils/date
+ */
+
 // Format date for datetime-local input (local timezone)
+/**
+ * Converts an ISO date string to the format required by datetime-local HTML inputs.
+ * Adjusts for the local timezone offset to produce a correct local datetime value.
+ *
+ * @param dateString - ISO 8601 date string (e.g. "2025-08-15T14:30:00.000Z")
+ * @returns A string in "YYYY-MM-DDTHH:MM" format suitable for datetime-local input
+ */
 export function formatDateTimeLocal(dateString: string): string {
   const date = new Date(dateString)
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -6,6 +23,13 @@ export function formatDateTimeLocal(dateString: string): string {
 }
 
 // Format date only (DD/MM/YYYY)
+/**
+ * Formats an ISO date string to a short date representation using Italian locale.
+ * Output format: DD/MM/YYYY.
+ *
+ * @param isoString - ISO 8601 date string
+ * @returns The formatted date string (e.g. "15/08/2025")
+ */
 export function formatDate(isoString: string): string {
   const date = new Date(isoString)
   return date.toLocaleDateString('it-IT', {
@@ -16,38 +40,53 @@ export function formatDate(isoString: string): string {
 }
 
 // Parse datetime-local input and return ISO string
+/**
+ * Parses a value from a datetime-local input and converts it to an ISO 8601 string.
+ *
+ * @param date - A date string as returned by a datetime-local HTML input
+ * @returns The date as an ISO 8601 string
+ */
 export function parseDateTime(date: string): string {
   return new Date(date).toISOString()
 }
 
 // Format date with relative labels (Today, Yesterday) and day of week for older dates
+/**
+ * Formats an ISO date string into a human-readable header format.
+ * Uses relative labels "Today" and "Yesterday" where applicable, shows
+ * the weekday and full month/day for dates within the current year, and
+ * includes the year for dates in different years.
+ *
+ * @param isoString - ISO 8601 date string
+ * @returns A formatted header string (e.g. "Today, August 15" or "Monday, August 2")
+ */
 export function formatDateHeader(isoString: string): string {
   const date = new Date(isoString)
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
-  
+
   // Reset time to compare only dates
   const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
-  
+
   if (dateOnly.getTime() === todayOnly.getTime()) {
     return `Today, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
   } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
     return `Yesterday, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
   } else if (date.getFullYear() === today.getFullYear()) {
     // Same year: "Monday, August 2"
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
     })
   } else {
     // Different year: "Tuesday, December 31, 2024"
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'long', 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
       day: 'numeric',
       year: 'numeric'
     })
@@ -55,34 +94,43 @@ export function formatDateHeader(isoString: string): string {
 }
 
 // Format date header with forced year display (for search results)
+/**
+ * Formats an ISO date string into a human-readable header with an always-visible year.
+ * Similar to formatDateHeader but always includes the year component regardless of
+ * the current year context. Used in search results where temporal context is important.
+ *
+ * @param isoString - ISO 8601 date string
+ * @returns A formatted header string with year included
+ *          (e.g. "Today, August 15, 2023" or "Thursday, July 31, 2023")
+ */
 export function formatDateHeaderWithYear(isoString: string): string {
   const date = new Date(isoString)
   const today = new Date()
-  
+
   // Reset time to compare only dates
   const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
   const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
-  
+
   if (dateOnly.getTime() === todayOnly.getTime()) {
-    // For current year: "Today, August 15"  
+    // For current year: "Today, August 15"
     // For different year: "Today, August 15, 2023"
     const baseFormat = `Today, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
     return date.getFullYear() === today.getFullYear() ? baseFormat : `${baseFormat}, ${date.getFullYear()}`
   } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
     // For current year: "Yesterday, August 14"
-    // For different year: "Yesterday, August 14, 2023"  
+    // For different year: "Yesterday, August 14, 2023"
     const baseFormat = `Yesterday, ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
     return date.getFullYear() === today.getFullYear() ? baseFormat : `${baseFormat}, ${date.getFullYear()}`
   } else {
     // Always include year: "Thursday, July 31, 2023"
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'long', 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
       day: 'numeric',
       year: 'numeric'
     })
   }
-} 
+}

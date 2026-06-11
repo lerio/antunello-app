@@ -1,51 +1,36 @@
-import { useCallback, useRef } from 'react'
 import { yearTransactionFetcher, createYearKey } from '@/utils/year-fetcher'
-import { transactionCache } from '@/utils/simple-cache'
+import { useAdjacentPrefetch } from './useAdjacentPrefetch'
 
-// Track prefetch requests to avoid duplicates
+/** Module-level dedup set shared across all consumers of this hook. */
 const yearPrefetchQueue = new Set<string>()
 
+/**
+ * Hook for prefetching year-level transaction data.
+ *
+ * When the user is viewing a given year, this hook proactively fetches
+ * the previous and next years so that the yearly-summary view loads
+ * instantly. Prefetch requests are deduplicated (via a module-level set)
+ * and debounced (500 ms) to avoid excessive network calls during rapid
+ * year-switching.
+ *
+ * @returns An object containing:
+ *  - `prefetchAdjacentYears(currentYear)` – Prefetches the previous and next years
+ *  - `prefetchYear(year)` – Prefetch a specific year directly
+ */
 export function useYearPrefetch() {
-  const prefetchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
-
-  const prefetchYear = useCallback(async (year: number) => {
-    const yearKey = createYearKey(year)
-    
-    // Skip if already in cache or being prefetched
-    if (transactionCache.has(yearKey) || yearPrefetchQueue.has(yearKey)) {
-      return
-    }
-
-    yearPrefetchQueue.add(yearKey)
-
-    try {
-      await yearTransactionFetcher(yearKey)
-    } catch (error) {
-      console.warn(`Failed to prefetch ${yearKey}:`, error)
-    } finally {
-      yearPrefetchQueue.delete(yearKey)
-    }
-  }, [])
-
-  const prefetchAdjacentYears = useCallback((currentYear: number) => {
-    // Calculate previous and next years
-    const prevYear = currentYear - 1
-    const nextYear = currentYear + 1
-
-    // Clear any existing timeout
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current)
-    }
-
-    // Debounce prefetching to avoid excessive requests
-    prefetchTimeoutRef.current = setTimeout(() => {
-      prefetchYear(prevYear)
-      prefetchYear(nextYear)
-    }, 500)
-  }, [prefetchYear])
+  const { prefetchItem, prefetchAdjacent } = useAdjacentPrefetch(
+    yearPrefetchQueue,
+    createYearKey,
+    yearTransactionFetcher,
+    // Compute adjacent-year argument tuples
+    (year: number): [number][] => [
+      [year - 1],
+      [year + 1],
+    ]
+  )
 
   return {
-    prefetchAdjacentYears,
-    prefetchYear,
+    prefetchAdjacentYears: (year: number) => prefetchAdjacent(year),
+    prefetchYear: (year: number) => prefetchItem(year),
   }
 }

@@ -1,3 +1,14 @@
+/**
+ * Date range transaction fetcher utility.
+ *
+ * Provides a shared fetcher function for retrieving transactions within a
+ * specified date range. Includes caching via the transaction LRU cache,
+ * in-flight request deduplication to avoid redundant network calls, and
+ * expansion of split-across-year transactions into the visible range.
+ *
+ * @module utils/date-range-fetcher
+ */
+
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { transactionCache } from './simple-cache'
@@ -8,14 +19,22 @@ import { sortTransactionsByDateInPlace } from './transaction-utils'
 // Track in-flight requests to avoid duplicate fetches
 const inflightRangeRequests = new Map<string, Promise<Transaction[]>>()
 
-// Shared transaction fetcher for date ranges
+/**
+ * Shared transaction fetcher for date ranges. Checks the LRU cache first,
+ * then deduplicates in-flight requests, and finally fetches from Supabase.
+ * Handles both regular transactions and split-across-year transaction expansion.
+ *
+ * @param key - The cache/fetch key in the format "range-transactions-{startDate}:{endDate}"
+ * @returns A promise resolving to an array of transactions within the date range
+ * @throws {Error} If the key format is invalid or the Supabase query fails
+ */
 export const dateRangeTransactionFetcher = async (key: string): Promise<Transaction[]> => {
   // Check cache first (fast path)
   const cached = transactionCache.get(key)
   if (cached) {
     return cached
   }
-  
+
   // Check if we're already fetching this key
   if (inflightRangeRequests.has(key)) {
     return inflightRangeRequests.get(key)!
@@ -34,6 +53,14 @@ export const dateRangeTransactionFetcher = async (key: string): Promise<Transact
   }
 }
 
+/**
+ * Fetches transactions from Supabase for the given date range, including
+ * expanding any split-across-year transactions that fall within the range.
+ *
+ * @param key - The cache key containing the start and end dates
+ * @returns A sorted array of transactions within the date range
+ * @throws {Error} If the key format is invalid
+ */
 async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
   const rangePart = key.replace('range-transactions-', '')
   const [startDate, endDate] = rangePart.split(':')
@@ -105,6 +132,13 @@ async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
   return sortTransactionsByDateInPlace([...regularTransactions, ...splitInRange])
 }
 
-export const createDateRangeKey = (startDate: string, endDate: string) => {
+/**
+ * Creates a consistent cache/fetch key for a date range.
+ *
+ * @param startDate - Start date in YYYY-MM-DD format
+ * @param endDate - End date in YYYY-MM-DD format (exclusive range end)
+ * @returns The formatted cache key string
+ */
+export const createDateRangeKey = (startDate: string, endDate: string): string => {
     return `range-transactions-${startDate}:${endDate}`
 }

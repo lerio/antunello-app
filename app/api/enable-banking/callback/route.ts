@@ -1,7 +1,21 @@
+/**
+ * @file Handle the OAuth callback from Enable Banking after a user has
+ * granted consent. Exchanges the authorisation code for a session and
+ * persists the connected accounts as `integration_configs` rows.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import * as jose from 'jose';
 
+/**
+ * Generate a signed JWT for the Enable Banking API.
+ *
+ * @param appId - The application identifier.
+ * @param appKey - The PEM-encoded PKCS#8 private key.
+ * @param kid   - The key ID (falls back to `appId`).
+ * @returns A signed JWT string valid for 5 minutes.
+ */
 async function generateToken(appId: string, appKey: string, kid: string) {
     const alg = 'RS256';
     const privateKey = await jose.importPKCS8(appKey, alg);
@@ -14,6 +28,17 @@ async function generateToken(appId: string, appKey: string, kid: string) {
         .sign(privateKey);
 }
 
+/**
+ * Handle the OAuth callback from Enable Banking.
+ *
+ * Expected query parameters:
+ * - `code`  – The authorisation code from Enable Banking.
+ * - `state` – Contains the user ID and bank name (`userId:BankName`).
+ * - `error` – An error string if the user denied consent.
+ *
+ * @param request - The incoming callback request with query parameters.
+ * @returns A 302 redirect to the settings page (success or error).
+ */
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');

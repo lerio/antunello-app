@@ -11,6 +11,24 @@ function subDays(date: Date, days: number): Date {
     return result
 }
 
+/**
+ * Hook to fetch transactions across three 30-day comparison periods for dashboard insights.
+ *
+ * Calculates three overlapping date ranges:
+ *  - **Current**: Last 30 days (including today).
+ *  - **Previous**: The 30 days immediately before the current period.
+ *  - **Last Year**: The same 30-day window one calendar year ago.
+ *
+ * All three ranges are fetched concurrently with distinct SWR cache keys
+ * so data is available independently for comparison charts and summaries.
+ *
+ * @returns An object containing:
+ *  - `current`: Period data with `transactions`, `label`, `startDate`, and `endDate`.
+ *  - `prev`: Period data for the preceding 30 days.
+ *  - `lastYear`: Period data for the same window one year ago.
+ *  - `isLoading`: `true` while any of the three fetches are in-flight.
+ *  - `refresh`: Async function that revalidates all three caches concurrently.
+ */
 export function useDashboardComparison() {
     // Calculate date ranges
     // Current: Last 30 days (including today)

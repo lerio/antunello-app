@@ -10,13 +10,24 @@ import { getStartDateForTimeRange } from "@/utils/time-range";
 
 type BalanceTransaction = Transaction;
 
+/**
+ * A single balance data point extended with the previous period's balance
+ * for comparison charts.
+ */
 export interface BalanceComparisonDataPoint extends BalanceDataPoint {
+  /** Balance at the corresponding bucket in the previous period, or `null` if unavailable. */
   previousBalance: number | null;
 }
 
+/**
+ * Aggregate result returned by `useBalanceComparisonHistory`.
+ */
 export interface BalanceComparisonStats {
+  /** Array of comparison data points, one per time bucket. */
   dataPoints: BalanceComparisonDataPoint[];
+  /** `true` while any of the underlying queries are loading. */
   isLoading: boolean;
+  /** The first error encountered, or `null`. */
   error: Error | null | undefined;
 }
 
@@ -157,6 +168,17 @@ function buildSeries(
 
 /**
  * Returns the selected chart series plus a previous-period overlay series.
+ *
+ * Computes two equal-length time windows:
+ *  - **Current period**: the number of days implied by `timeRange`, ending today.
+ *  - **Previous period**: the immediately preceding window of the same length.
+ *
+ * Each series is built from daily (or weekly for `5y`) buckets, with the
+ * current series receiving an additional `previousBalance` field per data point.
+ *
+ * @param timeRange - The length of the current window: `"1m"`, `"1y"`, or `"5y"`.
+ * @param includeHidden - When `true`, transactions flagged with `hide_from_totals` are included.
+ * @returns A `BalanceComparisonStats` object with the merged data points and loading/error state.
  */
 export function useBalanceComparisonHistory(
   timeRange: "1m" | "1y" | "5y",

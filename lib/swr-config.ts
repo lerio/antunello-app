@@ -1,3 +1,10 @@
+/**
+ * @file Defines the global SWR configuration for the application, including
+ * revalidation policies, retry logic, deduplication intervals, and cache
+ * persistence integration (localStorage). Provides separate configs for
+ * server-side and client-side usage.
+ */
+
 import { SWRConfiguration } from 'swr'
 import { saveCacheToStorage, loadCacheFromStorage } from './cache-persistence'
 import { debouncedSave, setupPeriodicSave } from './cache-debouncer'
@@ -5,6 +12,14 @@ import { debouncedSave, setupPeriodicSave } from './cache-debouncer'
 // Global cache reference for saving
 let globalCache: Map<string, any> | null = null
 
+/**
+ * Returns the base SWR configuration suitable for both server and client
+ * environments. Covers revalidation, retry, deduplication, and loading
+ * behaviour.
+ *
+ * @returns An {@link SWRConfiguration} object with the application's
+ *          performance-optimised defaults.
+ */
 export const getSwrConfig = (): SWRConfiguration => {
   const baseConfig: SWRConfiguration = {
     // Optimized revalidation settings for instant app access on iOS Safari
@@ -31,6 +46,17 @@ export const getSwrConfig = (): SWRConfiguration => {
   return baseConfig
 }
 
+/**
+ * Returns the client-side SWR configuration that extends the base config
+ * with localStorage cache hydratation and persistence, periodic saves, and
+ * global error handling.
+ *
+ * Only activates the persistence layer when running in a browser environment
+ * with localStorage available.
+ *
+ * @returns An {@link SWRConfiguration} object enhanced with client-side
+ *          cache persistence features.
+ */
 export const getClientSwrConfig = (): SWRConfiguration => {
   const baseConfig = getSwrConfig()
 
@@ -79,4 +105,9 @@ export const getClientSwrConfig = (): SWRConfiguration => {
   return baseConfig
 }
 
+/**
+ * Application-wide SWR configuration (server-safe, without client-side
+ * persistence). Prefer {@link getClientSwrConfig} when running in the
+ * browser.
+ */
 export const swrConfig = getSwrConfig()

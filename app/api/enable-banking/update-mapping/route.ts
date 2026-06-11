@@ -1,7 +1,24 @@
+/**
+ * @file Update the settings for an existing integration config, such as the
+ * fund-category mapping or the bulk-fetch toggle. Supports partial updates
+ * so that only the provided fields are changed.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
+/**
+ * Update fields in the `settings` JSON of an integration config.
+ *
+ * Request body (JSON):
+ * - `account_id` (required) – The account whose config should be updated.
+ * - `fund_category_id` (optional) – The linked fund category ID (or `null`).
+ * - `bulk_fetch_enabled` (optional) – Whether bulk fetching is enabled.
+ *
+ * @param request - The incoming POST request with a JSON body.
+ * @returns A JSON response with the updated settings, or an error.
+ */
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();

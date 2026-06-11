@@ -1,8 +1,35 @@
+/**
+ * A generic batch-fetching utility that paginates through a Supabase query
+ * until all rows are collected.
+ *
+ * Callers provide a factory function (`queryPage`) that returns the
+ * `{ data, error }` shape for a given `from`/`to` range. The utility
+ * automatically advances the range by `batchSize` and concatenates results
+ * until the query returns fewer rows than the batch size (indicating the
+ * end of the dataset).
+ */
+
+/**
+ * Result shape returned by the `queryPage` callback.
+ */
 type QueryResult<T> = {
   data: T[] | null
   error: { message?: string } | null
 }
 
+/**
+ * Fetches all rows matching a paginated Supabase query by walking through
+ * batches until no more rows are returned.
+ *
+ * @typeParam T - The row type returned by the query.
+ * @param queryPage - A function that issues a `.range(from, to)` query and
+ *   returns the corresponding `{ data, error }` result. Called repeatedly
+ *   with increasing `from`/`to` values until the dataset is exhausted.
+ * @param batchSize - Number of rows to request per batch (default `1000`).
+ *   Must be <= the Supabase maximum range limit (1000).
+ * @returns A flat array of all rows across all batches.
+ * @throws {Error} Propagates any error thrown or returned by `queryPage`.
+ */
 export async function fetchAllBatches<T>(
   queryPage: (from: number, to: number) => QueryResult<T> | PromiseLike<QueryResult<T>>,
   batchSize = 1000

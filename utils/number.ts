@@ -1,14 +1,31 @@
 /**
- * Normalizes decimal separators in number strings
- * Converts commas to dots for proper JavaScript number parsing
+ * Number parsing and validation utilities.
+ *
+ * Provides functions for handling number strings with flexible decimal
+ * separator support (both comma and dot), converting them to JavaScript
+ * numbers, and validating that they represent positive numeric values.
+ *
+ * @module utils/number
+ */
+
+/**
+ * Normalizes decimal separators in number strings by converting commas to dots.
+ * This allows proper JavaScript number parsing from inputs that may use
+ * either decimal separator convention.
+ *
+ * @param value - The input string to normalize (e.g. "1,50" or "1.50")
+ * @returns The normalized string with commas replaced by dots (e.g. "1.50")
  */
 export function normalizeDecimalSeparator(value: string): string {
   return value.replace(/,/g, '.');
 }
 
 /**
- * Parses a number string with proper decimal separator handling
- * Supports both comma and dot as decimal separators
+ * Parses a number string with proper decimal separator handling.
+ * Supports both comma and dot as decimal separators.
+ *
+ * @param value - The string to parse (e.g. "123,45" or "123.45")
+ * @returns The parsed numeric value
  */
 export function parseNumber(value: string): number {
   const normalized = normalizeDecimalSeparator(value);
@@ -16,8 +33,12 @@ export function parseNumber(value: string): number {
 }
 
 /**
- * Validates if a string represents a valid positive number
- * Handles both comma and dot decimal separators
+ * Validates if a string represents a valid positive number.
+ * Handles both comma and dot decimal separators. Returns false for
+ * empty strings, non-numeric strings, and zero or negative values.
+ *
+ * @param value - The string to validate
+ * @returns True if the string represents a positive number greater than 0
  */
 export function isValidPositiveNumber(value: string): boolean {
   if (!value || value.trim() === '') return false;

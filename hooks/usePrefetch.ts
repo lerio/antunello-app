@@ -1,55 +1,38 @@
-import { useCallback, useRef } from 'react'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
-import { transactionCache } from '@/utils/simple-cache'
+import { useAdjacentPrefetch } from './useAdjacentPrefetch'
 
-// Track prefetch requests to avoid duplicates
+/** Module-level dedup set shared across all consumers of this hook. */
 const prefetchQueue = new Set<string>()
 
+/**
+ * Hook for intelligent prefetching of adjacent-month transaction data.
+ *
+ * When the user is viewing a given month, this hook proactively fetches
+ * the previous and next months so navigation feels instant. Prefetch requests
+ * are deduplicated (via a module-level set) and debounced (500 ms) to avoid
+ * excessive network calls during rapid month-switching.
+ *
+ * @returns An object with:
+ *  - `prefetchAdjacentMonths(year, month)` – prefetches the previous and next
+ *    months relative to the given year/month pair.
+ */
 export function usePrefetch() {
-  const prefetchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
-
-  const prefetchMonth = useCallback(async (year: number, month: number) => {
-    const monthKey = createMonthKey(year, month)
-    
-    // Skip if already in cache or being prefetched
-    if (transactionCache.has(monthKey) || prefetchQueue.has(monthKey)) {
-      return
+  const { prefetchAdjacent } = useAdjacentPrefetch(
+    prefetchQueue,
+    createMonthKey,
+    transactionFetcher,
+    // Compute adjacent-month argument tuples
+    (year: number, month: number): [number, number][] => {
+      const prevDate = new Date(year, month - 2, 1)
+      const nextDate = new Date(year, month, 1)
+      return [
+        [prevDate.getFullYear(), prevDate.getMonth() + 1],
+        [nextDate.getFullYear(), nextDate.getMonth() + 1],
+      ]
     }
-
-    prefetchQueue.add(monthKey)
-
-    try {
-      await transactionFetcher(monthKey)
-    } catch (error) {
-      console.warn(`Failed to prefetch ${monthKey}:`, error)
-    } finally {
-      prefetchQueue.delete(monthKey)
-    }
-  }, [])
-
-  const prefetchAdjacentMonths = useCallback((currentYear: number, currentMonth: number) => {
-    // Calculate previous and next months
-    const prevDate = new Date(currentYear, currentMonth - 2, 1)
-    const nextDate = new Date(currentYear, currentMonth, 1)
-    
-    const prevYear = prevDate.getFullYear()
-    const prevMonth = prevDate.getMonth() + 1
-    const nextYear = nextDate.getFullYear()
-    const nextMonth = nextDate.getMonth() + 1
-
-    // Clear any existing timeout
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current)
-    }
-
-    // Debounce prefetching to avoid excessive requests
-    prefetchTimeoutRef.current = setTimeout(() => {
-      prefetchMonth(prevYear, prevMonth)
-      prefetchMonth(nextYear, nextMonth)
-    }, 500)
-  }, [prefetchMonth])
+  )
 
   return {
-    prefetchAdjacentMonths,
+    prefetchAdjacentMonths: (year: number, month: number) => prefetchAdjacent(year, month),
   }
 }

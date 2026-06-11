@@ -2,6 +2,18 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabasePublishableKey, getSupabaseUrl } from "./env";
 
+/**
+ * Middleware function that refreshes the Supabase auth session on every
+ * request and enforces route-based access control.
+ *
+ * - Redirects unauthenticated users from `/protected/*` to `/sign-in`.
+ * - Redirects authenticated users from `/` to `/protected`.
+ * - Passes all other requests through unchanged.
+ *
+ * @param request - The incoming Next.js request.
+ * @returns Either a redirect response (for auth-rule matches) or the
+ *          original response with refreshed session cookies.
+ */
 export const updateSession = async (request: NextRequest) => {
   // This `try/catch` block is only here for the interactive tutorial.
   // Feel free to remove once you have Supabase connected.

@@ -11,6 +11,22 @@ import {
   getRoundedSplitAmountForMonth,
 } from '@/utils/split-transactions'
 
+/**
+ * Hook providing create, update, and delete mutations for transactions.
+ *
+ * All mutations use **optimistic updates**: the local SWR and simple caches
+ * are updated immediately, and if the database operation fails the changes
+ * are rolled back. Year-level caches, balance chart caches, overall totals,
+ * and fund-category caches are invalidated after every successful mutation
+ * to keep all views in sync.
+ *
+ * Currency conversion to EUR is handled automatically for non-EUR transactions.
+ *
+ * @returns An object containing:
+ *  - `addTransaction(data)` – Insert a new transaction
+ *  - `updateTransaction(id, data, oldDate)` – Modify an existing transaction
+ *  - `deleteTransaction(transaction)` – Remove a transaction
+ */
 export function useTransactionMutations() {
   const { mutate } = useSWRConfig()
   const supabase = createClient()
@@ -110,6 +126,18 @@ export function useTransactionMutations() {
     }
   }
 
+  /**
+   * Insert a new transaction.
+   *
+   * Optimistically adds a temporary transaction to the cache, performs the
+   * database insert (with automatic EUR conversion), then replaces the
+   * temporary entry with the persisted record. Invalidates year, balance,
+   * and fund-category caches on success; rolls back on failure.
+   *
+   * @param data - All fields required to create a transaction (excluding `id`, `created_at`, `updated_at`).
+   * @returns The persisted `Transaction` object.
+   * @throws If the database insert fails.
+   */
   const addTransaction = async (data: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     const monthKey = getMonthKey(data.date)
 
@@ -292,6 +320,20 @@ export function useTransactionMutations() {
     }
   }
 
+  /**
+   * Update an existing transaction.
+   *
+   * Merges the provided partial data into the existing transaction, recalculates
+   * the EUR conversion if the amount, currency, or date changed, and optimistically
+   * updates all local caches. Handles month-boundary moves when the date changes.
+   * Invalidates year, balance, and fund-category caches on success; rolls back on failure.
+   *
+   * @param id      - The UUID of the transaction to update.
+   * @param data    - Partial fields to update.
+   * @param oldDate - The original date of the transaction (used to locate the old cache key).
+   * @returns The persisted `Transaction` object.
+   * @throws If the database update fails or the transaction cannot be found in cache.
+   */
   const updateTransaction = async (id: string, data: Partial<Transaction>, oldDate: string) => {
     const oldMonthKey = getMonthKey(oldDate)
     const newMonthKey = getMonthKey(data.date || oldDate)
@@ -336,9 +378,20 @@ export function useTransactionMutations() {
     }
   }
 
+  /**
+   * Delete a transaction.
+   *
+   * Optimistically removes the transaction from all local caches, performs
+   * the database delete, and invalidates year, balance, and fund-category
+   * caches on success. On failure, restores the transaction to all caches.
+   *
+   * @param transaction - The full `Transaction` object to delete.
+   * @returns The deleted `Transaction` object.
+   * @throws If the database delete fails.
+   */
   const deleteTransaction = async (transaction: Transaction) => {
     const monthKey = getMonthKey(transaction.date)
-    
+
     // Optimistically remove from cache immediately
     let removedTransaction: Transaction | undefined
     updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
@@ -365,7 +418,7 @@ export function useTransactionMutations() {
       mutate('/api/overall-totals', undefined, true)
       // Revalidate fund categories to update balance
       mutate('fund-categories', undefined, true)
-      
+
       return transaction
     } catch (error) {
       // Rollback optimistic update on error
@@ -374,7 +427,7 @@ export function useTransactionMutations() {
           return [...transactions, removedTransaction!]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         })
-        
+
         // Restore single transaction cache
         mutate(getTransactionKey(transaction.id), removedTransaction, false)
       }
@@ -387,4 +440,4 @@ export function useTransactionMutations() {
     updateTransaction,
     deleteTransaction
   }
-} 
+}

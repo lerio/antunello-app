@@ -1,7 +1,18 @@
+/**
+ * @file API route that returns the authenticated user's overall total
+ * balance in EUR by calling the Supabase RPC `get_overall_total_eur`.
+ * Response is cached for 60 seconds with stale-while-revalidate.
+ */
+
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { getErrorMessage, jsonError, requireUserId } from "@/app/api/_lib/route-utils"
 
+/**
+ * Fetch the user's overall net worth in EUR.
+ *
+ * @returns A JSON response containing `{ eurTotal: number }`.
+ */
 export async function GET() {
   try {
     const supabase = await createClient()

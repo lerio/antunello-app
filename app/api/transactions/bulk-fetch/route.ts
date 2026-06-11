@@ -1,7 +1,20 @@
+/**
+ * @file API route that triggers a bulk fetch of bank transactions for all
+ * integration configs that have `bulk_fetch_enabled` set to `true`. Runs
+ * per-account syncs in parallel and returns a summary of results.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
+/**
+ * Trigger a bulk fetch of pending transactions from all linked banking
+ * accounts that have the bulk-fetch toggle enabled.
+ *
+ * @param request - The incoming POST request.
+ * @returns A JSON response with the sync results per account.
+ */
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();

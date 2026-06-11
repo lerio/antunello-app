@@ -1,11 +1,18 @@
 import useSWR from 'swr'
 import { createClient } from '@/utils/supabase/client'
 
+/**
+ * Supported time ranges for starting-balance calculation.
+ * Determines how far back to look for transactions prior to the current period.
+ */
 export type TimeRange = '1m' | '1y' | '5y' | 'all';
 
 /**
- * Calculate cutoff date for starting balance calculation
- * Returns null for 'all' (no prior balance needed)
+ * Calculate the cutoff date (YYYY-MM-DD) for a given time range.
+ * Returns `null` for `'all'` (no prior balance needed).
+ *
+ * @param timeRange - The selected time range.
+ * @returns Cutoff date string, or `null` for `'all'`.
  */
 function getCutoffDate(timeRange: TimeRange): string | null {
   const now = new Date();
@@ -30,7 +37,7 @@ function getCutoffDate(timeRange: TimeRange): string | null {
 }
 
 /**
- * Fetcher function that calls the database RPC to calculate starting balance
+ * Fetcher function that calls the database RPC to calculate starting balance.
  */
 const startingBalanceFetcher = async (
   _key: string,
@@ -71,6 +78,15 @@ const startingBalanceFetcher = async (
   return Number(data) || 0;
 };
 
+/**
+ * Fetcher that calls the database RPC directly for an explicit cutoff date.
+ *
+ * @param _key       - SWR cache key (unused)
+ * @param cutoffDate - Explicit cutoff date string (YYYY-MM-DD)
+ * @param includeHidden - Whether to include hidden-from-totals transactions
+ * @param userId     - Authenticated user ID, or `undefined`
+ * @returns The balance total before the given date, or `0` on error / no user
+ */
 const startingBalanceBeforeDateFetcher = async (
   _key: string,
   cutoffDate: string,
@@ -98,8 +114,23 @@ const startingBalanceBeforeDateFetcher = async (
 };
 
 /**
- * Hook to fetch the starting balance before a time range
- * This replaces client-side iteration through all prior transactions
+ * Hook to fetch the starting balance before a time range.
+ *
+ * Calls the `get_balance_before_date` RPC to efficiently calculate the
+ * cumulative balance of all transactions before the cutoff date derived
+ * from the given `TimeRange`. This replaces client-side iteration through
+ * all prior transactions.
+ *
+ * @param timeRange  - The time range whose start defines the cutoff.
+ * @param includeHidden - Whether to include hidden-from-totals transactions.
+ * @param userId     - The current authenticated user's ID (or `undefined` while loading).
+ *
+ * @returns An object containing:
+ *  - `startingBalance` – The computed balance before the cutoff (defaults to `0`)
+ *  - `error` – Any fetch error
+ *  - `isLoading` – `true` while the RPC call is in-flight
+ *  - `mutate` – SWR mutate function
+ *  - `refresh` – Shorthand for `mutate()`
  */
 export function useStartingBalance(
   timeRange: TimeRange,
@@ -137,7 +168,20 @@ export function useStartingBalance(
 
 /**
  * Hook to fetch the starting balance before an explicit cutoff date.
- * Used for comparison charts that need a prior period baseline.
+ *
+ * Intended for comparison charts that need a prior-period baseline computed
+ * for a specific date (rather than a range-derived one).
+ *
+ * @param cutoffDate  - The explicit cutoff date (YYYY-MM-DD).
+ * @param includeHidden - Whether to include hidden-from-totals transactions.
+ * @param userId      - The current authenticated user's ID (or `undefined`).
+ *
+ * @returns An object containing:
+ *  - `startingBalance` – The computed balance before the date (defaults to `0`)
+ *  - `error` – Any fetch error
+ *  - `isLoading` – `true` while the RPC call is in-flight
+ *  - `mutate` – SWR mutate function
+ *  - `refresh` – Shorthand for `mutate()`
  */
 export function useStartingBalanceBeforeDate(
   cutoffDate: string,

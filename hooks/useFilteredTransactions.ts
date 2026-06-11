@@ -1,21 +1,36 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
 import { expandSplitTransactionsForMonth, expandSplitTransactionsForYear } from '@/utils/split-transactions'
 import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 
+/**
+ * Criteria object for filtering transactions in the search/advanced-filter view.
+ * Each array-based filter performs an OR match — any matching value includes the transaction.
+ * When an array is empty, that filter is ignored.
+ */
 export type FilterCriteria = {
+  /** Transaction types to include: `"income"`, `"expense"`, and/or `"movement"`. */
   types: Array<'income' | 'expense' | 'movement'>
+  /** Main category names to include (e.g. `"Dining"`, `"Groceries"`). */
   mainCategories: string[]
+  /** Subcategory filter entries in `"MainCategory::SubCategory"` format. */
   subCategories: string[]
+  /** Fund category UUIDs to include. */
   fundSourceIds: string[]
+  /** Minimum transaction amount (inclusive). `null` means no lower bound. */
   amountMin: number | null
+  /** Maximum transaction amount (inclusive). `null` means no upper bound. */
   amountMax: number | null
+  /** ISO currency codes to include (e.g. `"EUR"`, `"USD"`). */
   currencies: string[]
-  month: number | null // null = all time
-  year: number | null // null = all time
+  /** Month number (1-12) for date filtering. `null` = all months. */
+  month: number | null
+  /** Year for date filtering. `null` = all years. */
+  year: number | null
 }
 
+/** Default/empty filter criteria — all filters are disabled. */
 export const initialFilterCriteria: FilterCriteria = {
   types: [],
   mainCategories: [],
@@ -28,12 +43,37 @@ export const initialFilterCriteria: FilterCriteria = {
   year: null,
 }
 
+/**
+ * Hook to perform client-side filtered searches against transactions.
+ *
+ * Builds a Supabase query dynamically from the given `FilterCriteria` and applies a
+ * 300 ms debounce before executing. Supports compound type filtering (income/expense
+ * combined with movement/money-transfer), split-transaction expansion for month/year
+ * views, and an in-place removal helper.
+ *
+ * @param criteria - The filter criteria to apply.
+ * @param enabled - When `false`, the query is skipped and results are cleared.
+ * @returns An object containing:
+ *  - `results`: The filtered `Transaction` array.
+ *  - `isLoading`: `true` while a query is in-flight.
+ *  - `error`: Any error encountered, or `null`.
+ *  - `refetch`: Forces a new query with the latest criteria.
+ *  - `removeFromResults`: Removes a single transaction from results by ID (optimistic).
+ */
 export function useFilteredTransactions(criteria: FilterCriteria, enabled: boolean) {
   const [results, setResults] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const criteriaRef = useRef(criteria)
   criteriaRef.current = criteria
+
+  // Memoize joined strings so the useEffect dependency array receives stable
+  // references — avoids re-firing the debounced query on every parent render.
+  const typesKey = useMemo(() => criteria.types.join(','), [criteria.types])
+  const mainCategoriesKey = useMemo(() => criteria.mainCategories.join(','), [criteria.mainCategories])
+  const subCategoriesKey = useMemo(() => criteria.subCategories.join(','), [criteria.subCategories])
+  const fundSourceIdsKey = useMemo(() => criteria.fundSourceIds.join(','), [criteria.fundSourceIds])
+  const currenciesKey = useMemo(() => criteria.currencies.join(','), [criteria.currencies])
 
   const refetch = useCallback(async () => {
     if (!enabled) {
@@ -178,13 +218,13 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
     return () => clearTimeout(timeoutId)
   }, [
     enabled,
-    criteria.types.join(','),
-    criteria.mainCategories.join(','),
-    criteria.subCategories.join(','),
-    criteria.fundSourceIds.join(','),
+    typesKey,
+    mainCategoriesKey,
+    subCategoriesKey,
+    fundSourceIdsKey,
     criteria.amountMin,
     criteria.amountMax,
-    criteria.currencies.join(','),
+    currenciesKey,
     criteria.month,
     criteria.year,
     refetch

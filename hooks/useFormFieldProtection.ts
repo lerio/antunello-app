@@ -1,9 +1,17 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Custom hook to protect form fields from browser extension errors
- * This prevents extensions from causing "Cannot read properties of undefined" errors
- * when they try to access form field properties during focus events
+ * Custom hook to protect form fields from browser extension errors.
+ *
+ * This prevents extensions (e.g. 1Password, LastPass) from causing
+ * "Cannot read properties of undefined" errors when they try to access
+ * form field properties during focus events. The hook patches the
+ * input element with defensive property definitions and wraps
+ * `addEventListener` for focus/click events to ensure the properties
+ * exist before extension code runs.
+ *
+ * @param fieldId - The `id` attribute of the input element to protect.
+ * @returns A React ref pointing to the protected input element (or `null` before mount).
  */
 export function useFormFieldProtection(fieldId: string) {
   const fieldRef = useRef<HTMLInputElement | null>(null);

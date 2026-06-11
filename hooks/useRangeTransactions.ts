@@ -5,19 +5,34 @@ import { fetchAllBatches } from '@/utils/supabase/fetch-all'
 import { getStartDateForTimeRange, type TimeRange as SharedTimeRange } from '@/utils/time-range'
 import { expandSplitTransactionsForYear } from '@/utils/split-transactions'
 
+/** Re-export of the `TimeRange` type (e.g., `'1m' | '1y' | '5y' | 'all'`). */
 export type TimeRange = SharedTimeRange
+
+/**
+ * Lightweight transaction representation used for balance calculations.
+ * Only includes fields necessary for summing income/expense across a date range.
+ */
 export type BalanceTransaction = {
+  /** ISO date string of the transaction */
   date: string
+  /** `'expense'` or `'income'` */
   type: 'expense' | 'income'
+  /** Amount in EUR (nullable for transactions without a rate) */
   eur_amount: number | null
+  /** Split display amount in EUR when `split_across_year` is true */
   split_display_eur_amount?: number | null
+  /** Whether this transaction is part of a year-spanning split entry */
   split_across_year?: boolean
+  /** Whether the transaction is hidden from summary totals */
   hide_from_totals: boolean | null
+  /** Whether the transaction is a money transfer between fund categories */
   is_money_transfer: boolean | null
 }
 
 /**
- * Fetcher function that queries transactions within a specific date range
+ * Fetcher function that queries transactions within a specific date range.
+ * Handles year-spanning split transactions by expanding them per-month
+ * within the query window.
  */
 const rangeTransactionsFetcher = async (
   _key: string,
@@ -116,8 +131,22 @@ const rangeTransactionsFetcher = async (
 }
 
 /**
- * Hook to fetch transactions for a specific time range
- * Uses separate cache keys per time range and hidden state for optimal performance
+ * Hook to fetch transactions for a specific time range.
+ *
+ * Queries the `transactions` table filtered by the given `TimeRange` and
+ * returns a lightweight `BalanceTransaction[]` suitable for charting or
+ * summary calculations. Uses separate SWR cache keys per time range and
+ * hidden-state combination for optimal performance.
+ *
+ * @param timeRange  - The time range to query (e.g., `'1m'`, `'1y'`, `'all'`).
+ * @param includeHidden - Whether to include transactions flagged as hidden from totals.
+ *
+ * @returns An object containing:
+ *  - `transactions`: The list of `BalanceTransaction` objects (empty array while loading)
+ *  - `error`: Any error that occurred during fetch
+ *  - `isLoading`: `true` while the request is in-flight
+ *  - `mutate`: SWR mutate function for manual cache updates
+ *  - `refresh`: Convenience function to revalidate the data
  */
 export function useRangeTransactions(
   timeRange: TimeRange,

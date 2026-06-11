@@ -5,9 +5,15 @@ import { createClient } from "@/utils/supabase/client";
 import { FundCategory, Transaction } from "@/types/database";
 import { convertToEUR } from "@/utils/currency-conversion";
 
+/**
+ * A `FundCategory` extended with computed current balance information.
+ */
 export interface FundCategoryWithBalance extends FundCategory {
+  /** The EUR-converted balance at calculation time (deprecated — prefer `current_eur_amount`). */
   eur_amount?: number;
+  /** The current raw (non-converted) balance in the fund's native currency. */
   current_amount: number;
+  /** The current balance converted to EUR. */
   current_eur_amount: number;
 }
 
@@ -24,6 +30,24 @@ type BalanceTransaction = Pick<
   | "is_money_transfer"
 >;
 
+/**
+ * Hook to fetch all fund categories with their computed current balances.
+ *
+ * Fetches fund categories and all transactions linked to a fund category (as source
+ * or target), then computes the running balance for each fund by processing:
+ *  - Regular income/expense transactions (add/subtract amount).
+ *  - Money transfers (subtract from source fund, add to target fund).
+ *
+ * Non-EUR fund balances are batch-converted to EUR using the Frankfurter API
+ * (via `convertToEUR`). The total balance across all funds is also computed.
+ *
+ * @returns An object containing:
+ *  - `fundCategories`: Array of `FundCategoryWithBalance` objects (defaults to `[]`).
+ *  - `totalBalanceEUR`: The sum of all fund balances in EUR.
+ *  - `isLoading`: `true` while the initial fetch is in-flight.
+ *  - `error`: Any fetch error, or `undefined`.
+ *  - `mutate`: SWR mutate function for manual cache invalidation.
+ */
 export function useFundCategories() {
   const supabase = createClient();
 

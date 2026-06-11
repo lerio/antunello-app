@@ -1,3 +1,9 @@
+/**
+ * @file Maps each transaction main-category name to a Lucide icon
+ * component for visual identification in the UI. Provides a lookup
+ * helper for retrieving the icon by category name.
+ */
+
 import {
   Building2,
   Utensils,
@@ -23,6 +29,7 @@ import {
 } from 'lucide-react'
 
 // Category icon mapping
+/** Mapping from category name to its associated Lucide icon component. */
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'Money Transfer': ArrowRightLeft,
   'Bank Movements': Building2,
@@ -46,6 +53,13 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'Travel': Plane,
 }
 
+/**
+ * Retrieve the Lucide icon component for a given transaction category.
+ *
+ * @param category - The main category name (e.g. `"Dining"`).
+ * @returns The matching `LucideIcon` component, or `null` if no icon is
+ *          registered for that category.
+ */
 export const getCategoryIcon = (category: string): LucideIcon | null => {
   return CATEGORY_ICONS[category] || null
 }

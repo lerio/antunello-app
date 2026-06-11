@@ -1,7 +1,25 @@
+/**
+ * @file Initiate the Enable Banking OAuth authorisation flow. Authenticates
+ * the user, generates a signed JWT, looks up the target bank (ASPSP), and
+ * redirects the user to the bank's consent page.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import * as jose from 'jose';
 
+/**
+ * Start the Enable Banking authorisation for a given bank.
+ *
+ * Query parameters:
+ * - `bank` (optional) – The bank name to search for (default `"Bunq"`).
+ * - `country` (optional) – The ASPSP country code (default `"NL"`).
+ *
+ * @param request - The incoming request. Requires a valid Supabase session
+ *   cookie.
+ * @returns A 302 redirect to the Enable Banking consent page, or a JSON
+ *          error response.
+ */
 export async function GET(request: NextRequest) {
     try {
         // 1. Verify User is Authenticated

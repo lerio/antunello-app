@@ -1,12 +1,34 @@
+/**
+ * Form validation utilities for transaction forms.
+ *
+ * Provides validation logic for regular transaction and money transfer fields,
+ * including amount, category selection, title, and fund references. Returns
+ * structured error objects that can be displayed inline in the UI.
+ *
+ * @module utils/form-validation
+ */
+
 import { isValidPositiveNumber } from "@/utils/number";
 
+/**
+ * Structured validation errors for a transaction form.
+ * Each field has a corresponding error message string, empty string means no error.
+ */
 export interface ValidationErrors {
+  /** Error message for the amount field */
   amount: string;
+  /** Error message for the main category field (or source fund in transfers) */
   mainCategory: string;
+  /** Error message for the sub category field (or target fund in transfers) */
   subCategory: string;
+  /** Error message for the title field */
   title: string;
 }
 
+/**
+ * Initial empty validation state with no errors.
+ * All fields set to empty string, indicating valid state.
+ */
 export const emptyValidationErrors: ValidationErrors = {
   amount: "",
   mainCategory: "",
@@ -15,7 +37,15 @@ export const emptyValidationErrors: ValidationErrors = {
 };
 
 /**
- * Validate regular transaction form fields
+ * Validate regular transaction form fields.
+ * Checks that amount is a valid positive number, main and sub categories
+ * are selected, and a title is provided.
+ *
+ * @param amount - The amount string from the form input
+ * @param mainCategory - The selected main category
+ * @param subCategory - The selected sub category
+ * @param title - The transaction title
+ * @returns A ValidationErrors object with error messages for each invalid field
  */
 export function validateTransactionFields(
   amount: string,
@@ -45,7 +75,14 @@ export function validateTransactionFields(
 }
 
 /**
- * Validate money transfer form fields
+ * Validate money transfer form fields.
+ * Checks that the amount is valid, both source and target funds are selected,
+ * and they are not the same fund.
+ *
+ * @param amount - The transfer amount string from the form input
+ * @param sourceFundId - The selected source fund category ID, or null if none
+ * @param targetFundId - The selected target fund category ID, or null if none
+ * @returns A ValidationErrors object with error messages for each invalid field
  */
 export function validateMoneyTransferFields(
   amount: string,
@@ -74,7 +111,10 @@ export function validateMoneyTransferFields(
 }
 
 /**
- * Check if there are any validation errors
+ * Check if there are any validation errors in the error object.
+ *
+ * @param errors - The ValidationErrors object to check
+ * @returns True if any field has a non-empty error message
  */
 export function hasValidationErrors(errors: ValidationErrors): boolean {
   return Object.values(errors).some((error) => error !== "");

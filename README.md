@@ -1,105 +1,279 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
-
 <p align="center">
- The fastest way to build apps with Next.js and Supabase
+  <h1 align="center">Antunello</h1>
+  <p align="center"><em>…dei conti se ne occupa lui</em></p>
 </p>
 
 <p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
+  A comprehensive personal finance tracker — income, expenses, budgets, multi-currency, bank sync, and charts.
 </p>
-<br/>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16.2-black?logo=next.js" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/React-19.2-blue?logo=react" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript" alt="TypeScript 6">
+  <img src="https://img.shields.io/badge/Supabase-hosted-3ECF8E?logo=supabase" alt="Supabase">
+  <img src="https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss" alt="Tailwind v4">
+</p>
+
+---
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+### 💰 Transaction Management
+- Add, edit, and delete transactions with **optimistic updates** — the UI reflects changes instantly and rolls back on error
+- **Multi-currency support**: automatic EUR conversion using ECB exchange rates (Frankfurter API), with local DB caching and retry logic
+- **Money transfers** between fund accounts with source/target fund selection and validation
+- **Split transactions**: distribute a transaction evenly across all 12 months of the year (penny rounding handled)
+- **Hide from totals**: flag individual transactions to exclude them from summaries
+- **Title suggestions**: auto-tracked by category with frequency-based ranking and one-click auto-fill
 
-## Demo
+### 📊 Dashboards & Charts
+- **Monthly view**: transactions grouped by date with daily totals, sticky scrollable period selector, and comparison against previous month and same month last year
+- **Yearly view**: income/expense/balance aggregated by month with monthly averages
+- **Dashboard**: current vs previous month vs same-month-last-year comparison tables with expandable category breakdowns
+- **Balance chart**: interactive line chart with previous-period overlay, time range selector (1M/1Y/5Y/All), responsive sizing
+- **Category charts**: bar chart for category-specific spending history with transaction counts
+- **Advanced filtering**: multi-dimensional filter panel — type, category/subcategory, currency, fund source, amount range, period — with chip badges
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+### 🔍 Search
+- Real-time full-text search across all transactions (300ms debounce)
+- Summary stats with income/expense/hidden breakdown
 
-## Deploy to Vercel
+### 💳 Fund Accounts
+- Track balances across **Checking Accounts, Savings Accounts, Investments, P2P Lending, Financial Services, and Cash**
+- Expandable grouped view with collapsible sections and per-fund amounts
+- Global EUR total with currency conversion
 
-Vercel deployment will guide you through creating a Supabase account and project.
+### 💸 Budgets
+- Set category-based monthly budgets
+- Color-coded progress bars: green (< 90%), amber (90–100%), red (> 100%)
+- Spending alerts when approaching or exceeding limits
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+### 🏦 Bank Integration (Enable Banking)
+- OAuth-based bank connection via PSD2 open banking
+- Automatic transaction import with deduplication
+- **Pending transaction review wizard**: accept or reject bank-imported transactions before they enter your ledger
+- Background cron sync (`/api/cron/sync`)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+### 📱 Mobile-First UX
+- **Pull-to-refresh** with resistance curve on transaction views
+- **Privacy mode**: toggle to blur all financial data on screen (persisted to localStorage)
+- **Bottom navigation bar** with safe-area-inset support on mobile, horizontal nav on desktop
+- **Bottom-sheet modals** with swipe-to-close, animated entry/exit
+- **Floating action buttons** with stacked layout when multiple actions are available
+- **Skeleton loading states** for all data views (balance, charts, forms, summaries, transaction lists)
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+### 📥 CSV Import
+- Bulk import from **Cashew-formatted** CSV files
+- Batch validation with detailed error reporting
+- Rate-limited currency conversion for imported transactions
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+### 🔐 Security
+- **Row Level Security** on all database tables — users can only access their own data
+- Cookie-based Supabase Auth sessions via `@supabase/ssr`
+- Security headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+- Cron endpoints protected by shared secret
 
-## Clone and run locally
+### ⚡ Performance
+- **Dual cache system**: SWR (in-memory) + localStorage (persistent) for zero-load navigation
+- Intelligent **prefetching** of adjacent months/years with dedup queues
+- `pushState`-based navigation avoids server round-trips on month/year changes
+- Memoized components and calculations throughout
+- Paginated batch fetching for large datasets
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+---
 
-2. Create a Next.js app using the Supabase Starter template npx command
+## Tech Stack
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+| Layer | Technology |
+|---|---|
+| **Framework** | Next.js 16.2 (App Router, Turbopack) |
+| **UI Library** | React 19.2 |
+| **Language** | TypeScript 6.0 (strict mode) |
+| **Database** | Supabase (PostgreSQL + RLS + real-time) |
+| **Auth** | Supabase Auth (`@supabase/ssr`, cookie-based) |
+| **Styling** | Tailwind CSS v4 + shadcn/ui + Radix UI primitives |
+| **Data Fetching** | SWR 2.4 with localStorage persistence |
+| **UI State** | Zustand 5.0 |
+| **Charts** | Recharts 3.8 |
+| **Date Handling** | date-fns 4.4, react-day-picker 10.0 |
+| **Icons** | Lucide React 1.17 |
+| **Notifications** | react-hot-toast 2.6 |
+| **Theming** | next-themes 0.4 (dark/light mode) |
+| **JWT** | jose 6.2 (Enable Banking API auth) |
+| **Tooltips** | @floating-ui/react 0.27 |
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+---
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+## Getting Started
 
-3. Use `cd` to change into the app's directory
+### Prerequisites
 
-   ```bash
-   cd with-supabase-app
-   ```
+- **Node.js** 18+ (LTS recommended)
+- A **Supabase** project ([create one free](https://database.new))
+- (Optional) **Enable Banking** credentials for bank sync
 
-4. Rename `.env.example` to `.env.local` and update the following:
+### 1. Clone and install
 
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE KEY]
-   SUPABASE_SERVICE_ROLE_KEY=[INSERT SUPABASE PROJECT SERVICE ROLE KEY]
-   ```
+```bash
+git clone <repo-url>
+cd antunello-app
+npm install
+```
 
-   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` and `SUPABASE_SERVICE_ROLE_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api). `NEXT_PUBLIC_SUPABASE_ANON_KEY` is also supported as a legacy fallback.
+### 2. Environment variables
 
-5. You can now run the Next.js local development server:
+Copy the example and fill in your Supabase details:
 
-   ```bash
-   npm run dev
-   ```
+```bash
+cp .env.example .env.local
+```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+Required variables in `.env.local`:
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_...
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+```
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+Optional — Enable Banking (bank sync):
 
-## Feedback and issues
+```env
+ENABLE_BANKING_APP_ID=your-app-id
+ENABLE_BANKING_PRIVATE_KEY="-----BEGIN PRIVATE KEY----- ..."
+ENABLE_BANKING_KID=your-key-id
+CRON_SECRET=your-cron-secret
+NEXT_PUBLIC_APP_URL=https://localhost:3000
+```
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+### 3. Set up the database
 
-## More Supabase examples
+Run the migration SQL files in `migrations/` in numerical order via the **Supabase SQL Editor**. The migrations create:
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+- `fund_categories` table and FK on `transactions`
+- `transaction_title_patterns` table for title suggestions
+- `exchange_rates` table for currency conversion caching
+- `budgets` table
+- `enable_banking` integration tables
+- RPC functions: `get_overall_total_eur`, `get_balance_before_date`
+- Composite indexes for query performance
+- RLS policies for data isolation
+
+There are also rollback files for migrations 011 and 012.
+
+### 4. Start the dev server
+
+```bash
+npm run dev
+```
+
+The app runs on **[https://localhost:3000](https://localhost:3000)** (HTTPS enabled via `--experimental-https` with self-signed certificates in `certificates/`).
+
+---
+
+## Available Scripts
+
+```bash
+npm run dev                      # Start dev server with HTTPS
+npm run build                    # Production build
+npm start                        # Production server
+npm run find-pipe-titles         # Discover transactions with || title markers
+npm run find-pipe-titles:verbose # Same, with detailed output
+npm run update-pipe-titles       # Dry-run: preview pipe-title updates
+npm run update-pipe-titles:execute # Apply pipe-title updates to database
+```
+
+---
+
+## Project Structure
+
+```
+antunello-app/
+├── app/                          # Next.js App Router
+│   ├── (auth)/sign-in/           # Login page
+│   ├── api/                      # API routes
+│   │   ├── cron/sync/            # Enable Banking background sync
+│   │   ├── enable-banking/       # Bank OAuth + disconnect + mapping
+│   │   ├── overall-totals/       # Global balance RPC
+│   │   └── pending-transactions/ # Accept/reject bank transactions
+│   ├── protected/                # Authenticated pages
+│   │   ├── add/                  # Add transaction
+│   │   ├── admin/                # CSV import, fund management
+│   │   ├── budgets/              # Budget list, add, edit
+│   │   ├── category/[category]/  # Category + subcategory views
+│   │   ├── edit/[id]/            # Edit transaction
+│   │   ├── filter/               # Advanced filtering
+│   │   ├── search/               # Full-text search
+│   │   ├── settings/             # User settings
+│   │   ├── transactions/         # Monthly view
+│   │   └── year/                 # Yearly view
+│   ├── actions.ts                # Server actions (auth)
+│   ├── globals.css               # Tailwind v4 theme + shadcn CSS vars
+│   └── layout.tsx                # Root layout
+├── components/
+│   ├── features/                 # Business logic components (17 files)
+│   ├── layout/                   # Navigation, header, hero, theme, privacy
+│   └── ui/                       # Base components + skeletons (30+ files)
+├── hooks/                        # Custom React hooks (31 total)
+├── utils/
+│   ├── supabase/                 # Client, server, middleware, admin, DB utils
+│   ├── enable-banking/           # API client + sync service
+│   ├── currency-conversion.ts    # Frankfurter API + exchange rate caching
+│   ├── csv-import.ts             # Cashew CSV parser + validator
+│   ├── split-transactions.ts     # Split-amount calculation logic
+│   └── ...                       # Date, formatting, validation, styling utils
+├── lib/
+│   ├── swr-config.ts             # Global SWR + localStorage provider
+│   ├── cache-persistence.ts      # localStorage cache serialization
+│   └── utils.ts                  # cn() + encodedRedirect()
+├── types/
+│   └── database.ts               # All TypeScript types + category definitions
+├── constants/
+│   └── app-constants.ts          # Currency options and symbols
+├── migrations/                   # 17 numbered SQL migration files
+├── scripts/                      # Pipe-title utilities + migration runner
+├── certificates/                 # HTTPS dev certs (gitignored)
+└── public/                       # Static assets
+```
+
+---
+
+## Data Models
+
+### Transaction
+The core entity. Fields: `amount`, `currency`, `type` (expense/income), `main_category`, `sub_category`, `title`, `date`, `eur_amount`, `exchange_rate`, `hide_from_totals`, `fund_category_id`, `is_money_transfer`, `target_fund_category_id`, `split_across_year`.
+
+### FundCategory
+Bank accounts and fund balances: `name`, `description`, `currency`, `amount`, `top_level_category` (Checking, Savings, Investments, P2P Lending, Financial Services, Cash), `order_index`, `is_active`.
+
+### Budget
+Category-based monthly budgets: `category`, `amount`.
+
+### ExchangeRate
+Cached ECB rates: `date`, `base_currency`, `target_currency`, `rate`, `source`, `is_missing`.
+
+### PendingTransaction
+Bank-imported transactions awaiting review: `account_id`, `amount`, `currency`, `description`, `booking_date`, `status` (pending/accepted/rejected).
+
+### Categories (20 total)
+**Income**: Primary Income, Government Benefits, Other Income, Money Transfer
+**Expenses**: Dining, Groceries, Housing, Transportation, Shopping, Health, Entertainment, Travel, Education, Fitness, Personal Care, Services, Insurance, Taxes and Fines, Gifts and Donations, Bank Movements
+
+---
+
+## Key Architecture Decisions
+
+- **Query-param navigation**: Month/year changes use `?year=2024&month=12` with `pushState` instead of route-based URLs. This eliminates server round-trips on period navigation.
+- **Dual cache**: SWR handles in-memory caching and revalidation while localStorage provides instant data on reload. Both are kept in sync on every mutation.
+- **Optimistic updates**: Mutations update all affected caches (month, year, balance, fund categories, overall totals) immediately, with full rollback on error.
+- **CET timezone awareness**: Year boundaries use CET (Jan 1 00:00 CET = Dec 31 23:00 UTC) to match the user's timezone.
+- **No real-time on iOS Safari**: PostgreSQL LISTEN/NOTIFY subscriptions are disabled on iOS Safari to avoid performance issues — background polling (`useBackgroundSync`) serves as fallback.
+- **Custom component implementations**: Dropdown menus, modals, and selects use custom implementations rather than headless UI libraries to minimize bundle size and maximize control.
+- **Tailwind v4 CSS-native config**: All theme values are defined via `@theme` in `globals.css` — there is no `tailwind.config.ts` file.
+
+---
+
+## License
+
+Private project.

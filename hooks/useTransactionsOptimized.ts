@@ -9,11 +9,29 @@ import { transactionCache } from '@/utils/simple-cache'
 import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/utils/split-transactions'
 
-// Consolidated, optimized transactions hook
+/**
+ * Consolidated, optimized hook for fetching and managing monthly transactions.
+ *
+ * Uses SWR with a month-based cache key (e.g., `transactions-2025-06`). Supports
+ * intelligent prefetching of adjacent months, real-time event handling for INSERT /
+ * UPDATE / DELETE operations, and memoized summary calculations (totals grouped by
+ * currency). Also provides a helper to invalidate the year-level cache.
+ *
+ * @param year  - The year to fetch transactions for (e.g., 2025).
+ * @param month - The month number (1-12).
+ *
+ * @returns An object containing:
+ *  - `transactions` – Array of `Transaction` objects for the given month (empty while loading)
+ *  - `summary` – A memoized summary `{ totals, netTotal }` or `null` if no transactions exist
+ *  - `isLoading` – `true` while the request is in-flight
+ *  - `error` – Any error that occurred during fetch
+ *  - `mutate` – SWR mutate function for manual cache updates
+ *  - `refresh` – Shorthand for `mutate()`
+ */
 export function useTransactionsOptimized(year: number, month: number) {
   const supabase = createClient()
   const { prefetchAdjacentMonths } = usePrefetch()
-  
+
   const monthKey = createMonthKey(year, month)
 
   // Helper to invalidate year cache
@@ -24,11 +42,11 @@ export function useTransactionsOptimized(year: number, month: number) {
     transactionCache.delete(yearKey)
   }, [])
 
-  const { 
-    data: transactions, 
-    error, 
-    mutate, 
-    isLoading 
+  const {
+    data: transactions,
+    error,
+    mutate,
+    isLoading
   } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false, // Disabled to prevent hanging on iOS Safari tab wake
@@ -129,19 +147,19 @@ export function useTransactionsOptimized(year: number, month: number) {
     const totals = transactions.reduce((acc, t) => {
       // Skip transactions that are hidden from totals
       if (t.hide_from_totals) return acc
-      
+
       const currency = t.currency
       if (!acc[currency]) acc[currency] = { income: 0, expense: 0, count: 0 }
 
       const amount = getTransactionDisplayEurAmount(t) ?? getTransactionDisplayAmount(t)
       acc[currency][t.type] += amount
       acc[currency].count += 1
-      
+
       return acc
     }, {} as Record<string, { income: number; expense: number; count: number }>)
 
     // Calculate net total in EUR
-    const netTotal = Object.values(totals).reduce((sum, curr) => 
+    const netTotal = Object.values(totals).reduce((sum, curr) =>
       sum + curr.income - curr.expense, 0
     )
 

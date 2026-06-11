@@ -1,3 +1,14 @@
+/**
+ * @file Core TypeScript type definitions for the application's data models.
+ * Defines the shape of database entities (`Transaction`, `Budget`,
+ * `ExchangeRate`, `FundCategory`, `TitleSuggestion`) as well as derived
+ * constants for categories, sub-categories, and fund top-level groupings.
+ */
+
+/**
+ * A financial transaction (income or expense) with multi-currency support,
+ * fund linking, and money-transfer capabilities.
+ */
 export type Transaction = {
   id: string
   user_id: string
@@ -30,6 +41,9 @@ export type Transaction = {
   split_display_eur_amount?: number | null
 }
 
+/**
+ * A budget target linking a category to a spending limit.
+ */
 export type Budget = {
   id: string
   user_id: string
@@ -39,6 +53,9 @@ export type Budget = {
   updated_at: string
 }
 
+/**
+ * A cached exchange-rate entry used for multi-currency EUR conversion.
+ */
 export type ExchangeRate = {
   id: string
   date: string
@@ -51,6 +68,10 @@ export type ExchangeRate = {
   is_missing?: boolean
 }
 
+/**
+ * A fund category (bank account, savings, investment, etc.) tracking
+ * a named pool of money.
+ */
 export type FundCategory = {
   id: string
   user_id: string
@@ -73,6 +94,9 @@ type CategoryData = {
 };
 
 // Use a smaller inline constant for now to avoid webpack cache issues
+/**
+ * All supported categories with their subcategories and transaction type.
+ */
 export const CATEGORIES_WITH_TYPES: ReadonlyArray<CategoryData> = [
   { category: "Money Transfer", subcategories: ["Money Transfer"], type: "expense" },
   { category: "Bank Movements", subcategories: ["Initial Assets"], type: "income" },
@@ -97,20 +121,29 @@ export const CATEGORIES_WITH_TYPES: ReadonlyArray<CategoryData> = [
 ]
 
 // Derived arrays from CATEGORIES_WITH_TYPES
+/** Array of all main category names. */
 export const MAIN_CATEGORIES = CATEGORIES_WITH_TYPES.map(cat => cat.category)
 
+/** Mapping from each main category to its list of subcategories. */
 export const SUB_CATEGORIES: Record<string, string[]> = CATEGORIES_WITH_TYPES.reduce(
   (acc, cat) => ({ ...acc, [cat.category]: cat.subcategories }),
   {}
 )
 
-// Helper function to get category type
+/**
+ * Determine whether a main category is income or expense.
+ *
+ * @param category - The name of the main category to look up.
+ * @returns `"income"` or `"expense"`; defaults to `"expense"` if the
+ *          category is not found.
+ */
 export function getCategoryType(category: string): 'income' | 'expense' {
   const categoryData = CATEGORIES_WITH_TYPES.find(cat => cat.category === category);
   return categoryData?.type || 'expense';
 }
 
 // Top-level fund categories
+/** The top-level grouping labels for fund categories. */
 export const TOP_LEVEL_FUND_CATEGORIES = [
   "Checking Accounts",
   "Savings Accounts",
@@ -120,7 +153,10 @@ export const TOP_LEVEL_FUND_CATEGORIES = [
   "Cash"
 ] as const;
 
-// Title suggestion types
+/**
+ * A title suggestion auto-tracked for quick data entry, ranked by usage
+ * frequency.
+ */
 export type TitleSuggestion = {
   id: string
   user_id: string
@@ -134,4 +170,8 @@ export type TitleSuggestion = {
   updated_at: string
 }
 
-export type TitleSuggestionInput = Omit<TitleSuggestion, 'id' | 'user_id' | 'created_at' | 'updated_at'> 
+/**
+ * Payload for creating or updating a title suggestion (excludes
+ * auto-generated fields).
+ */
+export type TitleSuggestionInput = Omit<TitleSuggestion, 'id' | 'user_id' | 'created_at' | 'updated_at'>

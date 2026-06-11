@@ -1,14 +1,49 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { EnableBankingClient } from './client';
+/**
+ * Enable Banking sync service for importing bank transactions.
+ *
+ * Provides the main sync function that fetches bank transactions from the
+ * Enable Banking API, deduplicates them against existing transactions in the
+ * local database, and stores new ones as pending transactions for user review
+ * and approval.
+ *
+ * @module utils/enable-banking/sync-service
+ */
 
-// Helper to format date as YYYY-MM-DD
+import { SupabaseClient } from '@supabase/supabase-js';
+import { EnableBankingClient, IntegrationConfig } from './client';
+
+/**
+ * Converts a date string to ISO YYYY-MM-DD format.
+ *
+ * @param dateStr - Any date-parsable string
+ * @returns The date in YYYY-MM-DD format
+ */
 const toISODate = (dateStr: string) => {
     return new Date(dateStr).toISOString().split('T')[0];
 };
 
+/**
+ * Synchronises bank transactions from a configured Enable Banking account
+ * into the application's pending_transactions table.
+ *
+ * The function:
+ * 1. Determines the fetch start date (last sync timestamp, or last 7 days)
+ * 2. Fetches transactions from the Enable Banking API
+ * 3. Deduplicates against existing transactions (by amount+date+currency signature)
+ *    and existing pending transactions (by external_id)
+ * 4. Inserts new, unique transactions as pending entries
+ * 5. Updates the integration config's last_sync_at timestamp
+ *
+ * @param supabase - A Supabase client instance for database operations
+ * @param config - The integration configuration object (must include
+ *                 account_id, user_id, last_sync_at, id, and settings)
+ * @param client - An initialised EnableBankingClient for API calls
+ * @returns A result object with account, fetched count, new pending count,
+ *          and optionally an error message on failure
+ */
 export async function syncAccount(
     supabase: SupabaseClient,
-    config: any,
+    config: IntegrationConfig,
     client: EnableBankingClient
 ) {
     try {
@@ -77,21 +112,21 @@ export async function syncAccount(
 
             if (!existingTxSignature.has(signature)) {
                 // Determine transaction type from credit_debit_indicator
-                const txType = (tx as any).credit_debit_indicator === 'CRDT' ? 'income' : 'expense';
+                const txType = tx.credit_debit_indicator === 'CRDT' ? 'income' : 'expense';
 
                 const accountIban = txType === 'expense'
-                    ? ((tx as any).debtor_account?.iban || null)
-                    : ((tx as any).creditor_account?.iban || null);
+                    ? (tx.debtor_account?.iban || null)
+                    : (tx.creditor_account?.iban || null);
 
-                const fundCategoryId = (config.settings as any).fund_category_id || null;
+                const fundCategoryId = config.settings?.fund_category_id || null;
 
                 let transactionTimestamp: string;
-                const rawDate = (tx as any).value_date || (tx as any).transaction_date || date;
+                const rawDate = tx.value_date || tx.transaction_date || date;
 
                 if (rawDate.includes('T')) {
                     transactionTimestamp = rawDate;
                 } else {
-                    const timeStr = (tx as any).transaction_time || '12:00:00';
+                    const timeStr = tx.transaction_time || '12:00:00';
                     transactionTimestamp = new Date(`${rawDate}T${timeStr}`).toISOString();
                 }
 
@@ -134,8 +169,9 @@ export async function syncAccount(
             new_pending: newPendingTransactions.length
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         console.error(`Sync failed for config ${config.id}:`, error);
-        return { account: config.account_id, error: error.message };
+        return { account: config.account_id, error: message };
     }
 }

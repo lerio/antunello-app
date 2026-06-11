@@ -1,11 +1,36 @@
+/**
+ * @file Disconnect a bank integration by removing the corresponding
+ * `integration_configs` row(s). Accepts either an `account_id` or a
+ * `bank_name` to identify the integration(s) to remove.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
+/**
+ * Normalise a bank name value for fuzzy matching.
+ *
+ * @param value - The raw value to normalise.
+ * @returns The lower-cased, trimmed string, or an empty string if the value
+ *          is not a string.
+ */
 function normalizeBankName(value: unknown) {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+/**
+ * Delete one or more integration configs for the authenticated user.
+ *
+ * Request body (JSON):
+ * - `account_id` (optional) – Delete the config for this specific account.
+ * - `bank_name` (optional) – Delete config(s) matching the bank name.
+ *
+ * At least one of `account_id` or `bank_name` must be provided.
+ *
+ * @param request - The incoming DELETE request with a JSON body.
+ * @returns A JSON response indicating success or an error.
+ */
 export async function DELETE(request: NextRequest) {
     try {
         const supabase = await createClient();

@@ -1,3 +1,13 @@
+/**
+ * Currency formatting utilities.
+ *
+ * Provides locale-aware currency formatting using `Intl.NumberFormat`.
+ * Supports EUR, USD, and JPY with predefined locale configurations,
+ * falling back to EUR formatting for unknown currencies.
+ *
+ * @module utils/currency
+ */
+
 type CurrencyConfig = {
   locale: string
   currency: string
@@ -9,6 +19,16 @@ const CURRENCY_FORMATS: Record<string, CurrencyConfig> = {
   JPY: { locale: 'ja-JP', currency: 'JPY' },
 }
 
+/**
+ * Formats a numeric amount into a locale-aware currency string.
+ * Uses currency-specific locales (e.g., EUR uses Italian formatting with "." as
+ * thousands separator and "," for decimals). JPY is formatted with 0 decimal places;
+ * all other currencies use 2 decimal places.
+ *
+ * @param amount - The numeric amount to format
+ * @param currency - Three-letter ISO 4217 currency code (defaults to EUR if unknown)
+ * @returns The formatted currency string including the currency symbol
+ */
 export function formatCurrency(amount: number, currency: string): string {
   const config = CURRENCY_FORMATS[currency] || CURRENCY_FORMATS.EUR
 
@@ -18,4 +38,4 @@ export function formatCurrency(amount: number, currency: string): string {
     minimumFractionDigits: currency === 'JPY' ? 0 : 2,
     maximumFractionDigits: currency === 'JPY' ? 0 : 2,
   }).format(amount)
-} 
+}
