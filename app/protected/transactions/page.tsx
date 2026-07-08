@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, ArrowUp, Search, Filter, RefreshCw } from "lucide-react";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
@@ -89,6 +89,20 @@ export default function ProtectedPage() {
     isEditModalOpen,
   } = useModalState();
 
+  // Key to force Modal remount when switching from split child to original
+  const [editModalKey, setEditModalKey] = useState(0);
+  const pendingOriginalRef = useRef<Transaction | null>(null);
+
+  // When the edit modal closes with a pending original transaction, reopen it
+  // with a fresh key to avoid the 300ms close-animation race condition.
+  useEffect(() => {
+    if (!isEditModalOpen && pendingOriginalRef.current) {
+      const tx = pendingOriginalRef.current;
+      pendingOriginalRef.current = null;
+      setEditModalKey((k) => k + 1);
+      openEditModal(tx);
+    }
+  }, [isEditModalOpen, openEditModal]);
 
   // Pending transaction modal state
   const {
@@ -389,6 +403,22 @@ export default function ProtectedPage() {
     [deleteTransaction, closeEditModal, recordLocalMutation]
   );
 
+  const handleViewOriginal = useCallback(
+    async (sourceId: string) => {
+      const { data } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", sourceId)
+        .single();
+
+      if (!data) return;
+
+      pendingOriginalRef.current = data as Transaction;
+      closeEditModal();
+    },
+    [closeEditModal, supabase]
+  );
+
   /* REMOVED: history.pushState manual handling */
   const handleMonthSelect = useCallback(
     (year: number, month: number) => {
@@ -586,7 +616,7 @@ export default function ProtectedPage() {
       </Modal>
 
       {/* Edit Entry Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
+      <Modal key={editModalKey} isOpen={isEditModalOpen} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
@@ -594,6 +624,7 @@ export default function ProtectedPage() {
             onDelete={
               editingTransaction.split_is_read_only ? undefined : handleDeleteTransaction
             }
+            onViewOriginal={handleViewOriginal}
             disabled={!!editingTransaction.split_is_read_only}
             onClose={closeEditModal}
           />

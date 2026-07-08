@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, ArrowUp, Plus, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -10,6 +10,7 @@ import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { Modal } from "@/components/ui/modal";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { Transaction } from "@/types/database";
+import { createClient } from "@/utils/supabase/client";
 import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
@@ -46,6 +47,21 @@ export default function SearchPage() {
     hasOpenModal,
     isEditModalOpen,
   } = useModalState();
+
+  // Key to force Modal remount when switching from split child to original
+  const [editModalKey, setEditModalKey] = useState(0);
+  const pendingOriginalRef = useRef<Transaction | null>(null);
+
+  // When the edit modal closes with a pending original transaction, reopen it
+  // with a fresh key to avoid the 300ms close-animation race condition.
+  useEffect(() => {
+    if (!isEditModalOpen && pendingOriginalRef.current) {
+      const tx = pendingOriginalRef.current;
+      pendingOriginalRef.current = null;
+      setEditModalKey((k) => k + 1);
+      openEditModal(tx);
+    }
+  }, [isEditModalOpen, openEditModal]);
 
   const {
     results: searchResults,
@@ -199,6 +215,23 @@ export default function SearchPage() {
     [deleteTransaction, removeFromResults, refetchSearch, closeEditModal]
   );
 
+  const handleViewOriginal = useCallback(
+    async (sourceId: string) => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", sourceId)
+        .single();
+
+      if (!data) return;
+
+      pendingOriginalRef.current = data as Transaction;
+      closeEditModal();
+    },
+    [closeEditModal]
+  );
+
   return (
     <div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -319,12 +352,13 @@ export default function SearchPage() {
       </Modal>
 
       {/* Edit Entry Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
+      <Modal key={editModalKey} isOpen={isEditModalOpen} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
+            onViewOriginal={handleViewOriginal}
             onClose={closeEditModal}
           />
         )}

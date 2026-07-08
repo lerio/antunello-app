@@ -120,16 +120,34 @@ function TypeSelector({
 function DeleteSection({
   initialData,
   onDelete,
+  onViewOriginal,
   showDeleteConfirm,
   setShowDeleteConfirm,
   disabled,
 }: {
   readonly initialData?: Transaction;
   readonly onDelete?: (transaction: Transaction) => Promise<void>;
+  readonly onViewOriginal?: (sourceId: string) => void;
   readonly showDeleteConfirm: boolean;
   readonly setShowDeleteConfirm: (v: boolean) => void;
   readonly disabled?: boolean;
 }) {
+  // For split child transactions, show a link to the originating transaction
+  // instead of the delete link.
+  if (initialData?.split_source_transaction_id) {
+    return (
+      <div className="pt-1 pb-1">
+        <button
+          type="button"
+          onClick={() => onViewOriginal?.(initialData.split_source_transaction_id!)}
+          className="w-full text-sm text-center hover:underline transition-colors py-1 focus:outline-none"
+        >
+          View Original Transaction
+        </button>
+      </div>
+    );
+  }
+
   if (!onDelete || !initialData || disabled) return null;
   return (
     <div className="pt-1 pb-1">
@@ -154,6 +172,7 @@ interface TransactionFormModalProps {
   readonly initialData?: Transaction;
   readonly disabled?: boolean;
   readonly onDelete?: (transaction: Transaction) => Promise<void>;
+  readonly onViewOriginal?: (sourceId: string) => void;
   readonly onClose?: () => void;
 }
 
@@ -162,6 +181,7 @@ export default function TransactionFormModal({
   initialData,
   disabled = false,
   onDelete,
+  onViewOriginal,
   onClose,
 }: TransactionFormModalProps) {
   // Get fund categories for the Source dropdown
@@ -890,6 +910,7 @@ export default function TransactionFormModal({
       <DeleteSection
         initialData={initialData}
         onDelete={onDelete}
+        onViewOriginal={onViewOriginal}
         showDeleteConfirm={showDeleteConfirm}
         setShowDeleteConfirm={setShowDeleteConfirm}
         disabled={disabled}

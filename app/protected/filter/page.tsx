@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -49,6 +49,21 @@ export default function FilterPage() {
     hasOpenModal,
     isEditModalOpen,
   } = useModalState();
+
+  // Key to force Modal remount when switching from split child to original
+  const [editModalKey, setEditModalKey] = useState(0);
+  const pendingOriginalRef = useRef<Transaction | null>(null);
+
+  // When the edit modal closes with a pending original transaction, reopen it
+  // with a fresh key to avoid the 300ms close-animation race condition.
+  useEffect(() => {
+    if (!isEditModalOpen && pendingOriginalRef.current) {
+      const tx = pendingOriginalRef.current;
+      pendingOriginalRef.current = null;
+      setEditModalKey((k) => k + 1);
+      openEditModal(tx);
+    }
+  }, [isEditModalOpen, openEditModal]);
 
   const {
     results: filterResults,
@@ -215,6 +230,23 @@ export default function FilterPage() {
     [deleteTransaction, removeFromResults, refetchFilter, closeEditModal]
   );
 
+  const handleViewOriginal = useCallback(
+    async (sourceId: string) => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", sourceId)
+        .single();
+
+      if (!data) return;
+
+      pendingOriginalRef.current = data as Transaction;
+      closeEditModal();
+    },
+    [closeEditModal]
+  );
+
   // Check if any filter is actually applied (for "All time" message)
   const isAllTime = criteria.month === null && criteria.year === null;
 
@@ -316,12 +348,13 @@ export default function FilterPage() {
       )}
 
       {/* Edit Entry Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
+      <Modal key={editModalKey} isOpen={isEditModalOpen} onClose={closeEditModal}>
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={handleDeleteTransaction}
+            onViewOriginal={handleViewOriginal}
             onClose={closeEditModal}
           />
         )}
