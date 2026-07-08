@@ -26,7 +26,7 @@ export interface EnableBankingTransaction {
   transaction_id?: string;
   /** Alternative ID field used by some banks */
   entry_reference?: string;
-  /** Booking date in YYYY-MM-DD format */
+  /** Booking date in YYYY-MM-DD format — when the bank posted the transaction */
   booking_date: string;
   amount?: {
     currency: string;
@@ -50,11 +50,18 @@ export interface EnableBankingTransaction {
   debtor_account?: { iban?: string };
   /** Creditor account IBAN (for income) */
   creditor_account?: { iban?: string };
-  /** Value date if different from booking date */
+  /**
+   * Value date (YYYY-MM-DD) — when the money actually left/entered the account.
+   * This is the most meaningful date for personal finance tracking.
+   */
   value_date?: string;
-  /** Transaction date if different from booking date */
+  /** Transaction date (YYYY-MM-DD) — when the transaction was initiated */
   transaction_date?: string;
-  /** Transaction time (HH:mm:ss) */
+  /**
+   * Transaction time (HH:mm:ss). Not part of the standard Enable Banking API
+   * schema; observed from some bank-specific responses. When absent, the sync
+   * service falls back to noon UTC so the date stays correct across timezones.
+   */
   transaction_time?: string;
 }
 
@@ -82,6 +89,12 @@ interface EnableBankingAccount {
   };
   name?: string;
   provider?: string;
+  /**
+   * Stable hashes that identify the same real-world account across different
+   * sessions/authorisations. Use these to re-match accounts after re-auth
+   * when the account `uid` changes.
+   */
+  identification_hashes?: string[];
 }
 
 interface EnableBankingAccountsResponse {
@@ -154,46 +167,57 @@ export class EnableBankingClient {
   }
 
   /**
-   * Fetches transactions for a specific bank account.
+   * Fetches transactions for a specific bank account, following pagination
+   * via `continuation_key` until all pages are exhausted.
+   *
    * Optionally filters by a start date using the `date_from` query parameter.
    *
    * @param accountId - The UID of the bank account to fetch transactions for
    * @param fromDate - Optional date to filter transactions from
-   * @returns A promise resolving to an array of transactions
-   * @throws {Error} If the API request fails or returns a non-OK status
+   * @returns A promise resolving to an array of all transactions across all pages
+   * @throws {Error} If any API request fails or returns a non-OK status
    */
   async getAccountTransactions(accountId: string, fromDate?: Date): Promise<EnableBankingTransaction[]> {
     const token = await this.generateToken();
-    let url = `${this.baseUrl}/accounts/${accountId}/transactions`;
 
-    // According to research, some APIs take query params for date filtering if supported,
-    // otherwise we filter client-side. Enable Banking docs usually support access to historical data.
-    // For MVP, we'll fetch what we can and filter by date if the API doesn't support strict params or
-    // if the param name varies. We will try to rely on the pagination if there are many.
-    // NOTE: Enable Banking specific AIS params might vary by connected bank ASPSP support.
-
-    // We'll proceed with a simple fetch (fetching recent ones).
-    // If the API supports 'date_from', we should add it.
-    // Assuming standard AIS flow often allows `date_from`.
+    // Build the base URL with optional date filter
+    const params = new URLSearchParams();
     if (fromDate) {
-      // Format YYYY-MM-DD
-      const dateStr = fromDate.toISOString().split('T')[0];
-      url += `?date_from=${dateStr}`;
+      params.set('date_from', fromDate.toISOString().split('T')[0]);
     }
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    const allTransactions: EnableBankingTransaction[] = [];
+    let continuationKey: string | undefined;
+
+    do {
+      // Append continuation_key to params if we have one from the previous page
+      const pageParams = new URLSearchParams(params);
+      if (continuationKey) {
+        pageParams.set('continuation_key', continuationKey);
       }
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Enable Banking API Error: ${response.status} - ${errorText}`);
-    }
+      const url = `${this.baseUrl}/accounts/${accountId}/transactions?${pageParams.toString()}`;
 
-    const data: EnableBankingTransactionsResponse = await response.json();
-    return data.transactions || [];
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Enable Banking API Error: ${response.status} - ${errorText}`);
+      }
+
+      const data: EnableBankingTransactionsResponse = await response.json();
+      if (data.transactions) {
+        allTransactions.push(...data.transactions);
+      }
+
+      continuationKey = data.continuation_key;
+    } while (continuationKey);
+
+    return allTransactions;
   }
 }

@@ -130,9 +130,13 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
         query = query.in('sub_category', subCategoryNames)
       }
 
-      // Fund source filter
+      // Fund filter: match fund_category_id for all transactions,
+      // and target_fund_category_id for movement/money-transfer transactions.
       if (fundSourceIds.length > 0) {
-        query = query.in('fund_category_id', fundSourceIds)
+        const ids = fundSourceIds.join(',')
+        query = query.or(
+          `fund_category_id.in.(${ids}),and(is_money_transfer.eq.true,target_fund_category_id.in.(${ids}))`
+        )
       }
 
       // Amount range filter

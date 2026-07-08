@@ -98,43 +98,104 @@ export async function GET(request: NextRequest) {
         const accounts = sessionData.accounts || [];
 
         for (const acc of accounts) {
-            const { data: existingConfig, error: existingConfigError } = await supabase
+            // Try to find an existing config for this account.
+            // Priority: 1) exact account_id match, 2) identification_hash overlap,
+            // 3) IBAN match. This handles re-authorisation where the account UID
+            // changes but the underlying bank account is the same.
+            let existingConfig: { id: string; settings: any } | null = null;
+
+            // 1) Exact match by account_id (UID)
+            const { data: byUid } = await supabase
                 .from('integration_configs')
-                .select('settings')
+                .select('id, settings')
                 .eq('user_id', user.id)
                 .eq('provider', 'enable_banking')
                 .eq('account_id', acc.uid)
                 .maybeSingle();
 
-            if (existingConfigError) {
-                console.error('DB Existing Config Lookup Error:', existingConfigError);
-                throw existingConfigError;
+            if (byUid) {
+                existingConfig = byUid;
             }
 
-            const existingSettings = (existingConfig?.settings as any) || {};
+            // 2) Match by identification_hashes overlap
+            if (!existingConfig && acc.identification_hashes?.length) {
+                const { data: allConfigs } = await supabase
+                    .from('integration_configs')
+                    .select('id, settings')
+                    .eq('user_id', user.id)
+                    .eq('provider', 'enable_banking');
 
-            // Upsert integration config
-            const { error: dbError } = await supabase
-                .from('integration_configs')
-                .upsert({
-                    user_id: user.id,
-                    provider: 'enable_banking',
-                    account_id: acc.uid,
-                    settings: {
-                        ...existingSettings,
-                        session_id: sessionData.session_id,
-                        iban: acc.account_id?.iban,
-                        currency: acc.account_id?.currency,
-                        bank_name: stateBankName // Save the bank name we carried over
-                    },
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'user_id, provider, account_id'
+                const matchingConfig = allConfigs?.find((cfg) => {
+                    const storedHashes: string[] = (cfg.settings as any)?.identification_hashes || [];
+                    return storedHashes.some((h) => acc.identification_hashes!.includes(h));
                 });
 
-            if (dbError) {
-                console.error('DB Insert Error:', dbError);
-                throw dbError;
+                if (matchingConfig) {
+                    existingConfig = matchingConfig;
+                }
+            }
+
+            // 3) Match by IBAN
+            if (!existingConfig && acc.account_id?.iban) {
+                const { data: allConfigs } = await supabase
+                    .from('integration_configs')
+                    .select('id, settings')
+                    .eq('user_id', user.id)
+                    .eq('provider', 'enable_banking');
+
+                const matchingConfig = allConfigs?.find((cfg) => {
+                    return (cfg.settings as any)?.iban === acc.account_id?.iban;
+                });
+
+                if (matchingConfig) {
+                    existingConfig = matchingConfig;
+                }
+            }
+
+            const mergedSettings = {
+                ...(existingConfig?.settings as any || {}),
+                session_id: sessionData.session_id,
+                iban: acc.account_id?.iban,
+                currency: acc.account_id?.currency,
+                bank_name: stateBankName,
+                identification_hashes: acc.identification_hashes || [],
+            };
+
+            if (existingConfig && !byUid) {
+                // Matched by hash or IBAN — the account UID changed after
+                // re-authorisation. Update the existing row in place so we
+                // preserve last_sync_at and any other state.
+                const { error: updateError } = await supabase
+                    .from('integration_configs')
+                    .update({
+                        account_id: acc.uid,
+                        settings: mergedSettings,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingConfig.id);
+
+                if (updateError) {
+                    console.error('DB Update Error:', updateError);
+                    throw updateError;
+                }
+            } else {
+                // New account, or matched by exact UID — safe to upsert.
+                const { error: dbError } = await supabase
+                    .from('integration_configs')
+                    .upsert({
+                        user_id: user.id,
+                        provider: 'enable_banking',
+                        account_id: acc.uid,
+                        settings: mergedSettings,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'user_id, provider, account_id'
+                    });
+
+                if (dbError) {
+                    console.error('DB Insert Error:', dbError);
+                    throw dbError;
+                }
             }
         }
 

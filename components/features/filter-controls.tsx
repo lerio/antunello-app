@@ -355,7 +355,7 @@ export function FilterControls({
       {fundSourceOptions.length > 0 && (
         <div>
           <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-2">
-            Fund Source
+            Fund
           </span>
           <div className="min-h-[32px] flex items-center">
             <MultiSelectChips

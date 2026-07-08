@@ -31,6 +31,12 @@ export type PendingTransaction = {
         account_iban?: string;
         fund_category_id?: string | null;
         original_amount?: number;
+        /** Bank's booking date (YYYY-MM-DD) — when the bank posted it */
+        booking_date?: string | null;
+        /** Bank's value date (YYYY-MM-DD) — when the money actually moved */
+        value_date?: string | null;
+        /** Bank's transaction date (YYYY-MM-DD) — when initiated */
+        transaction_date?: string | null;
     };
     /** Raw payload as received from the external source */
     raw_data?: any;

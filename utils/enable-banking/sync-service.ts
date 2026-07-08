@@ -10,7 +10,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { EnableBankingClient, IntegrationConfig } from './client';
+import { EnableBankingClient, EnableBankingTransaction, IntegrationConfig } from './client';
 
 /**
  * Converts a date string to ISO YYYY-MM-DD format.
@@ -20,6 +20,21 @@ import { EnableBankingClient, IntegrationConfig } from './client';
  */
 const toISODate = (dateStr: string) => {
     return new Date(dateStr).toISOString().split('T')[0];
+};
+
+/**
+ * Extracts the most meaningful date from a bank transaction using the priority
+ * chain value_date > transaction_date > booking_date.
+ *
+ * `value_date` represents when the money actually moved, making it the closest
+ * to the real-world transaction date. Falls back through `transaction_date`
+ * (when initiated) to `booking_date` (when the bank posted it).
+ *
+ * @param tx - The raw Enable Banking transaction object
+ * @returns The best available date string, or `undefined` if none are present
+ */
+const getBestDate = (tx: EnableBankingTransaction): string | undefined => {
+    return tx.value_date || tx.transaction_date || tx.booking_date;
 };
 
 /**
@@ -92,7 +107,11 @@ export async function syncAccount(
             }
 
             const amount = parseFloat(amountObj.amount);
-            const date = tx.booking_date;
+            const date = getBestDate(tx);
+            if (!date) {
+                console.warn(`Transaction ${tx.transaction_id || tx.entry_reference} is missing date fields. Skipping.`);
+                continue;
+            }
             const currency = amountObj.currency;
 
             // Handle remittance information
@@ -121,13 +140,16 @@ export async function syncAccount(
                 const fundCategoryId = config.settings?.fund_category_id || null;
 
                 let transactionTimestamp: string;
-                const rawDate = tx.value_date || tx.transaction_date || date;
-
-                if (rawDate.includes('T')) {
-                    transactionTimestamp = rawDate;
+                if (date.includes('T')) {
+                    // Date is already an ISO timestamp (some banks provide full datetime)
+                    transactionTimestamp = date;
                 } else {
+                    // Date is YYYY-MM-DD. Prefer the bank-provided time if present
+                    // (non-standard, but observed from some institutions). Fall back
+                    // to noon UTC so the date stays correct across all timezones
+                    // from UTC-12 to UTC+12.
                     const timeStr = tx.transaction_time || '12:00:00';
-                    transactionTimestamp = new Date(`${rawDate}T${timeStr}`).toISOString();
+                    transactionTimestamp = new Date(`${date}T${timeStr}Z`).toISOString();
                 }
 
                 newPendingTransactions.push({
@@ -141,7 +163,12 @@ export async function syncAccount(
                         type: txType,
                         account_iban: accountIban,
                         fund_category_id: fundCategoryId,
-                        original_amount: amount
+                        original_amount: amount,
+                        // Preserve original date fields so the review UI can
+                        // surface discrepancies (e.g. value_date vs booking_date)
+                        booking_date: tx.booking_date || null,
+                        value_date: tx.value_date || null,
+                        transaction_date: tx.transaction_date || null,
                     },
                     status: 'pending'
                 });

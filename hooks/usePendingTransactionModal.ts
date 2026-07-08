@@ -30,6 +30,12 @@ interface PendingTransaction {
         fund_category_id?: string | null;
         /** Original amount before currency conversion (if applicable) */
         original_amount?: number;
+        /** Bank's booking date (YYYY-MM-DD) */
+        booking_date?: string | null;
+        /** Bank's value date (YYYY-MM-DD) */
+        value_date?: string | null;
+        /** Bank's transaction date (YYYY-MM-DD) */
+        transaction_date?: string | null;
     };
 }
 
