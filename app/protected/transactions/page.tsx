@@ -22,7 +22,7 @@ import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { transactionCache } from "@/utils/simple-cache";
 import toast from "react-hot-toast";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
@@ -31,6 +31,7 @@ import {
   calculateExpectedSplitAmountEur,
   expandSplitTransactionsForMonth,
 } from "@/utils/split-transactions";
+import { createMonthKey } from "@/utils/transaction-fetcher";
 
 import TransactionFormModal from "@/components/features/transaction-form-modal";
 import { usePendingTransactions } from "@/hooks/usePendingTransactions";
@@ -363,6 +364,14 @@ export default function ProtectedPage() {
         editingTransaction.date
       ).then(async (result) => {
         await recordLocalMutation();
+        // Clear the simple LRU cache so transactionFetcher hits Supabase
+        // instead of returning stale data with old split children.
+        const monthKey = createMonthKey(selectedYear, selectedMonth);
+        transactionCache.delete(monthKey);
+        // Also invalidate the split-sources SWR cache.
+        globalMutate(`split-sources-${selectedYear}`, undefined, true);
+        // Trigger SWR to re-fetch the month data.
+        await mutate();
         return result;
       });
 
@@ -377,7 +386,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction, closeEditModal, recordLocalMutation]
+    [updateTransaction, editingTransaction, closeEditModal, recordLocalMutation, mutate, selectedYear, selectedMonth]
   );
 
   const handleDeleteTransaction = useCallback(

@@ -338,8 +338,24 @@ export function useTransactionMutations() {
     const oldMonthKey = getMonthKey(oldDate)
     const newMonthKey = getMonthKey(data.date || oldDate)
 
-    const originalTransaction = getOriginalTransactionFromCache(oldMonthKey, id)
-    if (!originalTransaction) return
+    let resolvedTransaction = getOriginalTransactionFromCache(oldMonthKey, id)
+
+    // If the transaction isn't in cache (e.g. opened directly via "View Original
+    // Transaction" from a split child), fetch it from the database as fallback.
+    if (!resolvedTransaction) {
+      const { data: dbTransaction, error: dbError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (dbError || !dbTransaction) return
+      resolvedTransaction = dbTransaction
+    }
+
+    // resolvedTransaction is guaranteed defined here (guard clause above returns
+    // early if both cache and DB miss). Use a non-null assertion for TypeScript.
+    const originalTransaction = resolvedTransaction!
 
     const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
     const optimisticUpdated: Transaction = {

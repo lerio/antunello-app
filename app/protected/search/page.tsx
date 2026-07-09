@@ -174,7 +174,10 @@ export default function SearchPage() {
         editingTransaction.id,
         data,
         editingTransaction.date
-      );
+      ).then(async (result) => {
+        await refetchSearch();
+        return result;
+      });
 
       toast.promise(toastPromise, {
         loading: "Updating transaction...",
@@ -187,7 +190,7 @@ export default function SearchPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction, closeEditModal]
+    [updateTransaction, editingTransaction, closeEditModal, refetchSearch]
   );
 
   const handleDeleteTransaction = useCallback(
