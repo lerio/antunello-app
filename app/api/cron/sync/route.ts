@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { EnableBankingClient } from '@/utils/enable-banking/client';
 import { syncAccount } from '@/utils/enable-banking/sync-service';
+import { triggerTRSync } from '@/utils/trade-republic/trigger';
 
 /**
  * Synchronise bank transactions from Enable Banking for one or more
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch integration configs
     let configQuery = supabase
         .from('integration_configs')
-        .select('id, user_id, account_id, last_sync_at, settings');
+        .select('id, user_id, provider, account_id, last_sync_at, settings');
 
     // Always filter by user_id if authenticated via session
     if (internalUserId) {
@@ -70,19 +71,25 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message });
     }
 
-    const appId = process.env.ENABLE_BANKING_APP_ID;
-    const appKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
-    const kid = process.env.ENABLE_BANKING_KID || appId;
-
-    if (!appId || !appKey) {
-        return NextResponse.json({ error: 'Missing Server-side Enable Banking Configuration' }, { status: 500 });
-    }
-
-    const client = new EnableBankingClient({ appId, appKey, kid: kid! });
-
-    // 3. Delegate per-account sync to the shared sync service
+    // 3. Delegate per-account sync to the appropriate provider-specific service.
     const results = await Promise.all(
-        configs.map(config => syncAccount(supabase, config, client))
+        configs.map(async (config) => {
+            if (config.provider === 'trade_republic') {
+                return triggerTRSync(supabase, config);
+            }
+
+            // Default / enable_banking path.
+            const appId = process.env.ENABLE_BANKING_APP_ID;
+            const appKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
+            const kid = process.env.ENABLE_BANKING_KID || appId;
+
+            if (!appId || !appKey) {
+                return { account: config.account_id, error: 'Missing Server-side Enable Banking Configuration' };
+            }
+
+            const client = new EnableBankingClient({ appId, appKey, kid: kid! });
+            return syncAccount(supabase, config, client);
+        })
     );
 
     return NextResponse.json({ results });

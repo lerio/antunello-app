@@ -35,6 +35,10 @@ function SettingsContent() {
   const router = useRouter();
   const { mutate: globalMutate } = useSWRConfig();
 
+  // Trade Republic auth form state
+  const [trConnecting, setTrConnecting] = useState(false);
+  const [trError, setTrError] = useState('');
+
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
     "integration-configs",
@@ -70,6 +74,10 @@ function SettingsContent() {
   const { fundCategories, isLoading: isFundsLoading } = useFundCategories();
 
   const handleConnect = (bank: string, country: string) => {
+    if (bank === 'Trade Republic') {
+      handleTRConnect();
+      return;
+    }
     window.location.href = `/api/enable-banking/auth?bank=${encodeURIComponent(bank)}&country=${country}`;
   };
 
@@ -77,10 +85,12 @@ function SettingsContent() {
     bankName,
     accountId,
     label,
+    provider,
   }: {
     bankName?: string;
     accountId?: string;
     label: string;
+    provider?: string;
   }) => {
     // Logic: disconnect by bank name if available, otherwise try to map Bunq legacy
     if (
@@ -90,7 +100,13 @@ function SettingsContent() {
 
     const toastId = toast.loading("Disconnecting...");
     try {
-      const res = await fetch("/api/enable-banking/disconnect", {
+      // Use the TR-specific disconnect endpoint for Trade Republic accounts.
+      const endpoint =
+        provider === 'trade_republic'
+          ? '/api/trade-republic/disconnect'
+          : '/api/enable-banking/disconnect';
+
+      const res = await fetch(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(accountId ? { account_id: accountId } : { bank_name: bankName }),
@@ -159,18 +175,54 @@ function SettingsContent() {
 
       if (!res.ok) throw new Error(data.error || "Failed to fetch");
 
-      // Check if new transactions were found (backend uses new_pending)
-      const newFound = data.results?.some((r: any) => r.new_pending > 0);
+      // Check if a GitHub workflow was triggered (Vercel path).
+      const wasTriggered = data.results?.some((r: any) => r.triggered);
 
-      if (newFound) {
-        toast.success("Sync complete! New transactions found.", { id: toastId });
-        // Manually refresh pending transactions so the notification bubble updates
-        globalMutate("pending-transactions");
+      if (wasTriggered) {
+        toast.success("Sync triggered. Transactions will appear shortly.", { id: toastId });
       } else {
-        toast.success("Sync complete. No new transactions.", { id: toastId });
+        // Check if new transactions were found (backend uses new_pending)
+        const newFound = data.results?.some((r: any) => r.new_pending > 0);
+
+        if (newFound) {
+          toast.success("Sync complete! New transactions found.", { id: toastId });
+          // Manually refresh pending transactions so the notification bubble updates
+          globalMutate("pending-transactions");
+        } else {
+          toast.success("Sync complete. No new transactions.", { id: toastId });
+        }
       }
     } catch (e: any) {
       toast.error(`Error: ${e.message}`, { id: toastId });
+    }
+  };
+
+  // ---- Trade Republic connect ----
+
+  const handleTRConnect = async () => {
+    setTrConnecting(true);
+    setTrError('');
+    try {
+      const res = await fetch('/api/trade-republic/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.message) {
+          setTrError(data.message);
+        } else {
+          throw new Error(data.error || 'Connection failed');
+        }
+      } else {
+        toast.success('Trade Republic connected successfully!');
+        await mutate();
+      }
+    } catch (e: any) {
+      toast.error(`Error: ${e.message}`);
+    } finally {
+      setTrConnecting(false);
     }
   };
 
@@ -183,6 +235,12 @@ function SettingsContent() {
         bankName === "Bunq" &&
         !settings.bank_name &&
         acc.provider === "enable_banking"
+      )
+        return true;
+      // Trade Republic connections are identified by provider.
+      if (
+        bankName === "Trade Republic" &&
+        acc.provider === "trade_republic"
       )
         return true;
       return false;
@@ -219,6 +277,12 @@ function SettingsContent() {
       country: "IT",
       icon: Building2,
       description: "Connect your Wise (IT) accounts.",
+    },
+    {
+      name: "Trade Republic",
+      country: "DE",
+      icon: Building2,
+      description: "Connect your Trade Republic account. Requires pytr CLI — run `pytr login --store_credentials` in your terminal first.",
     },
   ];
 
@@ -267,12 +331,21 @@ function SettingsContent() {
                       </div>
                       {connected ? (
                         <Button
-                          onClick={() =>
-                            handleDisconnect({
-                              bankName: bank.name,
-                              label: `all ${bank.name} accounts`,
-                            })
-                          }
+                          onClick={() => {
+                            if (bank.name === 'Trade Republic') {
+                              const trConfig = connectedAccounts?.find(a => a.provider === 'trade_republic');
+                              handleDisconnect({
+                                accountId: trConfig?.account_id,
+                                label: 'Trade Republic account',
+                                provider: 'trade_republic',
+                              });
+                            } else {
+                              handleDisconnect({
+                                bankName: bank.name,
+                                label: `all ${bank.name} accounts`,
+                              });
+                            }
+                          }}
                           variant="destructive"
                           size="sm"
                         >
@@ -283,14 +356,35 @@ function SettingsContent() {
                           onClick={() => handleConnect(bank.name, bank.country)}
                           variant="outline"
                           size="sm"
+                          disabled={bank.name === 'Trade Republic' && trConnecting}
                         >
-                          Connect
+                          {bank.name === 'Trade Republic' && trConnecting ? 'Connecting...' : 'Connect'}
                         </Button>
                       )}
                     </div>
                   );
                 })}
               </div>
+
+              {/* Trade Republic setup instructions — shown on error */}
+              {trError && (
+                <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-sm text-amber-800 dark:text-amber-200">
+                      Trade Republic Setup Required
+                    </h4>
+                    <button
+                      onClick={() => setTrError('')}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                  <pre className="text-xs bg-gray-100 dark:bg-gray-900 p-3 rounded whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                    {trError}
+                  </pre>
+                </div>
+              )}
 
               {connectedAccounts && connectedAccounts.length > 0 && (
                 <div className="space-y-3 pt-4 border-t">
@@ -305,6 +399,8 @@ function SettingsContent() {
                         settings.bank_name ||
                         (acc.provider === "enable_banking"
                           ? "Bunq"
+                          : acc.provider === "trade_republic"
+                          ? "Trade Republic"
                           : "Unknown");
                       const iban = settings.iban;
 
@@ -355,6 +451,7 @@ function SettingsContent() {
                                   handleDisconnect({
                                     accountId: acc.account_id,
                                     label: iban ? `${bankName} ${iban}` : `${bankName} account`,
+                                    provider: acc.provider,
                                   })
                                 }
                               >
