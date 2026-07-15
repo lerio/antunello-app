@@ -36,13 +36,10 @@ jobs:
           chmod 600 ~/.pytr/credentials
 
       - name: Fetch transactions
+        env:
+          LAST_DAYS: ${{ github.event.inputs.last_days || '7' }}
         run: |
-          LAST_DAYS="${{ github.event.inputs.last_days || '7' }}"
-          pytr export_transactions \
-            --export-format json \
-            --last-days "$LAST_DAYS" \
-            --no-date-with-time \
-            /tmp/tr-transactions.json
+          pytr export_transactions --export-format json --last-days "${LAST_DAYS}" --no-date-with-time /tmp/tr-transactions.json
 
       - name: Checkout app (for import script)
         uses: actions/checkout@v4
@@ -52,3 +49,5 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TR_USER_ID: ${{ secrets.TR_USER_ID }}
+          TR_FUND_CATEGORY_ID: ${{ secrets.TR_FUND_CATEGORY_ID }}
