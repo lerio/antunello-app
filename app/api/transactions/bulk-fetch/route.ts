@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
+import { triggerTRSync } from '@/utils/trade-republic/trigger';
 
 /**
  * Trigger a bulk fetch of pending transactions from all linked banking
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
         // 1. Get all integration configs for the user
         const { data: configs, error: fetchError } = await supabase
             .from('integration_configs')
-            .select('id, user_id, account_id, last_sync_at, settings')
+            .select('id, user_id, provider, account_id, last_sync_at, settings')
             .eq('user_id', userId);
 
         if (fetchError) {
@@ -49,21 +50,28 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'No accounts enabled for bulk fetch', results: [] });
         }
 
-        // 3. Trigger sync for each enabled account
-        const appId = process.env.ENABLE_BANKING_APP_ID;
-        const appKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
-        const kid = process.env.ENABLE_BANKING_KID || appId;
+        // 3. Trigger sync for each enabled account, dispatching by provider.
+        const results = await Promise.all(
+            enabledConfigs.map(async (config) => {
+                if (config.provider === 'trade_republic') {
+                    return triggerTRSync(supabase, config);
+                }
 
-        if (!appId || !appKey) {
-            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-        }
+                // Default / enable_banking path.
+                const appId = process.env.ENABLE_BANKING_APP_ID;
+                const appKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
+                const kid = process.env.ENABLE_BANKING_KID || appId;
 
-        const { EnableBankingClient } = await import('@/utils/enable-banking/client');
-        const { syncAccount } = await import('@/utils/enable-banking/sync-service');
-        const client = new EnableBankingClient({ appId, appKey, kid: kid! });
+                if (!appId || !appKey) {
+                    return { account: config.account_id, error: 'Server configuration error' };
+                }
 
-        // Run syncs in parallel
-        const results = await Promise.all(enabledConfigs.map(config => syncAccount(supabase, config, client)));
+                const { EnableBankingClient } = await import('@/utils/enable-banking/client');
+                const { syncAccount } = await import('@/utils/enable-banking/sync-service');
+                const client = new EnableBankingClient({ appId, appKey, kid: kid! });
+                return syncAccount(supabase, config, client);
+            })
+        );
 
         return NextResponse.json({
             message: `Bulk fetch completed`,

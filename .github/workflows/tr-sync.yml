@@ -1,0 +1,54 @@
+name: Trade Republic Sync
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      last_days:
+        description: 'Days of transactions to fetch (0 = all)'
+        required: false
+        default: '7'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytr and Playwright
+        run: |
+          pip install pytr
+          python -m playwright install chromium
+          python -m playwright install-deps chromium
+
+      - name: Store credentials
+        run: |
+          mkdir -p ~/.pytr
+          echo "${{ secrets.TR_PHONE }}" > ~/.pytr/credentials
+          echo "${{ secrets.TR_PIN }}" >> ~/.pytr/credentials
+          chmod 600 ~/.pytr/credentials
+
+      - name: Fetch transactions
+        run: |
+          LAST_DAYS="${{ github.event.inputs.last_days || '7' }}"
+          pytr export_transactions \
+            --export-format json \
+            --last-days "$LAST_DAYS" \
+            --no-date-with-time \
+            /tmp/tr-transactions.json
+
+      - name: Checkout app (for import script)
+        uses: actions/checkout@v4
+
+      - name: Import to Supabase
+        run: node scripts/import-tr-to-supabase.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

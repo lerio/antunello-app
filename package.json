@@ -10,7 +10,7 @@
     "update-pipe-titles:execute": "node scripts/update-pipe-titles.mjs --execute"
   },
   "dependencies": {
-    "@floating-ui/react": "^0.27.19",
+    "@floating-ui/react": "^0.27.20",
     "@radix-ui/react-label": "^2.1.11",
     "@radix-ui/react-popover": "^1.1.19",
     "@radix-ui/react-select": "^2.3.3",
@@ -18,7 +18,7 @@
     "@radix-ui/react-slot": "^1.3.0",
     "@radix-ui/react-switch": "^1.3.3",
     "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "^2.110.2",
+    "@supabase/supabase-js": "^2.110.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -41,8 +41,8 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "19.2.3",
     "@types/recharts": "^2.0.1",
-    "baseline-browser-mapping": "^2.10.42",
-    "postcss": "8.5.16",
+    "baseline-browser-mapping": "^2.10.43",
+    "postcss": "8.5.19",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.2",
     "tailwindcss-animate": "^1.0.7",
