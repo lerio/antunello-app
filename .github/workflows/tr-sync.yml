@@ -32,24 +32,22 @@ jobs:
         run: |
           mkdir -p ~/.pytr
 
-          # Credentials file — line 1: phone, line 2: PIN
-          # Use echo with a heredoc-ish approach to guarantee two lines.
-          cat > ~/.pytr/credentials << CREDEOF
-          ${{ secrets.TR_PHONE }}
-          ${{ secrets.TR_PIN }}
-          CREDEOF
+          # Write credentials — two separate echo calls guarantees two lines.
+          echo "${{ secrets.TR_PHONE }}" > ~/.pytr/credentials
+          echo "${{ secrets.TR_PIN }}" >> ~/.pytr/credentials
           chmod 600 ~/.pytr/credentials
 
-          # Verify both lines exist
-          LINES=$(wc -l < ~/.pytr/credentials | tr -d ' ')
-          echo "Credentials file has ${LINES} lines"
-          head -1 ~/.pytr/credentials | sed 's/.*\(...\)\(....\)/+**\2/'
+          # Sanity checks.
+          echo "Lines: $(wc -l < ~/.pytr/credentials)"
+          echo "Phone: $(head -1 ~/.pytr/credentials | sed 's/.*\(...\)\(....\)/+**\2/')"
 
-          # Restore session cookies from base64-encoded secret.
+          # Restore session cookies.
           PHONE=$(head -1 ~/.pytr/credentials)
-          echo "${{ secrets.TR_COOKIES }}" | base64 -d > "$HOME/.pytr/cookies.${PHONE}.txt"
-          chmod 600 "$HOME/.pytr/cookies.${PHONE}.txt"
-          echo "Cookies file: cookies.${PHONE}.txt ($(wc -c < "$HOME/.pytr/cookies.${PHONE}.txt" | tr -d ' ') bytes)"
+          COOKIE_FILE="$HOME/.pytr/cookies.${PHONE}.txt"
+          echo "${{ secrets.TR_COOKIES }}" | base64 -d > "$COOKIE_FILE"
+          chmod 600 "$COOKIE_FILE"
+          echo "Cookies size: $(wc -c < "$COOKIE_FILE") bytes"
+          echo "Cookies path: cookies.${PHONE}.txt"
 
       - name: Fetch transactions
         env:
