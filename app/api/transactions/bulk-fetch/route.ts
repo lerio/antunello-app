@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
-import { triggerTRSync } from '@/utils/trade-republic/trigger';
+import { syncTradeRepublicAccount } from '@/utils/trade-republic/sync-service';
 
 /**
  * Trigger a bulk fetch of pending transactions from all linked banking
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         const results = await Promise.all(
             enabledConfigs.map(async (config) => {
                 if (config.provider === 'trade_republic') {
-                    return triggerTRSync(supabase, config);
+                    return syncTradeRepublicAccount(supabase, config);
                 }
 
                 // Default / enable_banking path.

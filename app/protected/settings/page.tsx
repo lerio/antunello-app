@@ -42,7 +42,14 @@ function SettingsContent() {
   const { mutate: globalMutate } = useSWRConfig();
 
   // Trade Republic auth form state
-  const [trConnecting, setTrConnecting] = useState(false);
+  const [trAuthOpen, setTrAuthOpen] = useState(false);
+  const [trAuthStep, setTrAuthStep] = useState<1 | 2>(1);
+  const [trPhone, setTrPhone] = useState("");
+  const [trPin, setTrPin] = useState("");
+  const [trProcessId, setTrProcessId] = useState("");
+  const [trWafToken, setTrWafToken] = useState("");
+  const [trCode, setTrCode] = useState("");
+  const [trLoading, setTrLoading] = useState(false);
   const [trError, setTrError] = useState("");
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
@@ -81,7 +88,14 @@ function SettingsContent() {
 
   const handleConnect = (bank: string, country: string) => {
     if (bank === "Trade Republic") {
-      handleTRConnect();
+      setTrAuthOpen(true);
+      setTrAuthStep(1);
+      setTrPhone("");
+      setTrPin("");
+      setTrProcessId("");
+      setTrWafToken("");
+      setTrCode("");
+      setTrError("");
       return;
     }
     window.location.href = `/api/enable-banking/auth?bank=${encodeURIComponent(bank)}&country=${country}`;
@@ -204,32 +218,61 @@ function SettingsContent() {
     }
   };
 
-  // ---- Trade Republic connect ----
+  // ---- Trade Republic auth handlers ----
 
-  const handleTRConnect = async () => {
-    setTrConnecting(true);
-    setTrError("");
+  const handleTRAuthStep1 = async () => {
+    if (!trPhone.trim() || !trPin.trim()) {
+      toast.error("Please enter your phone number and PIN.");
+      return;
+    }
+    setTrLoading(true);
     try {
       const res = await fetch("/api/trade-republic/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ step: 1, phoneNumber: trPhone.trim(), pin: trPin.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        if (data.message) {
-          setTrError(data.message);
-        } else {
-          throw new Error(data.error || "Connection failed");
-        }
-      } else {
-        toast.success("Trade Republic connected successfully!");
-        await mutate();
-      }
+      if (!res.ok) throw new Error(data.error || "Login failed");
+      setTrProcessId(data.processId);
+      setTrWafToken(data.wafToken || "");
+      setTrAuthStep(2);
+      toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
     } finally {
-      setTrConnecting(false);
+      setTrLoading(false);
+    }
+  };
+
+  const handleTRAuthStep2 = async () => {
+    if (!trCode.trim()) {
+      toast.error("Please enter the verification code.");
+      return;
+    }
+    setTrLoading(true);
+    try {
+      const res = await fetch("/api/trade-republic/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: 2,
+          phoneNumber: trPhone.trim(),
+          pin: trPin.trim(),
+          processId: trProcessId,
+          code: trCode.trim(),
+          wafToken: trWafToken,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Verification failed");
+      toast.success("Trade Republic connected successfully!");
+      await mutate();
+      setTrAuthOpen(false);
+    } catch (e: any) {
+      toast.error(`Error: ${e.message}`);
+    } finally {
+      setTrLoading(false);
     }
   };
 
@@ -287,7 +330,7 @@ function SettingsContent() {
       country: "DE",
       icon: Building2,
       description:
-        "Connect your Trade Republic account. Requires pytr CLI — run `pytr login --store_credentials` in your terminal first.",
+        "Connect your Trade Republic investment account. Uses phone + PIN + app verification.",
     },
   ];
 
@@ -363,13 +406,8 @@ function SettingsContent() {
                           onClick={() => handleConnect(bank.name, bank.country)}
                           variant="outline"
                           size="sm"
-                          disabled={
-                            bank.name === "Trade Republic" && trConnecting
-                          }
                         >
-                          {bank.name === "Trade Republic" && trConnecting
-                            ? "Connecting..."
-                            : "Connect"}
+                          Connect
                         </Button>
                       )}
                     </div>
@@ -377,23 +415,69 @@ function SettingsContent() {
                 })}
               </div>
 
-              {/* Trade Republic setup instructions — shown on error */}
-              {trError && (
-                <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-sm text-amber-800 dark:text-amber-200">
-                      Trade Republic Setup Required
+              {/* Trade Republic auth form */}
+              {trAuthOpen && (
+                <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-sm">
+                      {trAuthStep === 1
+                        ? "Trade Republic — Login"
+                        : "Trade Republic — Verify"}
                     </h4>
                     <button
-                      onClick={() => setTrError("")}
+                      onClick={() => setTrAuthOpen(false)}
                       className="text-xs text-gray-500 hover:text-gray-700"
                     >
-                      Dismiss
+                      Cancel
                     </button>
                   </div>
-                  <pre className="text-xs bg-gray-100 dark:bg-gray-900 p-3 rounded whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                    {trError}
-                  </pre>
+                  {trAuthStep === 1 ? (
+                    <div className="space-y-3">
+                      <input
+                        type="tel"
+                        placeholder="Phone (+39...)"
+                        value={trPhone}
+                        onChange={(e) => setTrPhone(e.target.value)}
+                        className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
+                        disabled={trLoading}
+                      />
+                      <input
+                        type="password"
+                        maxLength={4}
+                        placeholder="PIN (4 digits)"
+                        value={trPin}
+                        onChange={(e) => setTrPin(e.target.value.replace(/[^0-9]/g, ""))}
+                        className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
+                        disabled={trLoading}
+                      />
+                      <Button onClick={handleTRAuthStep1} disabled={trLoading} size="sm" className="w-full">
+                        {trLoading ? "Logging in..." : "Login"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-500">
+                        A push notification was sent to your Trade Republic app.
+                        Enter the verification code below.
+                      </p>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Verification code"
+                        value={trCode}
+                        onChange={(e) => setTrCode(e.target.value.replace(/[^0-9]/g, ""))}
+                        className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
+                        disabled={trLoading}
+                      />
+                      <Button onClick={handleTRAuthStep2} disabled={trLoading} size="sm" className="w-full">
+                        {trLoading ? "Verifying..." : "Verify & Connect"}
+                      </Button>
+                    </div>
+                  )}
+                  {trError && (
+                    <p className="text-xs text-red-600 mt-3">{trError}</p>
+                  )}
                 </div>
               )}
 

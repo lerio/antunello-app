@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { EnableBankingClient } from '@/utils/enable-banking/client';
 import { syncAccount } from '@/utils/enable-banking/sync-service';
-import { triggerTRSync } from '@/utils/trade-republic/trigger';
+import { syncTradeRepublicAccount } from '@/utils/trade-republic/sync-service';
 
 /**
  * Synchronise bank transactions from Enable Banking for one or more
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const results = await Promise.all(
         configs.map(async (config) => {
             if (config.provider === 'trade_republic') {
-                return triggerTRSync(supabase, config);
+                return syncTradeRepublicAccount(supabase, config);
             }
 
             // Default / enable_banking path.
