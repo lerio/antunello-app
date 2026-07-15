@@ -10,7 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { Lock, Building2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Lock,
+  Building2,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, Suspense, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -37,7 +43,7 @@ function SettingsContent() {
 
   // Trade Republic auth form state
   const [trConnecting, setTrConnecting] = useState(false);
-  const [trError, setTrError] = useState('');
+  const [trError, setTrError] = useState("");
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
@@ -74,7 +80,7 @@ function SettingsContent() {
   const { fundCategories, isLoading: isFundsLoading } = useFundCategories();
 
   const handleConnect = (bank: string, country: string) => {
-    if (bank === 'Trade Republic') {
+    if (bank === "Trade Republic") {
       handleTRConnect();
       return;
     }
@@ -93,23 +99,22 @@ function SettingsContent() {
     provider?: string;
   }) => {
     // Logic: disconnect by bank name if available, otherwise try to map Bunq legacy
-    if (
-      !confirm(`Are you sure you want to disconnect ${label}?`)
-    )
-      return;
+    if (!confirm(`Are you sure you want to disconnect ${label}?`)) return;
 
     const toastId = toast.loading("Disconnecting...");
     try {
       // Use the TR-specific disconnect endpoint for Trade Republic accounts.
       const endpoint =
-        provider === 'trade_republic'
-          ? '/api/trade-republic/disconnect'
-          : '/api/enable-banking/disconnect';
+        provider === "trade_republic"
+          ? "/api/trade-republic/disconnect"
+          : "/api/enable-banking/disconnect";
 
       const res = await fetch(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(accountId ? { account_id: accountId } : { bank_name: bankName }),
+        body: JSON.stringify(
+          accountId ? { account_id: accountId } : { bank_name: bankName },
+        ),
       });
 
       const data = await res.json();
@@ -179,13 +184,15 @@ function SettingsContent() {
       const wasTriggered = data.results?.some((r: any) => r.triggered);
 
       if (wasTriggered) {
-        toast.success("Sync triggered. Transactions will appear shortly.", { id: toastId });
+        toast.success("Sync triggered.", { id: toastId });
       } else {
         // Check if new transactions were found (backend uses new_pending)
         const newFound = data.results?.some((r: any) => r.new_pending > 0);
 
         if (newFound) {
-          toast.success("Sync complete! New transactions found.", { id: toastId });
+          toast.success("Sync complete! New transactions found.", {
+            id: toastId,
+          });
           // Manually refresh pending transactions so the notification bubble updates
           globalMutate("pending-transactions");
         } else {
@@ -201,11 +208,11 @@ function SettingsContent() {
 
   const handleTRConnect = async () => {
     setTrConnecting(true);
-    setTrError('');
+    setTrError("");
     try {
-      const res = await fetch('/api/trade-republic/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/trade-republic/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       const data = await res.json();
@@ -213,10 +220,10 @@ function SettingsContent() {
         if (data.message) {
           setTrError(data.message);
         } else {
-          throw new Error(data.error || 'Connection failed');
+          throw new Error(data.error || "Connection failed");
         }
       } else {
-        toast.success('Trade Republic connected successfully!');
+        toast.success("Trade Republic connected successfully!");
         await mutate();
       }
     } catch (e: any) {
@@ -238,10 +245,7 @@ function SettingsContent() {
       )
         return true;
       // Trade Republic connections are identified by provider.
-      if (
-        bankName === "Trade Republic" &&
-        acc.provider === "trade_republic"
-      )
+      if (bankName === "Trade Republic" && acc.provider === "trade_republic")
         return true;
       return false;
     });
@@ -282,7 +286,8 @@ function SettingsContent() {
       name: "Trade Republic",
       country: "DE",
       icon: Building2,
-      description: "Connect your Trade Republic account. Requires pytr CLI — run `pytr login --store_credentials` in your terminal first.",
+      description:
+        "Connect your Trade Republic account. Requires pytr CLI — run `pytr login --store_credentials` in your terminal first.",
     },
   ];
 
@@ -332,12 +337,14 @@ function SettingsContent() {
                       {connected ? (
                         <Button
                           onClick={() => {
-                            if (bank.name === 'Trade Republic') {
-                              const trConfig = connectedAccounts?.find(a => a.provider === 'trade_republic');
+                            if (bank.name === "Trade Republic") {
+                              const trConfig = connectedAccounts?.find(
+                                (a) => a.provider === "trade_republic",
+                              );
                               handleDisconnect({
                                 accountId: trConfig?.account_id,
-                                label: 'Trade Republic account',
-                                provider: 'trade_republic',
+                                label: "Trade Republic account",
+                                provider: "trade_republic",
                               });
                             } else {
                               handleDisconnect({
@@ -356,9 +363,13 @@ function SettingsContent() {
                           onClick={() => handleConnect(bank.name, bank.country)}
                           variant="outline"
                           size="sm"
-                          disabled={bank.name === 'Trade Republic' && trConnecting}
+                          disabled={
+                            bank.name === "Trade Republic" && trConnecting
+                          }
                         >
-                          {bank.name === 'Trade Republic' && trConnecting ? 'Connecting...' : 'Connect'}
+                          {bank.name === "Trade Republic" && trConnecting
+                            ? "Connecting..."
+                            : "Connect"}
                         </Button>
                       )}
                     </div>
@@ -374,7 +385,7 @@ function SettingsContent() {
                       Trade Republic Setup Required
                     </h4>
                     <button
-                      onClick={() => setTrError('')}
+                      onClick={() => setTrError("")}
                       className="text-xs text-gray-500 hover:text-gray-700"
                     >
                       Dismiss
@@ -400,8 +411,8 @@ function SettingsContent() {
                         (acc.provider === "enable_banking"
                           ? "Bunq"
                           : acc.provider === "trade_republic"
-                          ? "Trade Republic"
-                          : "Unknown");
+                            ? "Trade Republic"
+                            : "Unknown");
                       const iban = settings.iban;
 
                       return (
@@ -431,7 +442,9 @@ function SettingsContent() {
                               <span className="text-xs text-gray-400 opacity-70">
                                 Last sync:{" "}
                                 {acc.last_sync_at
-                                  ? new Date(acc.last_sync_at).toLocaleDateString()
+                                  ? new Date(
+                                      acc.last_sync_at,
+                                    ).toLocaleDateString()
                                   : "Never"}
                               </span>
                               <Button
@@ -450,7 +463,9 @@ function SettingsContent() {
                                 onClick={() =>
                                   handleDisconnect({
                                     accountId: acc.account_id,
-                                    label: iban ? `${bankName} ${iban}` : `${bankName} account`,
+                                    label: iban
+                                      ? `${bankName} ${iban}`
+                                      : `${bankName} account`,
                                     provider: acc.provider,
                                   })
                                 }
@@ -464,10 +479,16 @@ function SettingsContent() {
                                 Link to Fund
                               </label>
                               <select
-                                className={getSelectClass(isFundsLoading) + " w-full sm:w-auto"}
+                                className={
+                                  getSelectClass(isFundsLoading) +
+                                  " w-full sm:w-auto"
+                                }
                                 value={settings.fund_category_id || ""}
                                 onChange={(e) =>
-                                  handleMappingChange(acc.account_id, e.target.value)
+                                  handleMappingChange(
+                                    acc.account_id,
+                                    e.target.value,
+                                  )
                                 }
                                 disabled={isFundsLoading}
                               >
@@ -529,7 +550,7 @@ function SettingsContent() {
           </Card>
         </div>
       </div>
-    </div >
+    </div>
   );
 }
 
