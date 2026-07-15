@@ -39,7 +39,7 @@ jobs:
         env:
           LAST_DAYS: ${{ github.event.inputs.last_days || '7' }}
         run: |
-          pytr export_transactions --export-format json --last-days "${LAST_DAYS}" --no-date-with-time /tmp/tr-transactions.json
+          pytr export_transactions --export-format json --last_days "${LAST_DAYS}" --no-date-with-time /tmp/tr-transactions.json
 
       - name: Checkout app (for import script)
         uses: actions/checkout@v4
