@@ -29,25 +29,44 @@ jobs:
           python -m playwright install-deps chromium
 
       - name: Restore credentials and session
+        env:
+          TR_PHONE: ${{ secrets.TR_PHONE }}
+          TR_PIN: ${{ secrets.TR_PIN }}
+          TR_COOKIES_B64: ${{ secrets.TR_COOKIES }}
         run: |
           mkdir -p ~/.pytr
 
-          # Write credentials — two separate echo calls guarantees two lines.
-          echo "${{ secrets.TR_PHONE }}" > ~/.pytr/credentials
-          echo "${{ secrets.TR_PIN }}" >> ~/.pytr/credentials
+          # Debug: check secret lengths (not contents)
+          echo "TR_PHONE length: ${#TR_PHONE}"
+          echo "TR_PIN length: ${#TR_PIN}"
+          echo "TR_COOKIES_B64 length: ${#TR_COOKIES_B64}"
+
+          if [ -z "$TR_PHONE" ]; then
+            echo "ERROR: TR_PHONE is empty — check GitHub secret"
+            exit 1
+          fi
+          if [ -z "$TR_PIN" ]; then
+            echo "ERROR: TR_PIN is empty — check GitHub secret"
+            exit 1
+          fi
+          if [ -z "$TR_COOKIES_B64" ]; then
+            echo "ERROR: TR_COOKIES is empty — check GitHub secret"
+            exit 1
+          fi
+
+          # Write credentials.
+          printf '%s\n' "$TR_PHONE" > ~/.pytr/credentials
+          printf '%s\n' "$TR_PIN" >> ~/.pytr/credentials
           chmod 600 ~/.pytr/credentials
 
-          # Sanity checks.
-          echo "Lines: $(wc -l < ~/.pytr/credentials)"
-          echo "Phone: $(head -1 ~/.pytr/credentials | sed 's/.*\(...\)\(....\)/+**\2/')"
-
-          # Restore session cookies.
-          PHONE=$(head -1 ~/.pytr/credentials)
-          COOKIE_FILE="$HOME/.pytr/cookies.${PHONE}.txt"
-          echo "${{ secrets.TR_COOKIES }}" | base64 -d > "$COOKIE_FILE"
+          # Decode and write cookies.
+          COOKIE_FILE="$HOME/.pytr/cookies.${TR_PHONE}.txt"
+          printf '%s' "$TR_COOKIES_B64" | base64 -d > "$COOKIE_FILE"
           chmod 600 "$COOKIE_FILE"
+
+          echo "Credentials lines: $(wc -l < ~/.pytr/credentials)"
           echo "Cookies size: $(wc -c < "$COOKIE_FILE") bytes"
-          echo "Cookies path: cookies.${PHONE}.txt"
+          echo "Cookies path: cookies.${TR_PHONE}.txt"
 
       - name: Fetch transactions
         env:
