@@ -1,15 +1,12 @@
 /**
- * @file Trade Republic authentication API route.
+ * Trade Republic authentication — 2-step web login flow.
  *
- * Trade Republic uses AWS WAF protection and a complex login flow that
- * cannot be implemented with server-side fetch(). Instead, this integration
- * delegates to the pytr CLI (github.com/pytr-org/pytr), which handles
- * WAF challenges, phone+PIN+2FA login, and session management.
+ * Step 1: POST { step: 1, phoneNumber, pin }
+ *   → initiates login, returns processId + countdownSeconds
+ *   → TR sends a push notification to the user's phone
  *
- * Setup flow:
- *   1. User installs pytr: `uvx pytr@latest login` (one-time terminal setup)
- *   2. User clicks "Connect" in Settings → this route verifies pytr works
- *   3. On success, stores an integration_configs row
+ * Step 2: POST { step: 2, phoneNumber, pin, processId, code }
+ *   → completes login, stores session cookies in integration_configs
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,56 +18,68 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { userId, unauthorizedResponse } = await requireUserId(supabase);
-    if (!userId) {
-      return unauthorizedResponse!;
-    }
+    if (!userId) return unauthorizedResponse!;
 
     const body = await request.json();
-    const phoneNumber = (body.phoneNumber || '').trim();
+    const step = body.step;
 
-    const client = new TradeRepublicClient();
+    if (step === 1) {
+      const phone = (body.phoneNumber || '').trim();
+      const pin = (body.pin || '').trim();
+      if (!phone || !pin) {
+        return NextResponse.json({ error: 'phoneNumber and pin required' }, { status: 400 });
+      }
 
-    // Verify pytr is installed and authenticated.
-    const isAuthed = await client.isAuthenticated();
+      const client = new TradeRepublicClient();
+      const { processId, countdownSeconds, wafToken } = await client.login(phone, pin);
 
-    if (!isAuthed) {
-      return NextResponse.json({
-        error: 'pytr_not_authenticated',
-        message:
-          'Trade Republic CLI is not set up. Run this in your terminal first:\n\n' +
-          '  pytr login --store_credentials\n\n' +
-          'Then click Connect again.',
-      }, { status: 400 });
+      return NextResponse.json({ processId, countdownSeconds, wafToken });
     }
 
-    // Store integration config.
-    const accountId = phoneNumber
-      ? `tr_${phoneNumber.replace(/[^0-9]/g, '')}`
-      : 'tr_default';
+    if (step === 2) {
+      const phone = (body.phoneNumber || '').trim();
+      const pin = (body.pin || '').trim();
+      const processId = (body.processId || '').trim();
+      const code = (body.code || '').trim();
+      const wafToken = (body.wafToken || '').trim() || undefined;
 
-    const settings = {
-      phone_number: phoneNumber || null,
-      auth_status: 'authenticated',
-      bank_name: 'Trade Republic',
-    };
+      if (!phone || !pin || !processId || !code) {
+        return NextResponse.json(
+          { error: 'phoneNumber, pin, processId, and code required' },
+          { status: 400 },
+        );
+      }
 
-    const { error: upsertError } = await supabase
-      .from('integration_configs')
-      .upsert(
-        {
-          user_id: userId,
-          provider: 'trade_republic',
-          account_id: accountId,
-          settings,
-        },
-        { onConflict: 'user_id, provider, account_id' },
-      );
+      const client = new TradeRepublicClient();
+      const { cookies } = await client.verifyLogin(phone, pin, processId, code, wafToken);
 
-    if (upsertError) {
-      throw upsertError;
+      // Store in integration_configs.
+      const accountId = `tr_${phone.replace(/[^0-9]/g, '')}`;
+
+      const { error: upsertError } = await supabase
+        .from('integration_configs')
+        .upsert(
+          {
+            user_id: userId,
+            provider: 'trade_republic',
+            account_id: accountId,
+            settings: {
+              phone_number: phone,
+              pin,
+              session_cookies: cookies,
+              auth_status: 'authenticated',
+              bank_name: 'Trade Republic',
+            },
+          },
+          { onConflict: 'user_id, provider, account_id' },
+        );
+
+      if (upsertError) throw upsertError;
+
+      return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: 'Invalid step. Use 1 or 2.' }, { status: 400 });
   } catch (error: unknown) {
     console.error('Trade Republic auth error:', error);
     return jsonError(getErrorMessage(error), 500);
