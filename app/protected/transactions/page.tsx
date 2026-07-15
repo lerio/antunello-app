@@ -111,15 +111,16 @@ export default function ProtectedPage() {
     currentTransaction,
     nextTransaction,
     closeModal: closePendingModal,
-    openModal
+    openModal,
   } = usePendingTransactionModal();
 
   // Fetch pending transactions
-  const { data: pendingTransactions, mutate: mutatePending } = usePendingTransactions();
+  const { data: pendingTransactions, mutate: mutatePending } =
+    usePendingTransactions();
 
   const { transactions, isLoading, error, mutate } = useTransactionsOptimized(
     currentDate.getFullYear(),
-    currentDate.getMonth() + 1
+    currentDate.getMonth() + 1,
   );
   const selectedYear = currentDate.getFullYear();
   const selectedMonth = currentDate.getMonth() + 1;
@@ -158,7 +159,7 @@ export default function ProtectedPage() {
       revalidateOnReconnect: false,
       dedupingInterval: 30000,
       keepPreviousData: true,
-    }
+    },
   );
 
   const expectedSplitAmountEur = useMemo(() => {
@@ -170,7 +171,7 @@ export default function ProtectedPage() {
       splitSources,
       selectedYear,
       selectedMonth,
-      monthEnd
+      monthEnd,
     );
     return calculateExpectedSplitAmountEur(allSplitForMonth, transactions);
   }, [splitSources, selectedYear, selectedMonth, transactions]);
@@ -199,7 +200,7 @@ export default function ProtectedPage() {
       // Clear cache before refreshing
       transactionCache.clearRelated(
         currentDate.getFullYear(),
-        currentDate.getMonth() + 1
+        currentDate.getMonth() + 1,
       );
       await mutate();
     },
@@ -238,7 +239,7 @@ export default function ProtectedPage() {
     router.push(
       `/protected/search?from_year=${year}&from_month=${month
         .toString()
-        .padStart(2, "0")}`
+        .padStart(2, "0")}`,
     );
   }, [router, currentDate]);
 
@@ -249,7 +250,7 @@ export default function ProtectedPage() {
     router.push(
       `/protected/filter?from_year=${year}&from_month=${month
         .toString()
-        .padStart(2, "0")}`
+        .padStart(2, "0")}`,
     );
   }, [router, currentDate]);
 
@@ -257,16 +258,16 @@ export default function ProtectedPage() {
     (category: string) => {
       router.push(`/protected/category/${encodeURIComponent(category)}`);
     },
-    [router]
+    [router],
   );
 
   const handleSubCategoryClick = useCallback(
     (category: string, subCategory: string) => {
       router.push(
-        `/protected/category/${encodeURIComponent(category)}/${encodeURIComponent(subCategory)}`
+        `/protected/category/${encodeURIComponent(category)}/${encodeURIComponent(subCategory)}`,
       );
     },
-    [router]
+    [router],
   );
 
   const handleAddTransaction = useCallback(() => {
@@ -277,7 +278,7 @@ export default function ProtectedPage() {
     (transaction: Transaction) => {
       openEditModal(transaction);
     },
-    [openEditModal]
+    [openEditModal],
   );
 
   const handleAddSubmit = useCallback(
@@ -298,7 +299,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [addTransaction, closeAddModal, recordLocalMutation]
+    [addTransaction, closeAddModal, recordLocalMutation],
   );
 
   // Handle pending transaction submit
@@ -314,9 +315,9 @@ export default function ProtectedPage() {
 
         // Mark as processed
         await supabase
-          .from('pending_transactions')
-          .update({ status: 'added' })
-          .eq('id', currentPending.id);
+          .from("pending_transactions")
+          .update({ status: "added" })
+          .eq("id", currentPending.id);
 
         // Refresh pending list
         await mutatePending();
@@ -328,31 +329,35 @@ export default function ProtectedPage() {
         toast.error(`Failed to add transaction: ${error.message}`);
       }
     },
-    [addTransaction, currentTransaction, nextTransaction, recordLocalMutation, supabase, mutatePending]
+    [
+      addTransaction,
+      currentTransaction,
+      nextTransaction,
+      recordLocalMutation,
+      supabase,
+      mutatePending,
+    ],
   );
 
   // Handle skip (cancel) pending transaction
-  const handleSkipPending = useCallback(
-    async () => {
-      const currentPending = currentTransaction();
-      if (!currentPending) return;
+  const handleSkipPending = useCallback(async () => {
+    const currentPending = currentTransaction();
+    if (!currentPending) return;
 
-      try {
-        // Mark as processed (skipped)
-        await supabase
-          .from('pending_transactions')
-          .update({ status: 'dismissed' })
-          .eq('id', currentPending.id);
+    try {
+      // Mark as processed (skipped)
+      await supabase
+        .from("pending_transactions")
+        .update({ status: "dismissed" })
+        .eq("id", currentPending.id);
 
-        await mutatePending();
-        toast("Skipped");
-        nextTransaction();
-      } catch (error: any) {
-        toast.error(`Failed to skip: ${error.message}`);
-      }
-    },
-    [currentTransaction, nextTransaction, supabase, mutatePending]
-  );
+      await mutatePending();
+      toast("Skipped");
+      nextTransaction();
+    } catch (error: any) {
+      toast.error(`Failed to skip: ${error.message}`);
+    }
+  }, [currentTransaction, nextTransaction, supabase, mutatePending]);
 
   const handleEditSubmit = useCallback(
     async (data: Omit<Transaction, "id" | "created_at" | "updated_at">) => {
@@ -361,7 +366,7 @@ export default function ProtectedPage() {
       const toastPromise = updateTransaction(
         editingTransaction.id,
         data,
-        editingTransaction.date
+        editingTransaction.date,
       ).then(async (result) => {
         await recordLocalMutation();
         // Clear the simple LRU cache so transactionFetcher hits Supabase
@@ -386,7 +391,15 @@ export default function ProtectedPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction, closeEditModal, recordLocalMutation, mutate, selectedYear, selectedMonth]
+    [
+      updateTransaction,
+      editingTransaction,
+      closeEditModal,
+      recordLocalMutation,
+      mutate,
+      selectedYear,
+      selectedMonth,
+    ],
   );
 
   const handleDeleteTransaction = useCallback(
@@ -395,7 +408,7 @@ export default function ProtectedPage() {
         async (result) => {
           await recordLocalMutation();
           return result;
-        }
+        },
       );
 
       toast.promise(toastPromise, {
@@ -409,7 +422,7 @@ export default function ProtectedPage() {
         },
       });
     },
-    [deleteTransaction, closeEditModal, recordLocalMutation]
+    [deleteTransaction, closeEditModal, recordLocalMutation],
   );
 
   const handleViewOriginal = useCallback(
@@ -425,7 +438,7 @@ export default function ProtectedPage() {
       pendingOriginalRef.current = data as Transaction;
       closeEditModal();
     },
-    [closeEditModal, supabase]
+    [closeEditModal, supabase],
   );
 
   /* REMOVED: history.pushState manual handling */
@@ -446,11 +459,11 @@ export default function ProtectedPage() {
         router.push(
           `/protected/transactions?month=${month
             .toString()
-            .padStart(2, "0")}&year=${year}`
+            .padStart(2, "0")}&year=${year}`,
         );
       }
     },
-    [router]
+    [router],
   );
 
   if (error) {
@@ -511,20 +524,31 @@ export default function ProtectedPage() {
 
                   if (!res.ok) throw new Error(data.error || "Fetch failed");
 
-                  const wasTriggered = data.results?.some((r: any) => r.triggered);
+                  const wasTriggered = data.results?.some(
+                    (r: any) => r.triggered,
+                  );
 
                   if (wasTriggered) {
-                    toast.success("Sync triggered. Transactions will appear shortly.", { id: toastId });
+                    toast.success("Sync triggered.", { id: toastId });
                   } else if (data.results && data.results.length > 0) {
-                    const totalNew = data.results.reduce((acc: number, r: any) => acc + (r.new_pending || 0), 0);
+                    const totalNew = data.results.reduce(
+                      (acc: number, r: any) => acc + (r.new_pending || 0),
+                      0,
+                    );
                     if (totalNew > 0) {
-                      toast.success(`Found ${totalNew} new transactions!`, { id: toastId });
+                      toast.success(`Found ${totalNew} new transactions!`, {
+                        id: toastId,
+                      });
                       mutatePending(); // Refresh pending list bubble
                     } else {
-                      toast.success("Fetch complete. No new transactions.", { id: toastId });
+                      toast.success("Fetch complete. No new transactions.", {
+                        id: toastId,
+                      });
                     }
                   } else {
-                    toast.success(data.message || "Fetch complete", { id: toastId });
+                    toast.success(data.message || "Fetch complete", {
+                      id: toastId,
+                    });
                   }
                 } catch (e: any) {
                   toast.error(`Fetch error: ${e.message}`, { id: toastId });
@@ -608,7 +632,9 @@ export default function ProtectedPage() {
               position="stacked"
               className={cn(
                 "transition-all duration-300",
-                pendingTransactions && pendingTransactions.length > 0 ? "bottom-60" : ""
+                pendingTransactions && pendingTransactions.length > 0
+                  ? "bottom-60"
+                  : "",
               )}
             />
           )}
@@ -629,13 +655,19 @@ export default function ProtectedPage() {
       </Modal>
 
       {/* Edit Entry Modal */}
-      <Modal key={editModalKey} isOpen={isEditModalOpen} onClose={closeEditModal}>
+      <Modal
+        key={editModalKey}
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+      >
         {editingTransaction && (
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
             onDelete={
-              editingTransaction.split_is_read_only ? undefined : handleDeleteTransaction
+              editingTransaction.split_is_read_only
+                ? undefined
+                : handleDeleteTransaction
             }
             onViewOriginal={handleViewOriginal}
             disabled={!!editingTransaction.split_is_read_only}
@@ -655,7 +687,7 @@ export default function ProtectedPage() {
             currency: pending.data.currency,
             date: pending.data.date,
             title: pending.data.title,
-            type: pending.data.type || 'expense', // Use the type from pending data
+            type: pending.data.type || "expense", // Use the type from pending data
             fund_category_id: pending.data.fund_category_id || null,
           } as any;
 
