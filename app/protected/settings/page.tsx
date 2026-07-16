@@ -47,7 +47,6 @@ function SettingsContent() {
   const [trPhone, setTrPhone] = useState("");
   const [trPin, setTrPin] = useState("");
   const [trProcessId, setTrProcessId] = useState("");
-  const [trWafToken, setTrWafToken] = useState("");
   const [trCode, setTrCode] = useState("");
   const [trLoading, setTrLoading] = useState(false);
   const [trError, setTrError] = useState("");
@@ -93,7 +92,6 @@ function SettingsContent() {
       setTrPhone("");
       setTrPin("");
       setTrProcessId("");
-      setTrWafToken("");
       setTrCode("");
       setTrError("");
       return;
@@ -194,24 +192,15 @@ function SettingsContent() {
 
       if (!res.ok) throw new Error(data.error || "Failed to fetch");
 
-      // Check if a GitHub workflow was triggered (Vercel path).
-      const wasTriggered = data.results?.some((r: any) => r.triggered);
+      const newFound = data.results?.some((r: any) => r.new_pending > 0);
 
-      if (wasTriggered) {
-        toast.success("Sync triggered.", { id: toastId });
+      if (newFound) {
+        toast.success("Sync complete! New transactions found.", {
+          id: toastId,
+        });
+        globalMutate("pending-transactions");
       } else {
-        // Check if new transactions were found (backend uses new_pending)
-        const newFound = data.results?.some((r: any) => r.new_pending > 0);
-
-        if (newFound) {
-          toast.success("Sync complete! New transactions found.", {
-            id: toastId,
-          });
-          // Manually refresh pending transactions so the notification bubble updates
-          globalMutate("pending-transactions");
-        } else {
-          toast.success("Sync complete. No new transactions.", { id: toastId });
-        }
+        toast.success("Sync complete. No new transactions.", { id: toastId });
       }
     } catch (e: any) {
       toast.error(`Error: ${e.message}`, { id: toastId });
@@ -235,7 +224,6 @@ function SettingsContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
       setTrProcessId(data.processId);
-      setTrWafToken(data.wafToken || "");
       setTrAuthStep(2);
       toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
@@ -261,7 +249,6 @@ function SettingsContent() {
           pin: trPin.trim(),
           processId: trProcessId,
           code: trCode.trim(),
-          wafToken: trWafToken,
         }),
       });
       const data = await res.json();

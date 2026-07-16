@@ -1,15 +1,16 @@
 /**
- * Trade Republic sync service.
+ * Trade Republic sync service — calls Render Python microservice.
  *
- * Fetches TR transactions via the Python helper script, deduplicates, and
- * inserts into pending_transactions. Session cookies and credentials are
- * stored in integration_configs.settings.
+ * Reads phone + PIN + cookies from integration_configs.settings,
+ * calls the Render service to fetch transactions, deduplicates,
+ * and inserts into pending_transactions.
  *
  * @module utils/trade-republic/sync-service
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { TradeRepublicClient } from './client';
+import type { TRTransaction } from './types';
 
 const toISODate = (d: string): string => new Date(d).toISOString().split('T')[0];
 
@@ -33,22 +34,19 @@ export async function syncTradeRepublicAccount(
     const cookiesB64 = (s.session_cookies as string) || '';
 
     if (!phone || !pin || !cookiesB64) {
-      return { account: config.account_id, error: 'Missing credentials in settings. Re-authenticate.' };
+      return { account: config.account_id, error: 'Missing credentials. Re-authenticate.' };
     }
-
-    const client = new TradeRepublicClient();
 
     const fetchFrom = config.last_sync_at
       ? new Date(config.last_sync_at)
       : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    let result: { transactions: import('./types').TRTransaction[]; cookies?: string };
+    let result: { transactions: TRTransaction[]; cookies: string };
     try {
-      result = await client.getTransactions(phone, pin, cookiesB64, fetchFrom);
+      result = await TradeRepublicClient.getTransactions(phone, pin, cookiesB64, fetchFrom);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       if (msg.includes('auth_required')) {
-        // Mark session as expired
         await supabase
           .from('integration_configs')
           .update({ settings: { ...s, auth_status: 'session_expired' } })
@@ -58,8 +56,8 @@ export async function syncTradeRepublicAccount(
       throw e;
     }
 
-    // Save updated cookies if the session was refreshed.
-    if (result.cookies && result.cookies !== cookiesB64) {
+    // Save updated cookies.
+    if (result.cookies !== cookiesB64) {
       await supabase
         .from('integration_configs')
         .update({ settings: { ...s, session_cookies: result.cookies } })
@@ -76,7 +74,6 @@ export async function syncTradeRepublicAccount(
       return { account: config.account_id, fetched: 0, new_pending: 0 };
     }
 
-    // Deduplicate.
     const fromDateStr = toISODate(fetchFrom.toISOString());
 
     const { data: existingTxns } = await supabase
@@ -91,7 +88,9 @@ export async function syncTradeRepublicAccount(
       .eq('user_id', config.user_id);
 
     const existingSigs = new Set(
-      (existingTxns || []).map((t) => `${parseFloat(String(t.amount)).toFixed(2)}_${toISODate(t.date)}_${t.currency}`),
+      (existingTxns || []).map(
+        (t) => `${parseFloat(String(t.amount)).toFixed(2)}_${toISODate(t.date)}_${t.currency}`,
+      ),
     );
     const existingIds = new Set((existingPending || []).map((p) => p.external_id));
 
@@ -104,7 +103,7 @@ export async function syncTradeRepublicAccount(
       const sig = `${tx.amount.toFixed(2)}_${date}_${tx.currency}`;
       if (existingSigs.has(sig)) continue;
 
-      const appType = ['DEPOSIT', 'SELL', 'DIVIDEND', 'INTEREST', 'TAX_REFUND'].includes(tx.type)
+      const appType = ['DEPOSIT', 'SELL', 'DIVIDEND', 'INTEREST'].includes(tx.type)
         ? 'income'
         : 'expense';
 

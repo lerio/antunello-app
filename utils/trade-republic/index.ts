@@ -5,5 +5,4 @@ export type {
   TRTransaction,
   TRTransactionType,
   TRSettings,
-  TRAuthPayload,
 } from './types';

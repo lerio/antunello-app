@@ -1,45 +1,39 @@
 /**
- * Trade Republic API client.
+ * Trade Republic API client — delegates to the Render Python microservice.
  *
- * Delegates all TR communication to scripts/tr-helper.py, which uses pytr's
- * internal classes to handle WAF challenges, auth, and data fetching without
- * interactive prompts.
+ * The Render service wraps pytr, handling WAF challenges via Playwright
+ * and the web login flow. This client just calls it via HTTP.
+ *
+ * Set TR_SERVICE_URL env var to the Render service URL.
+ * Falls back to localhost:5000 for development.
  *
  * @module utils/trade-republic/client
  */
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join } from 'node:path';
 import type { TRTransaction } from './types';
 
-const execFileAsync = promisify(execFile);
-
-const PYTHON = 'python3';
-const HELPER = join(process.cwd(), 'scripts', 'tr-helper.py');
-
-interface HelperResult {
-  status: 'ok' | 'error';
-  processId?: string;
-  countdownSeconds?: number;
-  wafToken?: string;
-  cookies?: string;
-  transactions?: unknown[];
-  message?: string;
+function serviceUrl(): string {
+  return process.env.TR_SERVICE_URL || 'http://localhost:5001';
 }
 
-async function runHelper(args: string[]): Promise<HelperResult> {
-  const { stdout } = await execFileAsync(PYTHON, [HELPER, ...args], {
-    maxBuffer: 10 * 1024 * 1024,
-    timeout: 180_000,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+async function call(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const resp = await fetch(`${serviceUrl()}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
 
-  const result = JSON.parse(stdout.trim()) as HelperResult;
-  if (result.status === 'error') {
-    throw new Error(result.message || 'TR helper error');
+  const data = (await resp.json()) as Record<string, unknown>;
+
+  if (data.status === 'error') {
+    throw new Error((data.message as string) || 'TR service error');
   }
-  return result;
+
+  if (!resp.ok) {
+    throw new Error((data.message as string) || `HTTP ${resp.status}`);
+  }
+
+  return data;
 }
 
 export class TradeRepublicClient {
@@ -47,75 +41,63 @@ export class TradeRepublicClient {
   // Auth
   // -----------------------------------------------------------------------
 
-  /**
-   * Step 1: send phone + PIN, get back a processId.
-   * TR sends a push notification to the user's phone.
-   */
-  async login(phone: string, pin: string): Promise<{
-    processId: string;
-    countdownSeconds: number;
-    wafToken?: string;
-  }> {
-    const r = await runHelper(['init', phone, pin]);
+  static async initiateDeviceReset(
+    phone: string,
+    pin: string,
+  ): Promise<{ processId: string; countdownSeconds: number }> {
+    const data = await call('/auth/initiate', { phone, pin });
     return {
-      processId: r.processId!,
-      countdownSeconds: r.countdownSeconds!,
-      wafToken: r.wafToken,
+      processId: data.processId as string,
+      countdownSeconds: data.countdownSeconds as number,
     };
   }
 
-  /**
-   * Step 2: submit the verification code, get session cookies back.
-   * Cookies are base64-encoded for storage.
-   */
-  async verifyLogin(
+  static async completeDeviceReset(
     phone: string,
     pin: string,
     processId: string,
     code: string,
-    wafToken?: string,
   ): Promise<{ cookies: string }> {
-    const args = ['complete', phone, pin, processId, code];
-    if (wafToken) args.push(wafToken);
-    const r = await runHelper(args);
-    return { cookies: r.cookies! };
+    const data = await call('/auth/complete', { phone, pin, processId, code });
+    return { cookies: data.cookies_b64 as string };
   }
 
   // -----------------------------------------------------------------------
   // Data fetching
   // -----------------------------------------------------------------------
 
-  /**
-   * Fetch transactions using stored session cookies.
-   *
-   * Returns the transactions and optionally updated cookies (session refresh
-   * may modify them).
-   */
-  async getTransactions(
+  static async getTransactions(
     phone: string,
     pin: string,
     cookiesB64: string,
     fromDate?: Date,
-  ): Promise<{ transactions: TRTransaction[]; cookies?: string }> {
-    const days = fromDate
-      ? Math.max(1, Math.ceil((Date.now() - fromDate.getTime()) / (1000 * 60 * 60 * 24)))
+  ): Promise<{ transactions: TRTransaction[]; cookies: string }> {
+    const lastDays = fromDate
+      ? Math.max(1, Math.ceil((Date.now() - fromDate.getTime()) / 86400000))
       : 7;
 
-    const r = await runHelper(['sync', phone, pin, cookiesB64, '--last-days', String(days)]);
+    const data = await call('/sync', {
+      phone,
+      pin,
+      cookies_b64: cookiesB64,
+      last_days: lastDays,
+    });
 
-    const transactions = ((r.transactions || []) as PytrItem[])
-      .map(mapPytrItem)
-      .filter((t): t is TRTransaction => t !== null);
+    const raw = (data.transactions || []) as PytrItem[];
+    const transactions = raw.map(mapItem).filter((t): t is TRTransaction => t !== null);
 
-    return { transactions, cookies: r.cookies };
+    return {
+      transactions,
+      cookies: (data.cookies_b64 as string) || cookiesB64,
+    };
   }
 
   // -----------------------------------------------------------------------
-  // Session check
+  // Stubs for backward compat
   // -----------------------------------------------------------------------
 
-  async isAuthenticated(_cookies?: string): Promise<boolean> {
-    return true; // We check auth at sync time via the helper.
+  static async isAuthenticated(): Promise<boolean> {
+    return true;
   }
 
   hasSession(): boolean {
@@ -132,7 +114,7 @@ export class TradeRepublicClient {
 }
 
 // ---------------------------------------------------------------------------
-// pytr JSON helpers
+// Mapping
 // ---------------------------------------------------------------------------
 
 interface PytrItem {
@@ -142,13 +124,11 @@ interface PytrItem {
   Note?: string;
   ISIN?: string | null;
   Shares?: number | null;
-  Fees?: number | null;
-  Taxes?: number | null;
 }
 
-function mapPytrItem(item: PytrItem): TRTransaction | null {
-  if (!item.Date && !item.Note) return null;
+function mapItem(item: PytrItem): TRTransaction | null {
   const rawValue = item.Value ?? 0;
+  if (rawValue == null) return null;
   const amount = Math.abs(rawValue);
   const date = item.Date || '';
   const title = item.Note || 'TR Transaction';
