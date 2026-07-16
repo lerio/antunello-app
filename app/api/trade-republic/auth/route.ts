@@ -1,11 +1,10 @@
 /**
- * Trade Republic authentication — 2-step web login flow.
+ * Trade Republic authentication — 2-step web login via Render service.
  *
- * Step 1: POST { step: 1, phoneNumber, pin }
- *   → initiates login, returns processId + countdownSeconds
- *   → TR sends a push notification to the user's phone
+ * Step 1: { step: 1, phoneNumber, pin }
+ *   → initiates web login via Render, push notification sent to phone
  *
- * Step 2: POST { step: 2, phoneNumber, pin, processId, code }
+ * Step 2: { step: 2, phoneNumber, pin, processId, code }
  *   → completes login, stores session cookies in integration_configs
  */
 
@@ -30,10 +29,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'phoneNumber and pin required' }, { status: 400 });
       }
 
-      const client = new TradeRepublicClient();
-      const { processId, countdownSeconds, wafToken } = await client.login(phone, pin);
+      const { processId, countdownSeconds } =
+        await TradeRepublicClient.initiateDeviceReset(phone, pin);
 
-      return NextResponse.json({ processId, countdownSeconds, wafToken });
+      return NextResponse.json({ processId, countdownSeconds });
     }
 
     if (step === 2) {
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
       const pin = (body.pin || '').trim();
       const processId = (body.processId || '').trim();
       const code = (body.code || '').trim();
-      const wafToken = (body.wafToken || '').trim() || undefined;
 
       if (!phone || !pin || !processId || !code) {
         return NextResponse.json(
@@ -50,10 +48,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const client = new TradeRepublicClient();
-      const { cookies } = await client.verifyLogin(phone, pin, processId, code, wafToken);
+      const { cookies } = await TradeRepublicClient.completeDeviceReset(
+        phone, pin, processId, code,
+      );
 
-      // Store in integration_configs.
       const accountId = `tr_${phone.replace(/[^0-9]/g, '')}`;
 
       const { error: upsertError } = await supabase

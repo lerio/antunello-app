@@ -63,13 +63,10 @@ export interface TRSettings {
 }
 
 /**
- * The payload shape received by the TR auth API route from the
- * 2-step client-side form.
+ * Session + key data stored in integration_configs.settings for TR.
  */
-export interface TRAuthPayload {
-  step: 1 | 2;
-  phoneNumber?: string;
-  pin?: string;
-  processId?: string;
-  code?: string;
+export interface TRTokens {
+  private_key_pem: string;
+  session_token: string;
+  refresh_token: string;
 }

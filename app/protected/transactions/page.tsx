@@ -524,13 +524,7 @@ export default function ProtectedPage() {
 
                   if (!res.ok) throw new Error(data.error || "Fetch failed");
 
-                  const wasTriggered = data.results?.some(
-                    (r: any) => r.triggered,
-                  );
-
-                  if (wasTriggered) {
-                    toast.success("Sync triggered.", { id: toastId });
-                  } else if (data.results && data.results.length > 0) {
+                  if (data.results && data.results.length > 0) {
                     const totalNew = data.results.reduce(
                       (acc: number, r: any) => acc + (r.new_pending || 0),
                       0,
