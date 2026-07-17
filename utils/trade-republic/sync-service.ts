@@ -29,12 +29,10 @@ export async function syncTradeRepublicAccount(
 ): Promise<{ account: string; fetched?: number; new_pending?: number; error?: string }> {
   try {
     const s = (config.settings || {}) as Record<string, unknown>;
-    const phone = (s.phone_number as string) || '';
-    const pin = (s.pin as string) || '';
     const cookiesB64 = (s.session_cookies as string) || '';
 
-    if (!phone || !pin || !cookiesB64) {
-      return { account: config.account_id, error: 'Missing credentials. Re-authenticate.' };
+    if (!cookiesB64) {
+      return { account: config.account_id, error: 'Missing session. Re-authenticate.' };
     }
 
     const fetchFrom = config.last_sync_at
@@ -43,7 +41,7 @@ export async function syncTradeRepublicAccount(
 
     let result: { transactions: TRTransaction[]; cookies: string };
     try {
-      result = await TradeRepublicClient.getTransactions(phone, pin, cookiesB64, fetchFrom);
+      result = await TradeRepublicClient.getTransactions(cookiesB64, fetchFrom);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       if (msg.includes('auth_required')) {

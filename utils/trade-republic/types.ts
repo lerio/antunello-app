@@ -62,11 +62,3 @@ export interface TRSettings {
   bulk_fetch_enabled?: boolean;
 }
 
-/**
- * Session + key data stored in integration_configs.settings for TR.
- */
-export interface TRTokens {
-  private_key_pem: string;
-  session_token: string;
-  refresh_token: string;
-}
