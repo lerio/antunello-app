@@ -14,7 +14,6 @@ import {
   Lock,
   Building2,
   CheckCircle2,
-  AlertCircle,
   RefreshCw,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -49,7 +48,6 @@ function SettingsContent() {
   const [trProcessId, setTrProcessId] = useState("");
   const [trCode, setTrCode] = useState("");
   const [trLoading, setTrLoading] = useState(false);
-  const [trError, setTrError] = useState("");
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
@@ -93,7 +91,6 @@ function SettingsContent() {
       setTrPin("");
       setTrProcessId("");
       setTrCode("");
-      setTrError("");
       return;
     }
     window.location.href = `/api/enable-banking/auth?bank=${encodeURIComponent(bank)}&country=${country}`;
@@ -461,9 +458,6 @@ function SettingsContent() {
                         {trLoading ? "Verifying..." : "Verify & Connect"}
                       </Button>
                     </div>
-                  )}
-                  {trError && (
-                    <p className="text-xs text-red-600 mt-3">{trError}</p>
                   )}
                 </div>
               )}

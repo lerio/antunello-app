@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Trade Republic pytr artifacts
+all_events.json
+render/__pycache__/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

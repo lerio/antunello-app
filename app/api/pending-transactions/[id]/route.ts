@@ -22,9 +22,11 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createClient();
 
+    // Soft-delete: mark as 'added' instead of physically deleting.
+    // This preserves the external_id so future syncs can deduplicate.
     const { error } = await supabase
         .from('pending_transactions')
-        .delete()
+        .update({ status: 'added' })
         .eq('id', id);
 
     if (error) {

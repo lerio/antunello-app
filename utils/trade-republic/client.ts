@@ -67,8 +67,6 @@ export class TradeRepublicClient {
   // -----------------------------------------------------------------------
 
   static async getTransactions(
-    phone: string,
-    pin: string,
     cookiesB64: string,
     fromDate?: Date,
   ): Promise<{ transactions: TRTransaction[]; cookies: string }> {
@@ -77,8 +75,6 @@ export class TradeRepublicClient {
       : 7;
 
     const data = await call('/sync', {
-      phone,
-      pin,
       cookies_b64: cookiesB64,
       last_days: lastDays,
     });
@@ -92,25 +88,6 @@ export class TradeRepublicClient {
     };
   }
 
-  // -----------------------------------------------------------------------
-  // Stubs for backward compat
-  // -----------------------------------------------------------------------
-
-  static async isAuthenticated(): Promise<boolean> {
-    return true;
-  }
-
-  hasSession(): boolean {
-    return true;
-  }
-
-  isSessionExpired(): boolean {
-    return false;
-  }
-
-  serialiseSession(): string {
-    return '';
-  }
 }
 
 // ---------------------------------------------------------------------------
