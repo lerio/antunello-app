@@ -175,9 +175,9 @@ def _fetch_timeline(tr: TradeRepublicApi, last_days: int) -> list[dict]:
 
     async def _collect():
         items = []
-        since = (time.time() - last_days * 86400) * 1000  # ms timestamp
+        after = (time.time() - last_days * 86400) * 1000  # ms timestamp
 
-        timeline_id = await tr.timeline(since=since)
+        timeline_id = await tr.timeline(after=after)
         detail_ids = set()
 
         while True:
