@@ -9,6 +9,8 @@ import { createClient } from '@/utils/supabase/server';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 import { syncTradeRepublicAccount } from '@/utils/trade-republic/sync-service';
 
+export const maxDuration = 60; // Vercel Hobby max
+
 /**
  * Trigger a bulk fetch of pending transactions from all linked banking
  * accounts that have the bulk-fetch toggle enabled.

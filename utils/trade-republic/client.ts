@@ -2,15 +2,13 @@
  * Trade Republic API client — delegates to the Render Python microservice.
  *
  * The Render service wraps pytr, handling WAF challenges via Playwright
- * and the web login flow. This client just calls it via HTTP.
+ * and writing results directly to Supabase pending_transactions.
+ * The Vercel app just triggers the sync and returns immediately.
  *
  * Set TR_SERVICE_URL env var to the Render service URL.
- * Falls back to localhost:5000 for development.
  *
  * @module utils/trade-republic/client
  */
-
-import type { TRTransaction } from './types';
 
 function serviceUrl(): string {
   return process.env.TR_SERVICE_URL || 'http://localhost:5001';
@@ -21,6 +19,7 @@ async function call(path: string, body: Record<string, unknown>): Promise<Record
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000), // 15s timeout for auth calls
   });
 
   const data = (await resp.json()) as Record<string, unknown>;
@@ -37,14 +36,8 @@ async function call(path: string, body: Record<string, unknown>): Promise<Record
 }
 
 export class TradeRepublicClient {
-  // -----------------------------------------------------------------------
-  // Auth
-  // -----------------------------------------------------------------------
-
-  static async initiateDeviceReset(
-    phone: string,
-    pin: string,
-  ): Promise<{ processId: string; countdownSeconds: number }> {
+  // Auth steps (fast, keep as-is)
+  static async initiateDeviceReset(phone: string, pin: string) {
     const data = await call('/auth/initiate', { phone, pin });
     return {
       processId: data.processId as string,
@@ -52,83 +45,52 @@ export class TradeRepublicClient {
     };
   }
 
-  static async completeDeviceReset(
-    phone: string,
-    pin: string,
-    processId: string,
-    code: string,
-  ): Promise<{ cookies: string }> {
+  static async completeDeviceReset(phone: string, pin: string, processId: string, code: string) {
     const data = await call('/auth/complete', { phone, pin, processId, code });
     return { cookies: data.cookies_b64 as string };
   }
 
-  // -----------------------------------------------------------------------
-  // Data fetching
-  // -----------------------------------------------------------------------
-
-  static async getTransactions(
-    cookiesB64: string,
-    fromDate?: Date,
-  ): Promise<{ transactions: TRTransaction[]; cookies: string }> {
-    const lastDays = fromDate
-      ? Math.max(1, Math.ceil((Date.now() - fromDate.getTime()) / 86400000))
-      : 7;
-
-    const data = await call('/sync', {
-      cookies_b64: cookiesB64,
-      last_days: lastDays,
+  /**
+   * Trigger a sync on the Render service. The Render service handles
+   * everything: fetch transactions via pytr, dedup, and write to Supabase.
+   * Returns immediately — the UI polls pending_transactions for results.
+   */
+  static async triggerSync(params: {
+    cookiesB64: string;
+    supabaseUrl: string;
+    supabaseKey: string;
+    userId: string;
+    accountId: string;
+    fundCategoryId?: string | null;
+    lastSyncAt?: string | null;
+    lastDays?: number;
+  }) {
+    // Use a longer timeout for sync (Render needs ~60s for pytr).
+    const url = `${serviceUrl()}/sync`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cookies_b64: params.cookiesB64,
+        supabase_url: params.supabaseUrl,
+        supabase_key: params.supabaseKey,
+        user_id: params.userId,
+        account_id: params.accountId,
+        fund_category_id: params.fundCategoryId || null,
+        last_sync_at: params.lastSyncAt || null,
+        last_days: params.lastDays || 7,
+      }),
+      signal: AbortSignal.timeout(130000), // 130s — Render has 120s timeout
     });
 
-    const raw = (data.transactions || []) as PytrItem[];
-    const transactions = raw.map(mapItem).filter((t): t is TRTransaction => t !== null);
+    const data = (await resp.json()) as Record<string, unknown>;
+    if (data.status === 'error') throw new Error((data.message as string) || 'TR sync error');
+    if (!resp.ok) throw new Error((data.message as string) || `HTTP ${resp.status}`);
 
     return {
-      transactions,
-      cookies: (data.cookies_b64 as string) || cookiesB64,
+      transactionsCount: (data.transactions_count as number) || 0,
+      imported: (data.imported as number) || 0,
+      cookies: (data.cookies_b64 as string) || params.cookiesB64,
     };
   }
-
-}
-
-// ---------------------------------------------------------------------------
-// Mapping
-// ---------------------------------------------------------------------------
-
-interface PytrItem {
-  Date?: string;
-  Type?: string;
-  Value?: number | null;
-  Note?: string;
-  ISIN?: string | null;
-  Shares?: number | null;
-}
-
-function mapItem(item: PytrItem): TRTransaction | null {
-  const rawValue = item.Value ?? 0;
-  if (rawValue == null) return null;
-  const amount = Math.abs(rawValue);
-  const date = item.Date || '';
-  const title = item.Note || 'TR Transaction';
-  const typeName = (item.Type || '').toLowerCase();
-
-  let type: TRTransaction['type'];
-  if (typeName.includes('buy')) type = 'BUY';
-  else if (typeName.includes('sell')) type = 'SELL';
-  else if (typeName.includes('dividend')) type = 'DIVIDEND';
-  else if (typeName.includes('interest')) type = 'INTEREST';
-  else if (typeName.includes('savings') || typeName.includes('plan')) type = 'SAVINGS_PLAN';
-  else if (rawValue > 0) type = 'DEPOSIT';
-  else type = 'CARD_PAYMENT';
-
-  return {
-    id: `${date}_${title}_${rawValue}`,
-    amount,
-    currency: 'EUR',
-    date: new Date(date).toISOString(),
-    title,
-    type,
-    isin: item.ISIN || undefined,
-    instrumentName: item.ISIN ? title : undefined,
-    shares: item.Shares || undefined,
-  };
 }
