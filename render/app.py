@@ -146,6 +146,7 @@ def sync():
                 [
                     "pytr", "export_transactions",
                     "--export-format", "json",
+                    "--waf-token", "awswaf",
                     "--last_days", str(last_days),
                     str(out_file),
                 ],
