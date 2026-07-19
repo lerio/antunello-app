@@ -127,13 +127,16 @@ def sync():
     if not cookies_b64:
         return jsonify({"status": "error", "message": "cookies_b64 required"}), 400
 
+        phone = data.get("phone", "").strip()
+        if not phone:
+            phone = "+4900000000000"
+
     try:
         import subprocess as sp
 
         # Restore session cookies for pytr CLI.
         cookies_dir = pathlib.Path.home() / ".pytr"
         cookies_dir.mkdir(parents=True, exist_ok=True)
-        phone = "+4900000000000"
         dest = cookies_dir / f"cookies.{phone}.txt"
         dest.write_bytes(base64.b64decode(cookies_b64))
         (cookies_dir / "credentials").write_text(f"{phone}\n0000")

@@ -41,6 +41,7 @@ export async function syncTradeRepublicAccount(
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
       userId: config.user_id,
       accountId: config.account_id,
+      phone: (s.phone_number as string) || '',
       fundCategoryId: (s.fund_category_id as string) || null,
       lastSyncAt: config.last_sync_at || null,
       lastDays,

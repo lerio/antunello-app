@@ -61,6 +61,7 @@ export class TradeRepublicClient {
     supabaseKey: string;
     userId: string;
     accountId: string;
+    phone?: string;
     fundCategoryId?: string | null;
     lastSyncAt?: string | null;
     lastDays?: number;
@@ -76,6 +77,7 @@ export class TradeRepublicClient {
         supabase_key: params.supabaseKey,
         user_id: params.userId,
         account_id: params.accountId,
+        phone: params.phone || '',
         fund_category_id: params.fundCategoryId || null,
         last_sync_at: params.lastSyncAt || null,
         last_days: params.lastDays || 7,
