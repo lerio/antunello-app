@@ -127,9 +127,7 @@ def sync():
     if not cookies_b64:
         return jsonify({"status": "error", "message": "cookies_b64 required"}), 400
 
-        phone = data.get("phone", "").strip()
-        if not phone:
-            phone = "+4900000000000"
+    phone = data.get("phone", "").strip() or "+4900000000000"
 
     try:
         import subprocess as sp
