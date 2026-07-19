@@ -189,9 +189,19 @@ function SettingsContent() {
 
       if (!res.ok) throw new Error(data.error || "Failed to fetch");
 
-      const newFound = data.results?.some((r: any) => r.new_pending > 0);
+      // Check for errors in results.
+      const results = data.results || [];
+      const errors = results.filter((r: any) => r.error);
+      const newFound = results.some((r: any) => r.new_pending > 0);
 
-      if (newFound) {
+      if (errors.length > 0) {
+        const msg = errors[0].error || '';
+        if (msg.includes('429') || msg.includes('RATE_LIMIT')) {
+          toast.error('Daily API limit reached. Try again tomorrow.', { id: toastId });
+        } else {
+          toast.error(`Error: ${msg}`, { id: toastId });
+        }
+      } else if (newFound) {
         toast.success("Sync complete! New transactions found.", {
           id: toastId,
         });

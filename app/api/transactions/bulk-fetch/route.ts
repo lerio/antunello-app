@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
         // 3. Trigger sync for each enabled account, dispatching by provider.
         const results = await Promise.all(
             enabledConfigs.map(async (config) => {
+                const settings = (config.settings as Record<string, unknown>) || {};
+                const bankName = (settings.bank_name as string) || config.provider;
+
                 if (config.provider === 'trade_republic') {
-                    return syncTradeRepublicAccount(supabase, config);
+                    const result = await syncTradeRepublicAccount(supabase, config);
+                    return { ...result, bank_name: bankName };
                 }
 
                 // Default / enable_banking path.
@@ -65,13 +69,14 @@ export async function POST(request: NextRequest) {
                 const kid = process.env.ENABLE_BANKING_KID || appId;
 
                 if (!appId || !appKey) {
-                    return { account: config.account_id, error: 'Server configuration error' };
+                    return { account: config.account_id, bank_name: bankName, error: 'Server configuration error' };
                 }
 
                 const { EnableBankingClient } = await import('@/utils/enable-banking/client');
                 const { syncAccount } = await import('@/utils/enable-banking/sync-service');
                 const client = new EnableBankingClient({ appId, appKey, kid: kid! });
-                return syncAccount(supabase, config, client);
+                const result = await syncAccount(supabase, config, client);
+                return { ...result, bank_name: bankName };
             })
         );
 

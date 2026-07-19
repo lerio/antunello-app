@@ -533,11 +533,21 @@ export default function ProtectedPage() {
                       toast.success(`Found ${totalNew} new transactions!`, {
                         id: toastId,
                       });
-                      mutatePending(); // Refresh pending list bubble
+                      mutatePending();
                     } else {
                       toast.success("Fetch complete. No new transactions.", {
                         id: toastId,
                       });
+                    }
+
+                    // Show per-account errors.
+                    const errors = data.results.filter((r: any) => r.error);
+                    for (const r of errors) {
+                      const name = r.bank_name || r.account || 'Unknown';
+                      const msg = r.error.includes('429') || r.error.includes('RATE_LIMIT')
+                        ? `${name}: daily API limit reached. Try again tomorrow.`
+                        : `${name}: ${r.error}`;
+                      toast.error(msg, { duration: 6000 });
                     }
                   } else {
                     toast.success(data.message || "Fetch complete", {
