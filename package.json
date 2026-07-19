@@ -42,7 +42,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/recharts": "^2.0.1",
     "baseline-browser-mapping": "^2.10.43",
-    "postcss": "^8.5.19",
+    "postcss": "^8.5.20",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
