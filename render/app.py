@@ -108,9 +108,20 @@ def auth_complete():
 
 @app.route("/sync", methods=["POST"])
 def sync():
-    """Fetch transactions using stored cookies. Uses pytr CLI subprocess."""
+    """
+    Fetch transactions and write directly to Supabase pending_transactions.
+    This runs synchronously — the caller should set a long timeout or use
+    a fire-and-forget pattern (the Vercel route returns immediately after
+    triggering, and the UI polls pending_transactions for results).
+    """
     data = request.get_json()
     cookies_b64 = data.get("cookies_b64", "")
+    supabase_url = data.get("supabase_url", "")
+    supabase_key = data.get("supabase_key", "")
+    user_id = data.get("user_id", "")
+    last_sync_at = data.get("last_sync_at")
+    fund_category_id = data.get("fund_category_id")
+    account_id = data.get("account_id", "tr_default")
     last_days = data.get("last_days", 7)
 
     if not cookies_b64:
@@ -119,17 +130,12 @@ def sync():
     try:
         import subprocess as sp
 
-        # Restore session cookies so pytr CLI can resume the websession.
+        # Restore session cookies for pytr CLI.
         cookies_dir = pathlib.Path.home() / ".pytr"
         cookies_dir.mkdir(parents=True, exist_ok=True)
-
-        # Use a placeholder phone — pytr needs a cookies file name, but the
-        # actual phone number isn't used for auth (we're using stored cookies).
         phone = "+4900000000000"
         dest = cookies_dir / f"cookies.{phone}.txt"
         dest.write_bytes(base64.b64decode(cookies_b64))
-
-        # pytr CLI needs credentials to exist, even for resuming a session.
         (cookies_dir / "credentials").write_text(f"{phone}\n0000")
 
         out_dir = pathlib.Path(tempfile.mkdtemp())
@@ -163,9 +169,18 @@ def sync():
             if dest.exists():
                 updated_b64 = base64.b64encode(dest.read_bytes()).decode("ascii")
 
+            # Write directly to Supabase if credentials provided.
+            imported = 0
+            if supabase_url and supabase_key and user_id and transactions:
+                imported = _import_to_supabase(
+                    supabase_url, supabase_key, user_id, account_id,
+                    transactions, last_sync_at, fund_category_id, updated_b64,
+                )
+
             return jsonify({
                 "status": "ok",
-                "transactions": transactions,
+                "transactions_count": len(transactions),
+                "imported": imported,
                 "cookies_b64": updated_b64,
             })
         finally:
@@ -177,6 +192,119 @@ def sync():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def _import_to_supabase(url, key, user_id, account_id, transactions,
+                        last_sync_at, fund_category_id, updated_b64):
+    """Write transactions into Supabase pending_transactions. Returns count."""
+    import requests as req
+
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+
+    # Fetch existing IDs for dedup.
+    existing_ids = set()
+    try:
+        r = req.get(
+            f"{url}/rest/v1/pending_transactions?select=external_id&user_id=eq.{user_id}",
+            headers=headers,
+            timeout=10,
+        )
+        if r.ok:
+            existing_ids = {e["external_id"] for e in r.json()}
+    except Exception:
+        pass
+
+    # Fetch existing transaction signatures for dedup.
+    existing_sigs = set()
+    if last_sync_at:
+        try:
+            r = req.get(
+                f"{url}/rest/v1/transactions"
+                f"?select=amount,date,currency"
+                f"&user_id=eq.{user_id}"
+                f"&date=gte.{last_sync_at[:10]}",
+                headers=headers,
+                timeout=10,
+            )
+            if r.ok:
+                for t in r.json():
+                    amt = f"{float(t['amount']):.2f}"
+                    d = t["date"][:10] if t.get("date") else ""
+                    cur = t.get("currency", "EUR")
+                    existing_sigs.add(f"{amt}_{d}_{cur}")
+        except Exception:
+            pass
+
+    # Map and dedup.
+    rows = []
+    for item in transactions:
+        value = item.get("Value") or 0
+        if value == 0:
+            continue
+        amt = abs(value)
+        date_str = item.get("Date", "")
+        title = item.get("Note", "TR Transaction")
+        ext_id = f"{date_str}_{title}_{value}"
+
+        if ext_id in existing_ids:
+            continue
+        sig = f"{amt:.2f}_{date_str[:10]}_EUR"
+        if sig in existing_sigs:
+            continue
+
+        tr_type = (item.get("Type") or "").lower()
+        app_type = "income" if tr_type in ("deposit", "sell", "dividend", "interest") else "expense"
+
+        rows.append({
+            "user_id": user_id,
+            "external_id": ext_id,
+            "status": "pending",
+            "data": {
+                "amount": amt,
+                "currency": "EUR",
+                "date": date_str,
+                "title": title,
+                "type": app_type,
+                "tr_type": tr_type.upper(),
+                "isin": item.get("ISIN"),
+                "shares": item.get("Shares"),
+                "fund_category_id": fund_category_id,
+            },
+        })
+
+    imported = 0
+    if rows:
+        r = req.post(
+            f"{url}/rest/v1/pending_transactions",
+            headers={**headers, "Prefer": "return=minimal"},
+            json=rows,
+            timeout=30,
+        )
+        if r.ok:
+            imported = len(rows)
+
+    # Update integration config with last_sync_at and refreshed cookies.
+    if account_id:
+        try:
+            r = req.patch(
+                f"{url}/rest/v1/integration_configs"
+                f"?user_id=eq.{user_id}&provider=eq.trade_republic"
+                f"&account_id=eq.{account_id}",
+                headers=headers,
+                json={
+                    "last_sync_at": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+                    "settings": {"session_cookies": updated_b64, "auth_status": "authenticated"},
+                },
+                timeout=10,
+            )
+        except Exception:
+            pass
+
+    return imported
 
 
 if __name__ == "__main__":

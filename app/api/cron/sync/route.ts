@@ -11,6 +11,8 @@ import { EnableBankingClient } from '@/utils/enable-banking/client';
 import { syncAccount } from '@/utils/enable-banking/sync-service';
 import { syncTradeRepublicAccount } from '@/utils/trade-republic/sync-service';
 
+export const maxDuration = 60; // Vercel Hobby max
+
 /**
  * Synchronise bank transactions from Enable Banking for one or more
  * integration configs. Accepts an optional `account_id` query parameter to
