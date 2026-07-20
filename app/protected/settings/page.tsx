@@ -48,6 +48,7 @@ function SettingsContent() {
   const [trProcessId, setTrProcessId] = useState("");
   const [trCode, setTrCode] = useState("");
   const [trLoading, setTrLoading] = useState(false);
+  const [trReauthAccountId, setTrReauthAccountId] = useState(""); // set → re-auth mode
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
@@ -246,25 +247,65 @@ function SettingsContent() {
       return;
     }
     setTrLoading(true);
+    const isReauth = !!trReauthAccountId;
+    try {
+      const body = isReauth
+        ? {
+            step: "reauth_complete",
+            accountId: trReauthAccountId,
+            processId: trProcessId,
+            code: trCode.trim(),
+          }
+        : {
+            step: 2,
+            phoneNumber: trPhone.trim(),
+            pin: trPin.trim(),
+            processId: trProcessId,
+            code: trCode.trim(),
+          };
+
+      const res = await fetch("/api/trade-republic/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Verification failed");
+      toast.success(
+        isReauth
+          ? "Session renewed successfully!"
+          : "Trade Republic connected successfully!",
+      );
+      await mutate();
+      setTrAuthOpen(false);
+      setTrReauthAccountId("");
+    } catch (e: any) {
+      toast.error(`Error: ${e.message}`);
+    } finally {
+      setTrLoading(false);
+    }
+  };
+
+  const handleReauth = async (accountId: string) => {
+    setTrReauthAccountId(accountId);
+    setTrAuthOpen(true);
+    setTrAuthStep(2); // skip phone/PIN entry
+    setTrCode("");
+    setTrLoading(true);
     try {
       const res = await fetch("/api/trade-republic/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: 2,
-          phoneNumber: trPhone.trim(),
-          pin: trPin.trim(),
-          processId: trProcessId,
-          code: trCode.trim(),
-        }),
+        body: JSON.stringify({ step: "reauth_initiate", accountId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Verification failed");
-      toast.success("Trade Republic connected successfully!");
-      await mutate();
-      setTrAuthOpen(false);
+      if (!res.ok) throw new Error(data.error || "Re-auth failed");
+      setTrProcessId(data.processId);
+      toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
+      setTrAuthOpen(false);
+      setTrReauthAccountId("");
     } finally {
       setTrLoading(false);
     }
@@ -362,9 +403,28 @@ function SettingsContent() {
                           <bank.icon className="h-5 w-5 text-blue-500" />
                           <span className="font-semibold">{bank.name}</span>
                           {connected && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              Connected
-                            </span>
+                            <>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                Connected
+                              </span>
+                              {bank.name === "Trade Republic" &&
+                                (() => {
+                                  const trConfig = connectedAccounts?.find(
+                                    (a) => a.provider === "trade_republic",
+                                  );
+                                  const trSettings = (trConfig?.settings || {}) as any;
+                                  if (
+                                    trSettings.auth_status === "session_expired"
+                                  ) {
+                                    return (
+                                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                        Session expired
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                            </>
                           )}
                         </div>
                         <p className="text-sm text-gray-500">
@@ -372,29 +432,53 @@ function SettingsContent() {
                         </p>
                       </div>
                       {connected ? (
-                        <Button
-                          onClick={() => {
-                            if (bank.name === "Trade Republic") {
+                        <div className="flex items-center gap-2">
+                          {bank.name === "Trade Republic" &&
+                            (() => {
                               const trConfig = connectedAccounts?.find(
                                 (a) => a.provider === "trade_republic",
                               );
-                              handleDisconnect({
-                                accountId: trConfig?.account_id,
-                                label: "Trade Republic account",
-                                provider: "trade_republic",
-                              });
-                            } else {
-                              handleDisconnect({
-                                bankName: bank.name,
-                                label: `all ${bank.name} accounts`,
-                              });
-                            }
-                          }}
-                          variant="destructive"
-                          size="sm"
-                        >
-                          Disconnect
-                        </Button>
+                              const trSettings = (trConfig?.settings || {}) as any;
+                              if (trSettings.auth_status === "session_expired") {
+                                return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                    onClick={() =>
+                                      handleReauth(trConfig?.account_id || "")
+                                    }
+                                  >
+                                    Re-authenticate
+                                  </Button>
+                                );
+                              }
+                              return null;
+                            })()}
+                          <Button
+                            onClick={() => {
+                              if (bank.name === "Trade Republic") {
+                                const trConfig = connectedAccounts?.find(
+                                  (a) => a.provider === "trade_republic",
+                                );
+                                handleDisconnect({
+                                  accountId: trConfig?.account_id,
+                                  label: "Trade Republic account",
+                                  provider: "trade_republic",
+                                });
+                              } else {
+                                handleDisconnect({
+                                  bankName: bank.name,
+                                  label: `all ${bank.name} accounts`,
+                                });
+                              }
+                            }}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           onClick={() => handleConnect(bank.name, bank.country)}
@@ -414,12 +498,17 @@ function SettingsContent() {
                 <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-semibold text-sm">
-                      {trAuthStep === 1
-                        ? "Trade Republic — Login"
-                        : "Trade Republic — Verify"}
+                      {trReauthAccountId
+                        ? "Trade Republic — Renew Session"
+                        : trAuthStep === 1
+                          ? "Trade Republic — Login"
+                          : "Trade Republic — Verify"}
                     </h4>
                     <button
-                      onClick={() => setTrAuthOpen(false)}
+                      onClick={() => {
+                        setTrAuthOpen(false);
+                        setTrReauthAccountId("");
+                      }}
                       className="text-xs text-gray-500 hover:text-gray-700"
                     >
                       Cancel
@@ -451,8 +540,9 @@ function SettingsContent() {
                   ) : (
                     <div className="space-y-3">
                       <p className="text-xs text-gray-500">
-                        A push notification was sent to your Trade Republic app.
-                        Enter the verification code below.
+                        {trReauthAccountId
+                          ? "A push notification was sent to your Trade Republic app. Enter the code to renew your session."
+                          : "A push notification was sent to your Trade Republic app. Enter the verification code below."}
                       </p>
                       <input
                         type="text"
@@ -465,7 +555,11 @@ function SettingsContent() {
                         disabled={trLoading}
                       />
                       <Button onClick={handleTRAuthStep2} disabled={trLoading} size="sm" className="w-full">
-                        {trLoading ? "Verifying..." : "Verify & Connect"}
+                        {trLoading
+                          ? "Verifying..."
+                          : trReauthAccountId
+                            ? "Renew Session"
+                            : "Verify & Connect"}
                       </Button>
                     </div>
                   )}
@@ -489,6 +583,9 @@ function SettingsContent() {
                             ? "Trade Republic"
                             : "Unknown");
                       const iban = settings.iban;
+                      const isTR = acc.provider === "trade_republic";
+                      const isSessionExpired =
+                        isTR && settings.auth_status === "session_expired";
 
                       return (
                         <div
@@ -496,13 +593,20 @@ function SettingsContent() {
                           className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-4"
                         >
                           <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <CheckCircle2
+                              className={`h-4 w-4 flex-shrink-0 ${isSessionExpired ? "text-amber-500" : "text-green-500"}`}
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="font-medium flex items-center gap-2 flex-wrap">
                                 {bankName}
                                 {iban && (
                                   <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded truncate max-w-[150px] sm:max-w-none">
                                     {iban}
+                                  </span>
+                                )}
+                                {isSessionExpired && (
+                                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                    Session expired
                                   </span>
                                 )}
                               </p>
@@ -530,22 +634,6 @@ function SettingsContent() {
                                 title="Fetch transactions now"
                               >
                                 <RefreshCw className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-                                onClick={() =>
-                                  handleDisconnect({
-                                    accountId: acc.account_id,
-                                    label: iban
-                                      ? `${bankName} ${iban}`
-                                      : `${bankName} account`,
-                                    provider: acc.provider,
-                                  })
-                                }
-                              >
-                                Disconnect
                               </Button>
                             </div>
 
