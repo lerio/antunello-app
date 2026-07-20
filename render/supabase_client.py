@@ -1,12 +1,4 @@
-"""
-Thin Supabase REST client for the Trade Republic microservice.
-
-Handles dedup queries and pending-transaction inserts only.
-**Does NOT update integration_configs** — that responsibility stays
-with the Vercel sync service, which has the full settings context.
-"""
-
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set
 
 import requests
 
@@ -36,7 +28,7 @@ class SupabaseClient:
     # Dedup helpers
     # ------------------------------------------------------------------
 
-    def fetch_external_ids(self, user_id: str) -> set[str]:
+    def fetch_external_ids(self, user_id: str) -> Set[str]:
         """Return all *external_id* values from pending_transactions.
 
         Used to skip transactions that were already imported.
@@ -68,7 +60,7 @@ class SupabaseClient:
 
     def fetch_existing_signatures(
         self, user_id: str, last_sync_at: Optional[str]
-    ) -> set[str]:
+    ) -> Set[str]:
         """Return signatures of confirmed transactions for dedup.
 
         Signature format: ``"{amount:.2f}_{date[:10]}_{currency}"``
@@ -89,12 +81,10 @@ class SupabaseClient:
                 timeout=10,
             )
             if r.ok:
-                sigs: set[str] = set()
-                for t in r.json():
-                    amt = f"{float(t['amount']):.2f}"
-                    d = (t.get("date") or "")[:10]
-                    cur = t.get("currency", "EUR")
-                    sigs.add(f"{amt}_{d}_{cur}")
+                sigs = {
+                    f"{float(t['amount']):.2f}_{(t.get('date') or '')[:10]}_{t.get('currency', 'EUR')}"
+                    for t in r.json()
+                }
                 logger.debug(
                     "Fetched %d existing transaction signatures for dedup",
                     len(sigs),
@@ -117,7 +107,7 @@ class SupabaseClient:
     # Writer
     # ------------------------------------------------------------------
 
-    def insert_pending_transactions(self, rows: list[dict]) -> int:
+    def insert_pending_transactions(self, rows: List[Dict[str, Any]]) -> int:
         """Insert rows into *pending_transactions*.
 
         Returns the number of rows successfully inserted (0 on any error).

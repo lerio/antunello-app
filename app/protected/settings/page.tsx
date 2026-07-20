@@ -41,14 +41,16 @@ function SettingsContent() {
   const { mutate: globalMutate } = useSWRConfig();
 
   // Trade Republic auth form state
-  const [trAuthOpen, setTrAuthOpen] = useState(false);
-  const [trAuthStep, setTrAuthStep] = useState<1 | 2>(1);
-  const [trPhone, setTrPhone] = useState("");
-  const [trPin, setTrPin] = useState("");
-  const [trProcessId, setTrProcessId] = useState("");
-  const [trCode, setTrCode] = useState("");
-  const [trLoading, setTrLoading] = useState(false);
-  const [trReauthAccountId, setTrReauthAccountId] = useState(""); // set → re-auth mode
+  const [trState, setTrState] = useState({
+    isOpen: false,
+    step: 1 as 1 | 2,
+    phone: "",
+    pin: "",
+    processId: "",
+    code: "",
+    isLoading: false,
+    reauthAccountId: "",
+  });
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
   const { data: connectedAccounts, mutate } = useSWR(
@@ -86,12 +88,16 @@ function SettingsContent() {
 
   const handleConnect = (bank: string, country: string) => {
     if (bank === "Trade Republic") {
-      setTrAuthOpen(true);
-      setTrAuthStep(1);
-      setTrPhone("");
-      setTrPin("");
-      setTrProcessId("");
-      setTrCode("");
+      setTrState({
+        isOpen: true,
+        step: 1,
+        phone: "",
+        pin: "",
+        processId: "",
+        code: "",
+        isLoading: false,
+        reauthAccountId: "",
+      });
       return;
     }
     window.location.href = `/api/enable-banking/auth?bank=${encodeURIComponent(bank)}&country=${country}`;
@@ -218,50 +224,56 @@ function SettingsContent() {
   // ---- Trade Republic auth handlers ----
 
   const handleTRAuthStep1 = async () => {
-    if (!trPhone.trim() || !trPin.trim()) {
+    const phone = trState.phone.trim();
+    const pin = trState.pin.trim();
+    if (!phone || !pin) {
       toast.error("Please enter your phone number and PIN.");
       return;
     }
-    setTrLoading(true);
+    setTrState((prev) => ({ ...prev, isLoading: true }));
     try {
       const res = await fetch("/api/trade-republic/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: 1, phoneNumber: trPhone.trim(), pin: trPin.trim() }),
+        body: JSON.stringify({ step: 1, phoneNumber: phone, pin }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
-      setTrProcessId(data.processId);
-      setTrAuthStep(2);
+      setTrState((prev) => ({
+        ...prev,
+        processId: data.processId,
+        step: 2,
+      }));
       toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
     } finally {
-      setTrLoading(false);
+      setTrState((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
   const handleTRAuthStep2 = async () => {
-    if (!trCode.trim()) {
+    const code = trState.code.trim();
+    if (!code) {
       toast.error("Please enter the verification code.");
       return;
     }
-    setTrLoading(true);
-    const isReauth = !!trReauthAccountId;
+    setTrState((prev) => ({ ...prev, isLoading: true }));
+    const isReauth = !!trState.reauthAccountId;
     try {
       const body = isReauth
         ? {
             step: "reauth_complete",
-            accountId: trReauthAccountId,
-            processId: trProcessId,
-            code: trCode.trim(),
+            accountId: trState.reauthAccountId,
+            processId: trState.processId,
+            code,
           }
         : {
             step: 2,
-            phoneNumber: trPhone.trim(),
-            pin: trPin.trim(),
-            processId: trProcessId,
-            code: trCode.trim(),
+            phoneNumber: trState.phone.trim(),
+            pin: trState.pin.trim(),
+            processId: trState.processId,
+            code,
           };
 
       const res = await fetch("/api/trade-republic/auth", {
@@ -277,21 +289,32 @@ function SettingsContent() {
           : "Trade Republic connected successfully!",
       );
       await mutate();
-      setTrAuthOpen(false);
-      setTrReauthAccountId("");
+      setTrState({
+        isOpen: false,
+        step: 1,
+        phone: "",
+        pin: "",
+        processId: "",
+        code: "",
+        isLoading: false,
+        reauthAccountId: "",
+      });
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
     } finally {
-      setTrLoading(false);
+      setTrState((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
   const handleReauth = async (accountId: string) => {
-    setTrReauthAccountId(accountId);
-    setTrAuthOpen(true);
-    setTrAuthStep(2); // skip phone/PIN entry
-    setTrCode("");
-    setTrLoading(true);
+    setTrState((prev) => ({
+      ...prev,
+      reauthAccountId: accountId,
+      isOpen: true,
+      step: 2, // skip phone/PIN entry
+      code: "",
+      isLoading: true,
+    }));
     try {
       const res = await fetch("/api/trade-republic/auth", {
         method: "POST",
@@ -300,14 +323,20 @@ function SettingsContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Re-auth failed");
-      setTrProcessId(data.processId);
+      setTrState((prev) => ({
+        ...prev,
+        processId: data.processId,
+      }));
       toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
-      setTrAuthOpen(false);
-      setTrReauthAccountId("");
+      setTrState((prev) => ({
+        ...prev,
+        isOpen: false,
+        reauthAccountId: "",
+      }));
     } finally {
-      setTrLoading(false);
+      setTrState((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -494,53 +523,56 @@ function SettingsContent() {
               </div>
 
               {/* Trade Republic auth form */}
-              {trAuthOpen && (
+              {trState.isOpen && (
                 <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-semibold text-sm">
-                      {trReauthAccountId
+                      {trState.reauthAccountId
                         ? "Trade Republic — Renew Session"
-                        : trAuthStep === 1
+                        : trState.step === 1
                           ? "Trade Republic — Login"
                           : "Trade Republic — Verify"}
                     </h4>
                     <button
                       onClick={() => {
-                        setTrAuthOpen(false);
-                        setTrReauthAccountId("");
+                        setTrState((prev) => ({
+                          ...prev,
+                          isOpen: false,
+                          reauthAccountId: "",
+                        }));
                       }}
                       className="text-xs text-gray-500 hover:text-gray-700"
                     >
                       Cancel
                     </button>
                   </div>
-                  {trAuthStep === 1 ? (
+                  {trState.step === 1 ? (
                     <div className="space-y-3">
                       <input
                         type="tel"
                         placeholder="Phone (+39...)"
-                        value={trPhone}
-                        onChange={(e) => setTrPhone(e.target.value)}
+                        value={trState.phone}
+                        onChange={(e) => setTrState((prev) => ({ ...prev, phone: e.target.value }))}
                         className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
-                        disabled={trLoading}
+                        disabled={trState.isLoading}
                       />
                       <input
                         type="password"
                         maxLength={4}
                         placeholder="PIN (4 digits)"
-                        value={trPin}
-                        onChange={(e) => setTrPin(e.target.value.replace(/[^0-9]/g, ""))}
+                        value={trState.pin}
+                        onChange={(e) => setTrState((prev) => ({ ...prev, pin: e.target.value.replace(/[^0-9]/g, "") }))}
                         className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
-                        disabled={trLoading}
+                        disabled={trState.isLoading}
                       />
-                      <Button onClick={handleTRAuthStep1} disabled={trLoading} size="sm" className="w-full">
-                        {trLoading ? "Logging in..." : "Login"}
+                      <Button onClick={handleTRAuthStep1} disabled={trState.isLoading} size="sm" className="w-full">
+                        {trState.isLoading ? "Logging in..." : "Login"}
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <p className="text-xs text-gray-500">
-                        {trReauthAccountId
+                        {trState.reauthAccountId
                           ? "A push notification was sent to your Trade Republic app. Enter the code to renew your session."
                           : "A push notification was sent to your Trade Republic app. Enter the verification code below."}
                       </p>
@@ -549,15 +581,15 @@ function SettingsContent() {
                         inputMode="numeric"
                         maxLength={6}
                         placeholder="Verification code"
-                        value={trCode}
-                        onChange={(e) => setTrCode(e.target.value.replace(/[^0-9]/g, ""))}
+                        value={trState.code}
+                        onChange={(e) => setTrState((prev) => ({ ...prev, code: e.target.value.replace(/[^0-9]/g, "") }))}
                         className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
-                        disabled={trLoading}
+                        disabled={trState.isLoading}
                       />
-                      <Button onClick={handleTRAuthStep2} disabled={trLoading} size="sm" className="w-full">
-                        {trLoading
+                      <Button onClick={handleTRAuthStep2} disabled={trState.isLoading} size="sm" className="w-full">
+                        {trState.isLoading
                           ? "Verifying..."
-                          : trReauthAccountId
+                          : trState.reauthAccountId
                             ? "Renew Session"
                             : "Verify & Connect"}
                       </Button>

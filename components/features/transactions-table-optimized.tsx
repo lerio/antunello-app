@@ -255,20 +255,36 @@ export default function TransactionsTable({
   onSubCategoryClick,
   showYear = false,
   isLoading = false,
-}: TransactionsTableProps) {
+}: TransactionsTableProps): React.ReactElement {
   const { privacyMode } = usePrivacyMode();
 
   const groupedData = useMemo(() => {
-    if (!transactions.length) return {};
+    if (!transactions.length) return [];
 
-    return transactions.reduce((groups, transaction) => {
+    const groups: Record<string, { transactions: Transaction[]; dailyTotal: number }> = {};
+
+    for (const transaction of transactions) {
       const date = formatDate(transaction.date);
       if (!groups[date]) {
-        groups[date] = [];
+        groups[date] = { transactions: [], dailyTotal: 0 };
       }
-      groups[date].push(transaction);
-      return groups;
-    }, {} as Record<string, Transaction[]>);
+      
+      groups[date].transactions.push(transaction);
+
+      // Skip transactions that are hidden from totals or are money transfers
+      if (!transaction.hide_from_totals && !transaction.is_money_transfer) {
+        const amount =
+          getTransactionDisplayEurAmount(transaction) ??
+          (transaction.currency === "EUR" ? getTransactionDisplayAmount(transaction) : 0);
+        groups[date].dailyTotal += transaction.type === "expense" ? -amount : amount;
+      }
+    }
+
+    return Object.entries(groups).map(([date, data]) => ({
+      date,
+      transactions: data.transactions,
+      dailyTotal: data.dailyTotal,
+    }));
   }, [transactions]);
 
   const handleTransactionClick = React.useCallback(
@@ -290,31 +306,19 @@ export default function TransactionsTable({
 
   return (
     <div className="space-y-3">
-      {Object.entries(groupedData).map(([date, dateTransactions]) => {
-        const dailyTotal = dateTransactions.reduce((total, t) => {
-          // Skip transactions that are hidden from totals or are money transfers
-          if (t.hide_from_totals || t.is_money_transfer) return total;
-
-          const amount =
-            getTransactionDisplayEurAmount(t) ??
-            (t.currency === "EUR" ? getTransactionDisplayAmount(t) : 0);
-          return total + (t.type === "expense" ? -amount : amount);
-        }, 0);
-
-        return (
-          <DateGroup
-            key={date}
-            date={date}
-            transactions={dateTransactions}
-            dailyTotal={dailyTotal}
-            onTransactionClick={handleTransactionClick}
-            onCategoryClick={onCategoryClick}
-            onSubCategoryClick={onSubCategoryClick}
-            showYear={showYear}
-            privacyMode={privacyMode}
-          />
-        );
-      })}
+      {groupedData.map(({ date, transactions: dateTransactions, dailyTotal }) => (
+        <DateGroup
+          key={date}
+          date={date}
+          transactions={dateTransactions}
+          dailyTotal={dailyTotal}
+          onTransactionClick={handleTransactionClick}
+          onCategoryClick={onCategoryClick}
+          onSubCategoryClick={onSubCategoryClick}
+          showYear={showYear}
+          privacyMode={privacyMode}
+        />
+      ))}
     </div>
   );
 }
