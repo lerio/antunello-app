@@ -5,7 +5,7 @@ Pure business logic — no Flask dependency. Delegates to *pytr_cli* for
 data fetching and *supabase_client* for persistence.
 """
 
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set
 
 from pytr_cli import run_pytr_export
 from supabase_client import SupabaseClient
@@ -30,13 +30,13 @@ def _app_type(tr_type: str) -> str:
 
 
 def _build_row(
-    item: dict,
+    item: Dict[str, Any],
     user_id: str,
     fund_category_id: Optional[str],
     external_id: str,
-) -> dict:
+    value: float,
+) -> Dict[str, Any]:
     """Convert one pytr transaction dict into a pending_transactions row."""
-    value = abs(float(item.get("Value") or 0))
     date_str = item.get("Date", "")
     title = item.get("Note", "TR Transaction")
     tr_type = (item.get("Type") or "").lower()
@@ -46,7 +46,7 @@ def _build_row(
         "external_id": external_id,
         "status": "pending",
         "data": {
-            "amount": value,
+            "amount": abs(value),
             "currency": "EUR",
             "date": date_str,
             "title": title,
@@ -60,21 +60,25 @@ def _build_row(
 
 
 def _filter_and_build_rows(
-    transactions: list[dict],
+    transactions: List[Dict[str, Any]],
     user_id: str,
-    external_ids: set[str],
-    existing_sigs: set[str],
+    external_ids: Set[str],
+    existing_sigs: Set[str],
     fund_category_id: Optional[str],
-) -> list[dict]:
+) -> List[Dict[str, Any]]:
     """Dedup and map raw pytr transactions to pending_transactions rows."""
-    rows: list[dict] = []
+    rows: List[Dict[str, Any]] = []
     skip_zero = 0
     skip_external = 0
     skip_sig = 0
 
     for item in transactions:
-        value = item.get("Value") or 0
-        if value == 0:
+        try:
+            value = float(item.get("Value") or 0.0)
+        except (ValueError, TypeError):
+            value = 0.0
+
+        if value == 0.0:
             skip_zero += 1
             continue
 
@@ -91,7 +95,7 @@ def _filter_and_build_rows(
             skip_sig += 1
             continue
 
-        rows.append(_build_row(item, user_id, fund_category_id, ext_id))
+        rows.append(_build_row(item, user_id, fund_category_id, ext_id, value))
 
     if skip_zero or skip_external or skip_sig:
         logger.info(
@@ -122,7 +126,7 @@ def run_sync(
     last_sync_at: Optional[str],
     fund_category_id: Optional[str],
     last_days: int,
-) -> dict:
+) -> Dict[str, Any]:
     """Orchestrate a full Trade Republic sync.
 
     Args:
