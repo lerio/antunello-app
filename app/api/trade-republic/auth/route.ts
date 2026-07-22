@@ -19,6 +19,8 @@ import { createClient } from '@/utils/supabase/server';
 import { TradeRepublicClient } from '@/utils/trade-republic/client';
 import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-utils';
 
+export const maxDuration = 60; // Render free tier cold starts can take 30+ s
+
 interface AuthRequestBody {
   step: 1 | 2 | 'reauth_initiate' | 'reauth_complete';
   phoneNumber?: string;
