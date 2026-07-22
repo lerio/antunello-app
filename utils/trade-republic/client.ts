@@ -19,7 +19,7 @@ async function call(path: string, body: Record<string, unknown>): Promise<Record
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000), // 15s timeout for auth calls
+    signal: AbortSignal.timeout(60000), // 60s — Render free tier cold starts can take 30+ s
   });
 
   const data = (await resp.json()) as Record<string, unknown>;
