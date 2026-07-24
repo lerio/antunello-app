@@ -152,6 +152,28 @@ export async function GET(request: NextRequest) {
                 }
             }
 
+            // 4) Match by bank_name — last-resort fallback for providers that
+            //    don't surface identification_hashes or IBANs (e.g. PayPal).
+            //    Only matches when the existing config is expired to avoid
+            //    accidentally cross-wiring two active accounts at the same bank.
+            if (!existingConfig && stateBankName) {
+                const { data: allConfigs } = await supabase
+                    .from('integration_configs')
+                    .select('id, settings')
+                    .eq('user_id', user.id)
+                    .eq('provider', 'enable_banking');
+
+                const matchingConfig = allConfigs?.find((cfg) => {
+                    const s = (cfg.settings as any) || {};
+                    return s.bank_name === stateBankName
+                        && s.auth_status === 'session_expired';
+                });
+
+                if (matchingConfig) {
+                    existingConfig = matchingConfig;
+                }
+            }
+
             const mergedSettings = {
                 ...(existingConfig?.settings as any || {}),
                 session_id: sessionData.session_id,
@@ -159,6 +181,7 @@ export async function GET(request: NextRequest) {
                 currency: acc.account_id?.currency,
                 bank_name: stateBankName,
                 identification_hashes: acc.identification_hashes || [],
+                auth_status: 'authenticated',
             };
 
             if (existingConfig && !byUid) {
