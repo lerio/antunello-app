@@ -208,16 +208,20 @@ function SettingsContent() {
         } else {
           toast.error(`Error: ${msg}`, { id: toastId });
         }
+        mutate();
       } else if (newFound) {
         toast.success("Sync complete! New transactions found.", {
           id: toastId,
         });
         globalMutate("pending-transactions");
+        mutate();
       } else {
         toast.success("Sync complete. No new transactions.", { id: toastId });
+        mutate();
       }
     } catch (e: any) {
       toast.error(`Error: ${e.message}`, { id: toastId });
+      mutate();
     }
   };
 
@@ -422,6 +426,25 @@ function SettingsContent() {
               <div className="grid gap-4">
                 {banks.map((bank) => {
                   const connected = isConnected(bank.name);
+                  const showSessionExpired =
+                    connected &&
+                    connectedAccounts?.some((a) => {
+                      const s = (a.settings || {}) as any;
+                      if (
+                        bank.name === "Trade Republic" &&
+                        a.provider === "trade_republic"
+                      )
+                        return s.auth_status === "session_expired";
+                      if (bankNamesMatch(s.bank_name, bank.name))
+                        return s.auth_status === "session_expired";
+                      if (
+                        bank.name === "Bunq" &&
+                        !s.bank_name &&
+                        a.provider === "enable_banking"
+                      )
+                        return s.auth_status === "session_expired";
+                      return false;
+                    });
                   return (
                     <div
                       key={bank.name}
@@ -436,23 +459,11 @@ function SettingsContent() {
                               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                                 Connected
                               </span>
-                              {bank.name === "Trade Republic" &&
-                                (() => {
-                                  const trConfig = connectedAccounts?.find(
-                                    (a) => a.provider === "trade_republic",
-                                  );
-                                  const trSettings = (trConfig?.settings || {}) as any;
-                                  if (
-                                    trSettings.auth_status === "session_expired"
-                                  ) {
-                                    return (
-                                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                                        Session expired
-                                      </span>
-                                    );
-                                  }
-                                  return null;
-                                })()}
+                              {showSessionExpired && (
+                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                  Session expired
+                                </span>
+                              )}
                             </>
                           )}
                         </div>
@@ -462,28 +473,33 @@ function SettingsContent() {
                       </div>
                       {connected ? (
                         <div className="flex items-center gap-2">
-                          {bank.name === "Trade Republic" &&
-                            (() => {
-                              const trConfig = connectedAccounts?.find(
-                                (a) => a.provider === "trade_republic",
-                              );
-                              const trSettings = (trConfig?.settings || {}) as any;
-                              if (trSettings.auth_status === "session_expired") {
-                                return (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                                    onClick={() =>
-                                      handleReauth(trConfig?.account_id || "")
-                                    }
-                                  >
-                                    Re-authenticate
-                                  </Button>
-                                );
-                              }
-                              return null;
-                            })()}
+                          {showSessionExpired &&
+                            (bank.name === "Trade Republic" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                onClick={() => {
+                                  const trConfig = connectedAccounts?.find(
+                                    (a) => a.provider === "trade_republic",
+                                  );
+                                  handleReauth(trConfig?.account_id || "");
+                                }}
+                              >
+                                Re-authenticate
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                onClick={() =>
+                                  handleConnect(bank.name, bank.country)
+                                }
+                              >
+                                Re-authenticate
+                              </Button>
+                            ))}
                           <Button
                             onClick={() => {
                               if (bank.name === "Trade Republic") {
@@ -617,7 +633,7 @@ function SettingsContent() {
                       const iban = settings.iban;
                       const isTR = acc.provider === "trade_republic";
                       const isSessionExpired =
-                        isTR && settings.auth_status === "session_expired";
+                        settings.auth_status === "session_expired";
 
                       return (
                         <div

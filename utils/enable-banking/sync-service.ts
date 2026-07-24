@@ -199,6 +199,15 @@ export async function syncAccount(
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error(`Sync failed for config ${config.id}:`, error);
+
+        if (message.includes('CLOSED_SESSION')) {
+            const s = (config.settings || {}) as Record<string, unknown>;
+            await supabase
+                .from('integration_configs')
+                .update({ settings: { ...s, auth_status: 'session_expired' } })
+                .eq('id', config.id);
+        }
+
         return { account: config.account_id, error: message };
     }
 }
