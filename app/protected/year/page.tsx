@@ -70,15 +70,28 @@ export default function YearSummaryPage() {
       const nextYearStart = new Date(
         Date.UTC(currentYear + 1, 0, 1, -1, 0, 0, 0)
       ).toISOString();
+      const prevYearStart = new Date(
+        Date.UTC(currentYear - 1, 0, 1, -1, 0, 0, 0)
+      ).toISOString();
 
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("split_across_year", true)
-        .gte("date", yearStart)
-        .lt("date", nextYearStart)
-        .range(0, 9999);
+      const [currentResult, prevResult] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", yearStart)
+          .lt("date", nextYearStart)
+          .range(0, 9999),
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", prevYearStart)
+          .lt("date", yearStart)
+          .range(0, 9999),
+      ]);
 
+      const error = currentResult.error || prevResult.error;
       if (error) {
         const msg = (error.message || "").toLowerCase();
         const code =
@@ -92,7 +105,7 @@ export default function YearSummaryPage() {
         throw error;
       }
 
-      return (data || []) as Transaction[];
+      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
     },
     {
       revalidateOnFocus: false,

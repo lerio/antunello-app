@@ -82,16 +82,29 @@ async function fetchTransactions(key: string): Promise<Transaction[]> {
 
   const yearStart = `${targetYear}-01-01T00:00:00.000Z`
   const yearEnd = `${targetYear}-12-31T23:59:59.999Z`
+  const prevYearStart = `${targetYear - 1}-01-01T00:00:00.000Z`
+  const prevYearEnd = `${targetYear - 1}-12-31T23:59:59.999Z`
 
-  const { data: splitData, error: splitError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('split_across_year', true)
-    .gte('date', yearStart)
-    .lte('date', yearEnd)
-    .order('date', { ascending: false })
-    .range(0, 9999)
+  const [currentSplit, prevSplit] = await Promise.all([
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('split_across_year', true)
+      .gte('date', yearStart)
+      .lte('date', yearEnd)
+      .order('date', { ascending: false })
+      .range(0, 9999),
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('split_across_year', true)
+      .gte('date', prevYearStart)
+      .lte('date', prevYearEnd)
+      .order('date', { ascending: false })
+      .range(0, 9999),
+  ])
 
+  const splitError = currentSplit.error || prevSplit.error
   if (splitError) {
     const msg = (splitError.message || '').toLowerCase()
     const errObj = splitError as unknown as Record<string, unknown>
@@ -101,6 +114,8 @@ async function fetchTransactions(key: string): Promise<Transaction[]> {
     }
     throw splitError
   }
+
+  const splitData = [...(currentSplit.data || []), ...(prevSplit.data || [])]
 
   return sortTransactionsByDateInPlace(
     expandSplitTransactionsForMonth(

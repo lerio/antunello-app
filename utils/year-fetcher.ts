@@ -89,8 +89,27 @@ async function fetchYearTransactions(key: string): Promise<Transaction[]> {
       .range(from, to)
   )
 
+  // Fetch split sources from the previous year that may have rolling windows
+  // extending into the target year (e.g., a March 2025 source has Jan-Feb 2026 instances).
+  const prevYearStart = new Date(Date.UTC(year - 1, 0, 1, -1, 0, 0, 0)).toISOString()
+  const prevNextYearStart = new Date(Date.UTC(year, 0, 1, -1, 0, 0, 0)).toISOString()
+
+  const prevYearSplitSources = await fetchAllBatches<Transaction>((from, to) =>
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('split_across_year', true)
+      .gte('date', prevYearStart)
+      .lt('date', prevNextYearStart)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
+
+  const allTransactions = [...yearTransactions, ...prevYearSplitSources]
+
   return sortTransactionsByDateInPlace(
-    expandSplitTransactionsForYear(yearTransactions, year)
+    expandSplitTransactionsForYear(allTransactions, year)
   )
 }
 

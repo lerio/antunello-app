@@ -51,41 +51,46 @@ function minorUnitsToAmount(minorUnits: number, fractionDigits: number): number 
 
 /**
  * Calculates the rounded minor unit values for each split, distributing the
- * remainder into January to avoid rounding discrepancies across all months.
+ * rounding remainder into the first month of the rolling window to avoid
+ * rounding discrepancies across all 12 months.
  *
  * @param totalAmount - The total transaction amount to split
  * @param fractionDigits - Number of decimal places for the currency
- * @returns An object with the regular month minor unit amount and the January amount
+ * @returns An object with the regular month minor unit amount and the first-month amount
  */
 function getRoundedSplitMinorUnits(
   totalAmount: number,
   fractionDigits: number
-): { regularMonthMinorUnits: number; januaryMinorUnits: number } {
+): { regularMonthMinorUnits: number; firstMonthMinorUnits: number } {
   const totalMinorUnits = roundToMinorUnits(totalAmount, fractionDigits)
   const regularMonthMinorUnits = roundToMinorUnits(totalAmount / SPLIT_PARTS, fractionDigits)
-  const januaryMinorUnits = totalMinorUnits - regularMonthMinorUnits * (SPLIT_PARTS - 1)
+  const firstMonthMinorUnits = totalMinorUnits - regularMonthMinorUnits * (SPLIT_PARTS - 1)
 
-  return { regularMonthMinorUnits, januaryMinorUnits }
+  return { regularMonthMinorUnits, firstMonthMinorUnits }
 }
 
 /**
- * Gets the rounded split amount for a specific month.
- * January receives any rounding remainder to ensure the sum of all 12
- * monthly amounts equals the original total.
+ * Gets the rounded split amount for a specific month within a rolling
+ * 12-month window starting at `splitStartMonth`.
+ *
+ * The first month of the window receives any rounding remainder to ensure
+ * the sum of all 12 monthly amounts equals the original total.
  *
  * @param totalAmount - The total transaction amount to split across 12 months
- * @param month - The month number (1-12) to get the split amount for
+ * @param month - The calendar month number (1-12) to get the split amount for
+ * @param splitStartMonth - The calendar month (1-12) that starts the 12-month window
  * @param fractionDigits - Number of decimal places for the currency (default: 2)
  * @returns The rounded split amount for the specified month
  */
 export function getRoundedSplitAmountForMonth(
   totalAmount: number,
   month: number,
+  splitStartMonth: number,
   fractionDigits = 2
 ): number {
-  const { regularMonthMinorUnits, januaryMinorUnits } = getRoundedSplitMinorUnits(totalAmount, fractionDigits)
-  return month === 1
-    ? minorUnitsToAmount(januaryMinorUnits, fractionDigits)
+  const { regularMonthMinorUnits, firstMonthMinorUnits } = getRoundedSplitMinorUnits(totalAmount, fractionDigits)
+  return month === splitStartMonth
+    ? minorUnitsToAmount(firstMonthMinorUnits, fractionDigits)
     : minorUnitsToAmount(regularMonthMinorUnits, fractionDigits)
 }
 
@@ -94,20 +99,22 @@ export function getRoundedSplitAmountForMonth(
  * null and undefined total amounts by passing them through unchanged.
  *
  * @param totalAmount - The total transaction amount, or null/undefined
- * @param month - The month number (1-12) to get the split amount for
+ * @param month - The calendar month number (1-12) to get the split amount for
+ * @param splitStartMonth - The calendar month (1-12) that starts the 12-month window
  * @param fractionDigits - Number of decimal places for the currency (default: 2)
  * @returns The rounded split amount, or the original null/undefined value
  */
 export function getRoundedOptionalSplitAmountForMonth(
   totalAmount: number | null | undefined,
   month: number,
+  splitStartMonth: number,
   fractionDigits = 2
 ): number | null | undefined {
   if (totalAmount === undefined || totalAmount === null) {
     return totalAmount
   }
 
-  return getRoundedSplitAmountForMonth(totalAmount, month, fractionDigits)
+  return getRoundedSplitAmountForMonth(totalAmount, month, splitStartMonth, fractionDigits)
 }
 
 /**
@@ -208,12 +215,63 @@ export function calculateExpectedSplitAmountEur(
 }
 
 /**
+ * Determines whether a target month falls within the rolling 12-month window
+ * starting from a source transaction's month. The window covers the source
+ * month and the 11 following months, potentially crossing into the next year.
+ *
+ * @param targetYear - The year of the month being checked
+ * @param targetMonth - The month (1-12) being checked
+ * @param sourceYear - The year of the original split transaction
+ * @param sourceMonth - The month (1-12) of the original split transaction
+ * @returns True if targetMonth is within [sourceMonth, sourceMonth+11] (wrapping years)
+ */
+function isMonthInRollingWindow(
+  targetYear: number,
+  targetMonth: number,
+  sourceYear: number,
+  sourceMonth: number
+): boolean {
+  const targetAbsolute = targetYear * 12 + (targetMonth - 1)
+  const sourceAbsolute = sourceYear * 12 + (sourceMonth - 1)
+  const offset = targetAbsolute - sourceAbsolute
+  return offset >= 0 && offset < SPLIT_PARTS
+}
+
+/**
+ * Returns all (month, year) pairs within a split source's rolling 12-month
+ * window that fall inside the given target year.
+ *
+ * @param sourceYear - The year of the original split transaction
+ * @param sourceMonth - The month (1-12) of the original split transaction
+ * @param targetYear - The year to filter instances for
+ * @returns Array of {month, year} objects for instances in the target year
+ */
+function getRollingWindowMonthsForYear(
+  sourceYear: number,
+  sourceMonth: number,
+  targetYear: number
+): Array<{ month: number; year: number }> {
+  const instances: Array<{ month: number; year: number }> = []
+  for (let offset = 0; offset < SPLIT_PARTS; offset += 1) {
+    const windowMonth = sourceMonth + offset
+    const actualYear = sourceYear + Math.floor((windowMonth - 1) / 12)
+    const actualMonth = ((windowMonth - 1) % 12) + 1
+    if (actualYear === targetYear) {
+      instances.push({ month: actualMonth, year: actualYear })
+    }
+  }
+  return instances
+}
+
+/**
  * Expands split-across-year transactions into individual monthly instances for
- * a specific month view. Creates read-only copies for months other than the
- * original, with recalculated split amounts and adjusted dates.
+ * a specific month view. Uses a rolling 12-month window starting from each
+ * source's own month, so cross-year split sources (e.g., a November 2025
+ * transaction whose window reaches October 2026) are included when they
+ * apply to the target month.
  *
  * @param monthTransactions - Transactions for the target month (some may be split-across-year)
- * @param splitTransactionsInYear - All split-across-year transactions in the year
+ * @param splitTransactions - All split-across-year transactions (can span multiple years)
  * @param targetYear - The target year for the month view
  * @param targetMonth - The target month (1-12) for the view
  * @param now - Current date (defaults to new Date()) for filtering future instances
@@ -221,7 +279,7 @@ export function calculateExpectedSplitAmountEur(
  */
 export function expandSplitTransactionsForMonth(
   monthTransactions: Transaction[],
-  splitTransactionsInYear: Transaction[],
+  splitTransactions: Transaction[],
   targetYear: number,
   targetMonth: number,
   now = new Date()
@@ -229,18 +287,22 @@ export function expandSplitTransactionsForMonth(
   const regularTransactions = monthTransactions.filter((t) => !t.split_across_year)
   const splitInstances: Transaction[] = []
 
-  for (const splitSource of splitTransactionsInYear) {
+  for (const splitSource of splitTransactions) {
     const baseDate = new Date(splitSource.date)
     if (Number.isNaN(baseDate.getTime())) continue
-    if (baseDate.getFullYear() !== targetYear) continue
+
+    const sourceYear = baseDate.getFullYear()
+    const sourceMonth = baseDate.getMonth() + 1
+
+    if (!isMonthInRollingWindow(targetYear, targetMonth, sourceYear, sourceMonth)) continue
 
     const instanceDate = getSplitInstanceDate(baseDate, targetYear, targetMonth)
     if (instanceDate.getTime() > now.getTime()) continue
 
-    const isOriginalMonth = baseDate.getMonth() + 1 === targetMonth
+    const isOriginalMonth = sourceMonth === targetMonth && sourceYear === targetYear
     const amountFractionDigits = getCurrencyFractionDigits(splitSource.currency)
-    const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, targetMonth, amountFractionDigits)
-    const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, targetMonth, 2)
+    const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, targetMonth, sourceMonth, amountFractionDigits)
+    const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, targetMonth, sourceMonth, 2)
 
     if (isOriginalMonth) {
       splitInstances.push({
@@ -271,10 +333,12 @@ export function expandSplitTransactionsForMonth(
 
 /**
  * Expands split-across-year transactions into individual monthly instances for
- * an entire year view. Generates all 12 months of instances for each
- * split source, with read-only copies for months other than the original.
+ * an entire year view. Uses a rolling 12-month window starting from each
+ * source's own month, so only instances that fall within the target year
+ * are generated. Sources from the previous year whose window crosses into
+ * the target year are included.
  *
- * @param yearTransactions - All transactions in the year (some may be split-across-year)
+ * @param yearTransactions - All transactions to consider (can span multiple years)
  * @param targetYear - The target year to expand instances for
  * @param now - Current date (defaults to new Date()) for filtering future instances
  * @returns Combined array of regular and expanded split transaction instances for the full year
@@ -291,16 +355,20 @@ export function expandSplitTransactionsForYear(
   for (const splitSource of splitSources) {
     const baseDate = new Date(splitSource.date)
     if (Number.isNaN(baseDate.getTime())) continue
-    if (baseDate.getFullYear() !== targetYear) continue
 
-    for (let month = 1; month <= 12; month += 1) {
-      const instanceDate = getSplitInstanceDate(baseDate, targetYear, month)
+    const sourceYear = baseDate.getFullYear()
+    const sourceMonth = baseDate.getMonth() + 1
+    const amountFractionDigits = getCurrencyFractionDigits(splitSource.currency)
+
+    const windowMonths = getRollingWindowMonthsForYear(sourceYear, sourceMonth, targetYear)
+
+    for (const { month, year } of windowMonths) {
+      const instanceDate = getSplitInstanceDate(baseDate, year, month)
       if (instanceDate.getTime() > now.getTime()) continue
 
-      const isOriginalMonth = baseDate.getMonth() + 1 === month
-      const amountFractionDigits = getCurrencyFractionDigits(splitSource.currency)
-      const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, month, amountFractionDigits)
-      const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, month, 2)
+      const isOriginalMonth = sourceMonth === month && sourceYear === year
+      const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, month, sourceMonth, amountFractionDigits)
+      const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, month, sourceMonth, 2)
 
       if (isOriginalMonth) {
         splitInstances.push({
@@ -313,7 +381,7 @@ export function expandSplitTransactionsForYear(
       } else {
         splitInstances.push({
           ...splitSource,
-          id: `${splitSource.id}::split::${targetYear}-${String(month).padStart(2, '0')}`,
+          id: `${splitSource.id}::split::${year}-${String(month).padStart(2, '0')}`,
           amount: splitAmount,
           eur_amount: splitEurAmount ?? undefined,
           date: instanceDate.toISOString(),

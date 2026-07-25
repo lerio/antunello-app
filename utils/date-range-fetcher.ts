@@ -92,7 +92,9 @@ async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
 
   const startYear = rangeStart.getUTCFullYear()
   const endYear = rangeEndExclusive.getUTCFullYear()
-  const splitYearStart = `${startYear}-01-01T00:00:00.000Z`
+  // Extend back one year to capture split sources whose rolling window
+  // crosses from the previous year into the start of the range.
+  const splitYearStart = `${startYear - 1}-01-01T00:00:00.000Z`
   const splitYearEndExclusive = `${endYear + 1}-01-01T00:00:00.000Z`
 
   const splitSources = await fetchAllBatches<Transaction>((from, to) =>
