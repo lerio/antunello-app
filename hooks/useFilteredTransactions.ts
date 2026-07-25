@@ -176,27 +176,80 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
 
       // Align split-transaction behavior with month/year views so totals use split values.
       if (year !== null && month !== null) {
-        const yearStart = new Date(year, 0, 1).toISOString()
-        const nextYearStart = new Date(year + 1, 0, 1).toISOString()
+        const yearStart = `${year}-01-01T00:00:00.000Z`
+        const yearEnd = `${year}-12-31T23:59:59.999Z`
+        const prevYearStart = `${year - 1}-01-01T00:00:00.000Z`
+        const prevYearEnd = `${year - 1}-12-31T23:59:59.999Z`
 
-        const { data: splitInYear, error: splitError } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('split_across_year', true)
-          .gte('date', yearStart)
-          .lt('date', nextYearStart)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false })
-          .limit(500)
+        const [currentSplit, prevSplit] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('*')
+            .eq('split_across_year', true)
+            .gte('date', yearStart)
+            .lte('date', yearEnd)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(500),
+          supabase
+            .from('transactions')
+            .select('*')
+            .eq('split_across_year', true)
+            .gte('date', prevYearStart)
+            .lte('date', prevYearEnd)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(500),
+        ])
 
-        if (splitError) throw new Error(splitError.message)
+        if (currentSplit.error || prevSplit.error) {
+          const err = currentSplit.error || prevSplit.error
+          throw new Error(err!.message)
+        }
+
+        const allSplitSources = [...(currentSplit.data || []), ...(prevSplit.data || [])]
 
         finalResults = sortTransactionsByDateInPlace(
-          expandSplitTransactionsForMonth(finalResults, splitInYear || [], year, month)
+          expandSplitTransactionsForMonth(finalResults, allSplitSources, year, month)
         )
       } else if (year !== null && !hasMonthAndYear) {
+        // For year-only filter, also need split sources from previous year
+        const yearStart = `${year}-01-01T00:00:00.000Z`
+        const yearEnd = `${year}-12-31T23:59:59.999Z`
+        const prevYearStart = `${year - 1}-01-01T00:00:00.000Z`
+        const prevYearEnd = `${year - 1}-12-31T23:59:59.999Z`
+
+        const [currentSplit, prevSplit] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('*')
+            .eq('split_across_year', true)
+            .gte('date', yearStart)
+            .lte('date', yearEnd)
+            .order('date', { ascending: false })
+            .limit(500),
+          supabase
+            .from('transactions')
+            .select('*')
+            .eq('split_across_year', true)
+            .gte('date', prevYearStart)
+            .lte('date', prevYearEnd)
+            .order('date', { ascending: false })
+            .limit(500),
+        ])
+
+        if (currentSplit.error || prevSplit.error) {
+          const err = currentSplit.error || prevSplit.error
+          throw new Error(err!.message)
+        }
+
+        const allSplitSources = [...(currentSplit.data || []), ...(prevSplit.data || [])]
+
         finalResults = sortTransactionsByDateInPlace(
-          expandSplitTransactionsForYear(finalResults, year)
+          expandSplitTransactionsForYear(
+            [...finalResults, ...allSplitSources],
+            year
+          )
         )
       }
 

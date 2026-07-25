@@ -331,17 +331,30 @@ function useSplitSourcesForYear(year?: number) {
   return useSWR<Transaction[]>(
     year !== undefined ? `transaction-summary-split-sources-${year}` : null,
     async () => {
-      const yearStart = `${year}-01-01T00:00:00.000Z`;
-      const yearEnd = `${year}-12-31T23:59:59.999Z`;
+      const y = year! // SWR key is null when year is undefined, so year is always defined here
+      const yearStart = `${y}-01-01T00:00:00.000Z`;
+      const yearEnd = `${y}-12-31T23:59:59.999Z`;
+      const prevYearStart = `${y - 1}-01-01T00:00:00.000Z`;
+      const prevYearEnd = `${y - 1}-12-31T23:59:59.999Z`;
 
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("split_across_year", true)
-        .gte("date", yearStart)
-        .lte("date", yearEnd)
-        .range(0, 9999);
+      const [currentResult, prevResult] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", yearStart)
+          .lte("date", yearEnd)
+          .range(0, 9999),
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", prevYearStart)
+          .lte("date", prevYearEnd)
+          .range(0, 9999),
+      ]);
 
+      const error = currentResult.error || prevResult.error;
       if (error) {
         const msg = (error.message || "").toLowerCase();
         const code =
@@ -356,7 +369,7 @@ function useSplitSourcesForYear(year?: number) {
         throw error;
       }
 
-      return (data || []) as Transaction[];
+      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
     },
     {
       revalidateOnFocus: false,

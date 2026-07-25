@@ -130,15 +130,27 @@ export default function ProtectedPage() {
     async () => {
       const yearStart = `${selectedYear}-01-01T00:00:00.000Z`;
       const yearEnd = `${selectedYear}-12-31T23:59:59.999Z`;
+      const prevYearStart = `${selectedYear - 1}-01-01T00:00:00.000Z`;
+      const prevYearEnd = `${selectedYear - 1}-12-31T23:59:59.999Z`;
 
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("split_across_year", true)
-        .gte("date", yearStart)
-        .lte("date", yearEnd)
-        .range(0, 9999);
+      const [currentResult, prevResult] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", yearStart)
+          .lte("date", yearEnd)
+          .range(0, 9999),
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("split_across_year", true)
+          .gte("date", prevYearStart)
+          .lte("date", prevYearEnd)
+          .range(0, 9999),
+      ]);
 
+      const error = currentResult.error || prevResult.error;
       if (error) {
         const msg = (error.message || "").toLowerCase();
         const code =
@@ -152,7 +164,7 @@ export default function ProtectedPage() {
         throw error;
       }
 
-      return (data || []) as Transaction[];
+      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
     },
     {
       revalidateOnFocus: false,

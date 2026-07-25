@@ -62,12 +62,12 @@ const rangeTransactionsFetcher = async (
   const splitExpandedInRange: Transaction[] = []
 
   // For bounded ranges, fetch split sources for all years spanned by the range
-  // so per-month split instances are included even when the original source date
-  // is outside the range window.
+  // plus one previous year, so per-month split instances whose rolling window
+  // crosses from the prior year into the range are included.
   const rangeStartYear = startDate ? new Date(startDate).getUTCFullYear() : null
   const rangeEndYear = now.getUTCFullYear()
   if (rangeStartYear !== null && rangeStartYear <= rangeEndYear) {
-    const yearStart = `${rangeStartYear}-01-01T00:00:00.000Z`
+    const yearStart = `${rangeStartYear - 1}-01-01T00:00:00.000Z`
     const yearEndExclusive = `${rangeEndYear + 1}-01-01T00:00:00.000Z`
 
     const splitSources = await fetchAllBatches<Transaction>((from, to) =>

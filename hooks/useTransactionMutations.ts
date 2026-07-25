@@ -121,8 +121,8 @@ export function useTransactionMutations() {
 
     return {
       ...transaction,
-      split_display_amount: getRoundedSplitAmountForMonth(transaction.amount, transactionMonth, amountFractionDigits),
-      split_display_eur_amount: getRoundedOptionalSplitAmountForMonth(transaction.eur_amount, transactionMonth, 2),
+      split_display_amount: getRoundedSplitAmountForMonth(transaction.amount, transactionMonth, transactionMonth, amountFractionDigits),
+      split_display_eur_amount: getRoundedOptionalSplitAmountForMonth(transaction.eur_amount, transactionMonth, transactionMonth, 2),
     }
   }
 
@@ -196,6 +196,12 @@ export function useTransactionMutations() {
 
       // Invalidate year cache to ensure yearly summary is updated
       invalidateYearCache(data.date)
+      // With rolling split windows, also invalidate the next year
+      if (data.split_across_year) {
+        const nextYear = new Date(data.date)
+        nextYear.setFullYear(nextYear.getFullYear() + 1)
+        invalidateYearCache(nextYear.toISOString())
+      }
       // Invalidate balance chart caches to ensure chart is updated
       invalidateBalanceCaches()
       // Revalidate overall totals
@@ -303,6 +309,13 @@ export function useTransactionMutations() {
     mutate(getTransactionKey(id), updatedTxn, false)
     invalidateYearCache(oldDate)
     if (newDate && newDate !== oldDate) invalidateYearCache(newDate)
+    // With rolling split windows, also invalidate the year after the updated date
+    if (updatedTxn.split_across_year) {
+      const effectiveDate = newDate || oldDate
+      const nextYear = new Date(effectiveDate)
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      invalidateYearCache(nextYear.toISOString())
+    }
     invalidateBalanceCaches()
     mutate('/api/overall-totals', undefined, true)
     mutate('fund-categories', undefined, true)
@@ -428,6 +441,12 @@ export function useTransactionMutations() {
 
       // Invalidate year cache to ensure yearly summary is updated
       invalidateYearCache(transaction.date)
+      // With rolling split windows, also invalidate the next year
+      if (transaction.split_across_year) {
+        const nextYear = new Date(transaction.date)
+        nextYear.setFullYear(nextYear.getFullYear() + 1)
+        invalidateYearCache(nextYear.toISOString())
+      }
       // Invalidate balance chart caches to ensure chart is updated
       invalidateBalanceCaches()
       // Revalidate overall totals
