@@ -220,20 +220,6 @@ function formatPreviousMonthComparisonLabel(
   return `VS ${monthLabel} '${shortYear}`;
 }
 
-function formatSameMonthLastYearComparisonLabel(
-  selectedYear: number,
-  selectedMonth: number,
-) {
-  const monthLabel = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-  })
-    .format(new Date(selectedYear - 1, selectedMonth - 1, 1))
-    .toUpperCase();
-  const shortYear = String(selectedYear - 1).slice(-2);
-
-  return `VS ${monthLabel} '${shortYear}`;
-}
-
 function calculatePercentageDifference(
   currentValue: number,
   previousValue: number,
@@ -254,7 +240,6 @@ function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
   if (selectedMonthStart > currentMonthStart) {
     return {
       isFutureMonth: true,
-      isCurrentMonth: false,
       cutoffDay: null as number | null,
       previousMonthCutoffDay: null as number | null,
     };
@@ -263,7 +248,6 @@ function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
   if (selectedMonthStart === currentMonthStart) {
     return {
       isFutureMonth: false,
-      isCurrentMonth: true,
       cutoffDay: now.getDate(),
       previousMonthCutoffDay: now.getDate(),
     };
@@ -271,7 +255,6 @@ function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
 
   return {
     isFutureMonth: false,
-    isCurrentMonth: false,
     cutoffDay: new Date(selectedYear, selectedMonth, 0).getDate(),
     previousMonthCutoffDay: null as number | null,
   };
@@ -289,16 +272,6 @@ function filterTransactionsThroughDay(
     const transactionDate = new Date(transaction.date);
     return transactionDate.getDate() <= cutoffDay;
   });
-}
-
-function prorateMonthlyValue(
-  total: number,
-  year: number,
-  month: number,
-  day: number,
-) {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  return (total / daysInMonth) * day;
 }
 
 function getExpectedMonthlySplitAmountEur(
@@ -1054,19 +1027,10 @@ export default function TransactionSummary({
     previousMonthDate?.year,
     previousMonthDate?.month,
   );
-  const sameMonthLastYearTransactions = useMonthTransactions(
-    comparisonYear !== undefined && comparisonMonth !== undefined
-      ? comparisonYear - 1
-      : undefined,
-    comparisonMonth,
-  );
   const { data: currentSplitSources = [] } =
     useSplitSourcesForYear(comparisonYear);
   const { data: previousMonthSplitSources = [] } = useSplitSourcesForYear(
     previousMonthDate?.year,
-  );
-  const { data: sameMonthLastYearSplitSources = [] } = useSplitSourcesForYear(
-    comparisonYear !== undefined ? comparisonYear - 1 : undefined,
   );
 
   // Memoize current year totals computation
@@ -1204,7 +1168,7 @@ export default function TransactionSummary({
       return [];
     }
 
-    const { isFutureMonth, isCurrentMonth, cutoffDay, previousMonthCutoffDay } =
+    const { isFutureMonth, cutoffDay, previousMonthCutoffDay } =
       getMonthComparisonMode(comparisonYear, comparisonMonth);
 
     if (isFutureMonth || cutoffDay === null) {
@@ -1237,23 +1201,6 @@ export default function TransactionSummary({
         previousMonthDate.month,
         cutoffDay,
       );
-    const sameMonthLastYearFullMonthDisplayedBalance =
-      computeBalanceTotal(sameMonthLastYearTransactions) -
-      getExpectedMonthlySplitAmountEur(
-        sameMonthLastYearSplitSources,
-        sameMonthLastYearTransactions,
-        comparisonYear - 1,
-        comparisonMonth,
-      );
-    const sameMonthLastYearDisplayedBalance = isCurrentMonth
-      ? prorateMonthlyValue(
-          sameMonthLastYearFullMonthDisplayedBalance,
-          comparisonYear - 1,
-          comparisonMonth,
-          cutoffDay,
-        )
-      : sameMonthLastYearFullMonthDisplayedBalance;
-
     return [
       {
         label: formatPreviousMonthComparisonLabel(
@@ -1267,17 +1214,6 @@ export default function TransactionSummary({
         ),
         referenceValue: previousMonthDisplayedBalance,
       },
-      {
-        label: formatSameMonthLastYearComparisonLabel(
-          comparisonYear,
-          comparisonMonth,
-        ),
-        percentage: calculatePercentageDifference(
-          currentDisplayedBalance,
-          sameMonthLastYearDisplayedBalance,
-        ),
-        referenceValue: sameMonthLastYearDisplayedBalance,
-      },
     ];
   }, [
     currentYear,
@@ -1288,8 +1224,6 @@ export default function TransactionSummary({
     currentSplitSources,
     previousMonthTransactions,
     previousMonthSplitSources,
-    sameMonthLastYearTransactions,
-    sameMonthLastYearSplitSources,
   ]);
 
   // Loading state (after all hooks)
