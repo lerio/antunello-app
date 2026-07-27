@@ -22,15 +22,10 @@ import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { transactionCache } from "@/utils/simple-cache";
 import toast from "react-hot-toast";
-import useSWR, { mutate as globalMutate } from "swr";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  calculateExpectedSplitAmountEur,
-  expandSplitTransactionsForMonth,
-} from "@/utils/split-transactions";
 import { createMonthKey } from "@/utils/transaction-fetcher";
 
 import TransactionFormModal from "@/components/features/transaction-form-modal";
@@ -124,69 +119,6 @@ export default function ProtectedPage() {
   );
   const selectedYear = currentDate.getFullYear();
   const selectedMonth = currentDate.getMonth() + 1;
-
-  const { data: splitSources = [] } = useSWR<Transaction[]>(
-    `split-sources-${selectedYear}`,
-    async () => {
-      const yearStart = `${selectedYear}-01-01T00:00:00.000Z`;
-      const yearEnd = `${selectedYear}-12-31T23:59:59.999Z`;
-      const prevYearStart = `${selectedYear - 1}-01-01T00:00:00.000Z`;
-      const prevYearEnd = `${selectedYear - 1}-12-31T23:59:59.999Z`;
-
-      const [currentResult, prevResult] = await Promise.all([
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", yearStart)
-          .lte("date", yearEnd)
-          .range(0, 9999),
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", prevYearStart)
-          .lte("date", prevYearEnd)
-          .range(0, 9999),
-      ]);
-
-      const error = currentResult.error || prevResult.error;
-      if (error) {
-        const msg = (error.message || "").toLowerCase();
-        const code =
-          typeof (error as unknown as Record<string, unknown>).code === "string"
-            ? ((error as unknown as Record<string, unknown>).code as string)
-            : undefined;
-
-        if (code === "42703" || msg.includes("split_across_year")) {
-          return [];
-        }
-        throw error;
-      }
-
-      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 30000,
-      keepPreviousData: true,
-    },
-  );
-
-  const expectedSplitAmountEur = useMemo(() => {
-    if (!splitSources.length) return 0;
-
-    const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
-    const allSplitForMonth = expandSplitTransactionsForMonth(
-      [],
-      splitSources,
-      selectedYear,
-      selectedMonth,
-      monthEnd,
-    );
-    return calculateExpectedSplitAmountEur(allSplitForMonth, transactions);
-  }, [splitSources, selectedYear, selectedMonth, transactions]);
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
 
@@ -385,8 +317,6 @@ export default function ProtectedPage() {
         // instead of returning stale data with old split children.
         const monthKey = createMonthKey(selectedYear, selectedMonth);
         transactionCache.delete(monthKey);
-        // Also invalidate the split-sources SWR cache.
-        globalMutate(`split-sources-${selectedYear}`, undefined, true);
         // Trigger SWR to re-fetch the month data.
         await mutate();
         return result;
@@ -614,7 +544,6 @@ export default function ProtectedPage() {
           isLoading={isLoading}
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
-          expectedSplitAmountEur={expectedSplitAmountEur}
         />
 
         <div className="transactions-list mt-4">
