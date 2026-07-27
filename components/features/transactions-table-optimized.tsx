@@ -188,6 +188,7 @@ const DateGroup = React.memo(
     date,
     transactions,
     dailyTotal,
+    dailySplitTotal,
     onTransactionClick,
     onCategoryClick,
     onSubCategoryClick,
@@ -197,6 +198,7 @@ const DateGroup = React.memo(
     readonly date: string;
     readonly transactions: ReadonlyArray<Transaction>;
     readonly dailyTotal: number;
+    readonly dailySplitTotal: number;
     readonly onTransactionClick: (transaction: Transaction) => void;
     readonly onCategoryClick?: (category: string) => void;
     readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
@@ -218,14 +220,26 @@ const DateGroup = React.memo(
             </h3>
             <DailyHiddenIndicator count={hiddenCount} />
           </div>
-          <span
-            className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
-              }`}
-          >
-            <PrivacyBlur blur={privacyMode}>
-              {formatCurrency(Math.abs(dailyTotal), "EUR")}
-            </PrivacyBlur>
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+            >
+              <PrivacyBlur blur={privacyMode}>
+                {formatCurrency(Math.abs(dailyTotal), "EUR")}
+              </PrivacyBlur>
+            </span>
+            {dailySplitTotal !== 0 && (
+              <span className="text-sm text-foreground inline-flex items-center gap-1">
+                <span>(</span>
+                <GitFork size={14} />
+                <PrivacyBlur blur={privacyMode}>
+                  <span>{formatCurrency(Math.abs(dailySplitTotal), "EUR")}</span>
+                </PrivacyBlur>
+                <span>)</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Transactions List */}
@@ -261,14 +275,14 @@ export default function TransactionsTable({
   const groupedData = useMemo(() => {
     if (!transactions.length) return [];
 
-    const groups: Record<string, { transactions: Transaction[]; dailyTotal: number }> = {};
+    const groups: Record<string, { transactions: Transaction[]; dailyTotal: number; dailySplitTotal: number }> = {};
 
     for (const transaction of transactions) {
       const date = formatDate(transaction.date);
       if (!groups[date]) {
-        groups[date] = { transactions: [], dailyTotal: 0 };
+        groups[date] = { transactions: [], dailyTotal: 0, dailySplitTotal: 0 };
       }
-      
+
       groups[date].transactions.push(transaction);
 
       // Skip transactions that are hidden from totals or are money transfers
@@ -276,7 +290,13 @@ export default function TransactionsTable({
         const amount =
           getTransactionDisplayEurAmount(transaction) ??
           (transaction.currency === "EUR" ? getTransactionDisplayAmount(transaction) : 0);
-        groups[date].dailyTotal += transaction.type === "expense" ? -amount : amount;
+        const signedAmount = transaction.type === "expense" ? -amount : amount;
+
+        if (transaction.split_across_year) {
+          groups[date].dailySplitTotal += signedAmount;
+        } else {
+          groups[date].dailyTotal += signedAmount;
+        }
       }
     }
 
@@ -284,6 +304,7 @@ export default function TransactionsTable({
       date,
       transactions: data.transactions,
       dailyTotal: data.dailyTotal,
+      dailySplitTotal: data.dailySplitTotal,
     }));
   }, [transactions]);
 
@@ -306,12 +327,13 @@ export default function TransactionsTable({
 
   return (
     <div className="space-y-3">
-      {groupedData.map(({ date, transactions: dateTransactions, dailyTotal }) => (
+      {groupedData.map(({ date, transactions: dateTransactions, dailyTotal, dailySplitTotal }) => (
         <DateGroup
           key={date}
           date={date}
           transactions={dateTransactions}
           dailyTotal={dailyTotal}
+          dailySplitTotal={dailySplitTotal}
           onTransactionClick={handleTransactionClick}
           onCategoryClick={onCategoryClick}
           onSubCategoryClick={onSubCategoryClick}
