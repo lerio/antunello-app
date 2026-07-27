@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronRight, GitFork } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
@@ -633,7 +633,6 @@ type TotalsTableProps = {
   readonly totalsData: TotalsItem[];
   readonly currentYear?: number;
   readonly previousYear?: number;
-  readonly expectedSplitAmountEur?: number;
   readonly monthlyComparisonRows?: ReadonlyArray<MonthlyComparisonRow>;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
@@ -648,7 +647,6 @@ function TotalsTable({
   totalsData,
   currentYear,
   previousYear,
-  expectedSplitAmountEur = 0,
   monthlyComparisonRows = [],
   isIncomeExpanded,
   isExpensesExpanded,
@@ -661,8 +659,7 @@ function TotalsTable({
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
-  const displayedBalanceTotal = balanceTotal - expectedSplitAmountEur;
-  const isGains = displayedBalanceTotal >= 0;
+  const isGains = balanceTotal >= 0;
   const title = isGains ? "Gains" : "Losses";
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
@@ -691,19 +688,9 @@ function TotalsTable({
             }`}
           >
             <PrivacyBlur blur={privacyMode}>
-              €{formatAmount(Math.abs(displayedBalanceTotal))}
+              €{formatAmount(Math.abs(balanceTotal))}
             </PrivacyBlur>
           </span>
-          {expectedSplitAmountEur > 0 && (
-            <span className="text-sm text-foreground inline-flex items-center gap-1">
-              <span>(</span>
-              <GitFork size={14} />
-              <PrivacyBlur blur={privacyMode}>
-                <span>€{formatAmount(Math.abs(expectedSplitAmountEur))}</span>
-              </PrivacyBlur>
-              <span>)</span>
-            </span>
-          )}
           <button
             onClick={onToggleDetails}
             className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
@@ -994,7 +981,6 @@ type TransactionSummaryProps = {
   readonly currentYear?: number;
   readonly selectedMonth?: number;
   readonly selectedYear?: number;
-  readonly expectedSplitAmountEur?: number;
 };
 
 export default function TransactionSummary({
@@ -1003,7 +989,6 @@ export default function TransactionSummary({
   currentYear,
   selectedMonth,
   selectedYear,
-  expectedSplitAmountEur = 0,
 }: TransactionSummaryProps) {
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
@@ -1245,7 +1230,6 @@ export default function TransactionSummary({
           totalsData={totalsData}
           currentYear={currentYear}
           previousYear={previousYear}
-          expectedSplitAmountEur={expectedSplitAmountEur}
           monthlyComparisonRows={monthlyComparisonRows}
           isIncomeExpanded={isIncomeExpanded}
           isExpensesExpanded={isExpensesExpanded}
