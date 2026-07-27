@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronRight } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronRight, GitFork } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
@@ -67,22 +67,37 @@ type MonthlyComparisonRow = {
   referenceValue: number | null;
 };
 
-function getMonthlyAverage(total: number, year?: number) {
-  if (year && year === new Date().getFullYear()) {
-    const currentMonth = new Date().getMonth();
-    const completedMonths = currentMonth;
-    return completedMonths > 0 ? total / completedMonths : total;
-  }
-  return total / 12;
+function getMonthlyAverage(total: number, numberOfMonths: number = 12) {
+  return numberOfMonths > 0 ? total / numberOfMonths : total;
 }
 
 function getDifferenceFromPrevYear(
   currentTotal: number,
   prevYearTotal: number,
+  numberOfMonths: number = 12,
 ): number {
-  const currentMonthlyAvg = getMonthlyAverage(currentTotal);
-  const prevYearMonthlyAvg = getMonthlyAverage(prevYearTotal);
+  const currentMonthlyAvg = getMonthlyAverage(currentTotal, numberOfMonths);
+  const prevYearMonthlyAvg = getMonthlyAverage(prevYearTotal, numberOfMonths);
   return currentMonthlyAvg - prevYearMonthlyAvg;
+}
+
+function formatMonthRange(lastCompleteMonth: number): string {
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  return `Jan–${months[lastCompleteMonth]}`;
+}
+
+function filterTransactionsToLastCompleteMonth(
+  transactions: ReadonlyArray<Transaction>,
+  lastCompleteMonth: number,
+): ReadonlyArray<Transaction> {
+  if (lastCompleteMonth >= 11) return transactions; // Full year, no filtering needed
+  if (lastCompleteMonth < 0) return []; // No complete months in the year yet
+  return transactions.filter(
+    (t) => new Date(t.date).getMonth() <= lastCompleteMonth,
+  );
 }
 
 function formatAmount(amount: number) {
@@ -418,10 +433,10 @@ function getDifferenceIfAvailable(
   previous: number,
   currentYear?: number,
   previousYear?: number,
-  isBalance: boolean = false,
+  numberOfMonths: number = 12,
 ) {
   return currentYear && previousYear
-    ? getDifferenceFromPrevYear(current, previous)
+    ? getDifferenceFromPrevYear(current, previous, numberOfMonths)
     : null;
 }
 
@@ -432,6 +447,7 @@ function buildCategoriesData(
   prevYearExpenseCategoryTotals: Record<string, number>,
   currentYear?: number,
   previousYear?: number,
+  numberOfMonths: number = 12,
 ): CategoryData[] {
   const categoriesData: CategoryData[] = [];
 
@@ -446,10 +462,10 @@ function buildCategoriesData(
         category,
         icon: CATEGORY_ICONS[category],
         total: amount,
-        monthlyAverage: getMonthlyAverage(amount, currentYear),
+        monthlyAverage: getMonthlyAverage(amount, numberOfMonths),
         difference:
           currentYear !== undefined && previousYear !== undefined
-            ? getDifferenceFromPrevYear(amount, prevYearAmount)
+            ? getDifferenceFromPrevYear(amount, prevYearAmount, numberOfMonths)
             : null,
       });
     }
@@ -466,10 +482,10 @@ function buildCategoriesData(
         category,
         icon: CATEGORY_ICONS[category],
         total: amount,
-        monthlyAverage: getMonthlyAverage(amount, currentYear),
+        monthlyAverage: getMonthlyAverage(amount, numberOfMonths),
         difference:
           currentYear !== undefined && previousYear !== undefined
-            ? getDifferenceFromPrevYear(amount, prevYearAmount)
+            ? getDifferenceFromPrevYear(amount, prevYearAmount, numberOfMonths)
             : null,
       });
     }
@@ -489,6 +505,7 @@ type BaseDataContext = {
   readonly prevYearHiddenExpenseTotal: number;
   readonly currentYear?: number;
   readonly previousYear?: number;
+  readonly numberOfMonths: number;
 };
 
 function createBaseData(ctx: BaseDataContext): TotalsItem[] {
@@ -503,31 +520,33 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
     prevYearHiddenExpenseTotal,
     currentYear,
     previousYear,
+    numberOfMonths,
   } = ctx;
 
   const base: TotalsItem[] = [
     {
       category: balanceTotal >= 0 ? "Gains" : "Losses",
       total: balanceTotal,
-      monthlyAverage: getMonthlyAverage(balanceTotal, currentYear),
+      monthlyAverage: getMonthlyAverage(balanceTotal, numberOfMonths),
       difference: getDifferenceIfAvailable(
         balanceTotal,
         prevYearBalanceTotal,
         currentYear,
         previousYear,
-        true,
+        numberOfMonths,
       ),
       isBalance: true,
     },
     {
       category: "Income",
       total: incomeTotal,
-      monthlyAverage: getMonthlyAverage(incomeTotal, currentYear),
+      monthlyAverage: getMonthlyAverage(incomeTotal, numberOfMonths),
       difference: getDifferenceIfAvailable(
         incomeTotal,
         prevYearIncomeTotal,
         currentYear,
         previousYear,
+        numberOfMonths,
       ),
       isIncome: true,
       isCollapsible: !currentYear,
@@ -535,12 +554,13 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
     {
       category: "Expenses",
       total: expenseTotal,
-      monthlyAverage: getMonthlyAverage(expenseTotal, currentYear),
+      monthlyAverage: getMonthlyAverage(expenseTotal, numberOfMonths),
       difference: getDifferenceIfAvailable(
         expenseTotal,
         prevYearExpenseTotal,
         currentYear,
         previousYear,
+        numberOfMonths,
       ),
       isExpense: true,
       isCollapsible: !currentYear,
@@ -551,12 +571,13 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
     base.push({
       category: "Hidden",
       total: hiddenExpenseTotal,
-      monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, currentYear),
+      monthlyAverage: getMonthlyAverage(hiddenExpenseTotal, numberOfMonths),
       difference: getDifferenceIfAvailable(
         hiddenExpenseTotal,
         prevYearHiddenExpenseTotal,
         currentYear,
         previousYear,
+        numberOfMonths,
       ),
       isHiddenExpense: true,
     });
@@ -572,6 +593,7 @@ function extendWithCategoryRows(
   incomeCategoryTotals: Record<string, number>,
   expenseCategoryTotals: Record<string, number>,
   currentYear?: number,
+  numberOfMonths: number = 12,
 ): TotalsItem[] {
   const extended: TotalsItem[] = [];
 
@@ -585,7 +607,7 @@ function extendWithCategoryRows(
         extended.push({
           category,
           total: amount,
-          monthlyAverage: getMonthlyAverage(amount, currentYear),
+          monthlyAverage: getMonthlyAverage(amount, numberOfMonths),
           difference: null,
           isSubCategory: true,
           type: "income",
@@ -601,7 +623,7 @@ function extendWithCategoryRows(
         extended.push({
           category,
           total: amount,
-          monthlyAverage: getMonthlyAverage(amount, currentYear),
+          monthlyAverage: getMonthlyAverage(amount, numberOfMonths),
           difference: null,
           isSubCategory: true,
           type: "expense",
@@ -633,6 +655,7 @@ type TotalsTableProps = {
   readonly totalsData: TotalsItem[];
   readonly currentYear?: number;
   readonly previousYear?: number;
+  readonly expectedSplitAmountEur?: number;
   readonly monthlyComparisonRows?: ReadonlyArray<MonthlyComparisonRow>;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
@@ -641,12 +664,15 @@ type TotalsTableProps = {
   readonly isDetailsExpanded: boolean;
   readonly onToggleDetails: () => void;
   readonly privacyMode: boolean;
+  readonly isCurrentYearView: boolean;
+  readonly lastCompleteMonth: number;
 };
 
 function TotalsTable({
   totalsData,
   currentYear,
   previousYear,
+  expectedSplitAmountEur = 0,
   monthlyComparisonRows = [],
   isIncomeExpanded,
   isExpensesExpanded,
@@ -655,12 +681,17 @@ function TotalsTable({
   isDetailsExpanded,
   onToggleDetails,
   privacyMode,
+  isCurrentYearView,
+  lastCompleteMonth,
 }: TotalsTableProps) {
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
   const isGains = balanceTotal >= 0;
   const title = isGains ? "Gains" : "Losses";
+  const subtitle = isCurrentYearView && lastCompleteMonth >= 0
+    ? formatMonthRange(lastCompleteMonth)
+    : null;
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
   const filteredData = isDetailsExpanded
@@ -670,15 +701,20 @@ function TotalsTable({
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <h3
-          className={`text-base sm:text-lg font-semibold ${
-            isGains
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
-          }`}
-        >
-          {title}
-        </h3>
+        <div className="flex items-baseline gap-2">
+          <h3
+            className={`text-base sm:text-lg font-semibold ${
+              isGains
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {title}
+          </h3>
+          {subtitle && (
+            <span className="text-xs text-muted-foreground">{subtitle}</span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span
             className={`text-base sm:text-lg font-semibold ${
@@ -691,6 +727,16 @@ function TotalsTable({
               €{formatAmount(Math.abs(balanceTotal))}
             </PrivacyBlur>
           </span>
+          {expectedSplitAmountEur > 0 && (
+            <span className="text-sm text-foreground inline-flex items-center gap-1">
+              <span>(</span>
+              <GitFork size={14} />
+              <PrivacyBlur blur={privacyMode}>
+                <span>€{formatAmount(Math.abs(expectedSplitAmountEur))}</span>
+              </PrivacyBlur>
+              <span>)</span>
+            </span>
+          )}
           <button
             onClick={onToggleDetails}
             className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
@@ -981,6 +1027,7 @@ type TransactionSummaryProps = {
   readonly currentYear?: number;
   readonly selectedMonth?: number;
   readonly selectedYear?: number;
+  readonly expectedSplitAmountEur?: number;
 };
 
 export default function TransactionSummary({
@@ -989,6 +1036,7 @@ export default function TransactionSummary({
   currentYear,
   selectedMonth,
   selectedYear,
+  expectedSplitAmountEur = 0,
 }: TransactionSummaryProps) {
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
@@ -1018,6 +1066,33 @@ export default function TransactionSummary({
     previousMonthDate?.year,
   );
 
+  // Determine if viewing the current year — cap at last complete month
+  const isCurrentYearView = useMemo(
+    () => currentYear !== undefined && currentYear === new Date().getFullYear(),
+    [currentYear],
+  );
+  const lastCompleteMonth = useMemo(
+    () =>
+      isCurrentYearView ? new Date().getMonth() - 1 : 11, // 0-indexed
+    [isCurrentYearView],
+  );
+  const numberOfMonths = lastCompleteMonth + 1;
+
+  // Filter transactions to last complete month when viewing current year
+  const effectiveTransactions = useMemo(
+    () => filterTransactionsToLastCompleteMonth(transactions, lastCompleteMonth),
+    [transactions, lastCompleteMonth],
+  );
+
+  const effectivePrevYearTransactions = useMemo(
+    () =>
+      filterTransactionsToLastCompleteMonth(
+        previousYearTransactions || [],
+        lastCompleteMonth,
+      ),
+    [previousYearTransactions, lastCompleteMonth],
+  );
+
   // Memoize current year totals computation
   const {
     expenseTotal,
@@ -1025,7 +1100,10 @@ export default function TransactionSummary({
     incomeCategoryTotals,
     expenseCategoryTotals,
     hiddenExpenseTotal,
-  } = useMemo(() => computeYearTotals(transactions), [transactions]);
+  } = useMemo(
+    () => computeYearTotals(effectiveTransactions),
+    [effectiveTransactions],
+  );
 
   // Memoize previous year totals computation
   const {
@@ -1035,8 +1113,8 @@ export default function TransactionSummary({
     prevYearExpenseCategoryTotals,
     prevYearHiddenExpenseTotal,
   } = useMemo(
-    () => computePrevYearTotals(previousYearTransactions),
-    [previousYearTransactions],
+    () => computePrevYearTotals(effectivePrevYearTransactions),
+    [effectivePrevYearTransactions],
   );
 
   // Memoize balance calculations
@@ -1076,6 +1154,7 @@ export default function TransactionSummary({
         prevYearHiddenExpenseTotal,
         currentYear,
         previousYear,
+        numberOfMonths,
       }),
     [
       balanceTotal,
@@ -1088,6 +1167,7 @@ export default function TransactionSummary({
       prevYearHiddenExpenseTotal,
       currentYear,
       previousYear,
+      numberOfMonths,
     ],
   );
 
@@ -1103,6 +1183,7 @@ export default function TransactionSummary({
             incomeCategoryTotals,
             expenseCategoryTotals,
             currentYear,
+            numberOfMonths,
           ),
     [
       currentYear,
@@ -1111,6 +1192,7 @@ export default function TransactionSummary({
       isExpensesExpanded,
       incomeCategoryTotals,
       expenseCategoryTotals,
+      numberOfMonths,
     ],
   );
 
@@ -1124,6 +1206,7 @@ export default function TransactionSummary({
         prevYearExpenseCategoryTotals,
         currentYear,
         previousYear,
+        numberOfMonths,
       ),
     [
       incomeCategoryTotals,
@@ -1132,6 +1215,7 @@ export default function TransactionSummary({
       prevYearExpenseCategoryTotals,
       currentYear,
       previousYear,
+      numberOfMonths,
     ],
   );
 
@@ -1230,6 +1314,7 @@ export default function TransactionSummary({
           totalsData={totalsData}
           currentYear={currentYear}
           previousYear={previousYear}
+          expectedSplitAmountEur={expectedSplitAmountEur}
           monthlyComparisonRows={monthlyComparisonRows}
           isIncomeExpanded={isIncomeExpanded}
           isExpensesExpanded={isExpensesExpanded}
@@ -1238,6 +1323,8 @@ export default function TransactionSummary({
           isDetailsExpanded={isDetailsExpanded}
           onToggleDetails={handleToggleDetails}
           privacyMode={privacyMode}
+          isCurrentYearView={isCurrentYearView}
+          lastCompleteMonth={lastCompleteMonth}
         />
       )}
 
