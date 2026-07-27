@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   // Bundle optimization
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-select'],
+    useTypeScriptCli: true,
   },
   // Allow development on local network
   allowedDevOrigins: [
