@@ -23,6 +23,7 @@ import {
   GitFork,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/ui/date-picker";
+import { parseISODateTime } from "@/utils/date";
 import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
@@ -208,7 +209,7 @@ export default function TransactionFormModal({
       : ""
   );
   const [selectedDate, setSelectedDate] = useState<Date>(
-    initialData?.date ? new Date(initialData.date) : new Date()
+    initialData?.date ? parseISODateTime(initialData.date) : new Date()
   );
   const [selectedFundCategoryId, setSelectedFundCategoryId] = useState<
     string | null

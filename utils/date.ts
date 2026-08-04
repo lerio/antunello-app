@@ -8,6 +8,35 @@
  * @module utils/date
  */
 
+/**
+ * Parses an ISO 8601 date string into a Date object, treating datetime strings
+ * that lack an explicit timezone indicator as UTC.
+ *
+ * Per the ES6 specification, `new Date("2024-08-03T14:00:00")` treats the
+ * string as local time when no timezone is specified. This is problematic
+ * when external services (Enable Banking, Trade Republic) produce UTC
+ * timestamps without the `Z` suffix — the resulting Date would be offset by
+ * the local timezone (e.g. 2 hours behind in CEST).
+ *
+ * This function detects the missing timezone and appends `Z` so the string
+ * is unambiguously parsed as UTC. Date-only strings (no `T`) and strings
+ * that already carry a timezone (`Z`, `+HH:MM`, `-HH:MM`) are passed
+ * through unchanged.
+ *
+ * @param dateString - ISO 8601 date or datetime string
+ * @returns A Date object representing the correct UTC moment
+ */
+export function parseISODateTime(dateString: string): Date {
+  if (
+    dateString.includes('T') &&
+    !dateString.endsWith('Z') &&
+    !/[+-]\d{2}:\d{2}$/.test(dateString)
+  ) {
+    return new Date(dateString + 'Z')
+  }
+  return new Date(dateString)
+}
+
 // Format date for datetime-local input (local timezone)
 /**
  * Converts an ISO date string to the format required by datetime-local HTML inputs.
@@ -17,7 +46,7 @@
  * @returns A string in "YYYY-MM-DDTHH:MM" format suitable for datetime-local input
  */
 export function formatDateTimeLocal(dateString: string): string {
-  const date = new Date(dateString)
+  const date = parseISODateTime(dateString)
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return localDate.toISOString().slice(0, 16)
 }

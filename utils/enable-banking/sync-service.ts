@@ -141,8 +141,15 @@ export async function syncAccount(
 
                 let transactionTimestamp: string;
                 if (date.includes('T')) {
-                    // Date is already an ISO timestamp (some banks provide full datetime)
-                    transactionTimestamp = date;
+                    // Date is already an ISO timestamp (some banks provide full datetime).
+                    // Ensure it has explicit timezone info — if the bank omits the 'Z' or
+                    // offset suffix, JavaScript would parse it as local time instead of UTC,
+                    // causing an offset equal to the local timezone (e.g. 2 hours in CEST).
+                    const zonedDate =
+                        date.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(date)
+                            ? date
+                            : date + 'Z';
+                    transactionTimestamp = new Date(zonedDate).toISOString();
                 } else {
                     // Date is YYYY-MM-DD. Prefer the bank-provided time if present
                     // (non-standard, but observed from some institutions). Fall back
