@@ -80,15 +80,24 @@ async function main() {
     console.log(`  ${f.name} (${f.currency}) — initial amount: ${f.amount}`);
   }
 
-  // ── Fetch transactions linked to any fund ──────────────────────────────
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select(
-      "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer, title"
-    )
-    .eq("user_id", userId)
-    .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null")
-    .order("date", { ascending: true });
+  // ── Fetch transactions linked to any fund (paginated: PostgREST caps at
+  // 1000 rows per response, so a single query silently drops the newest) ──
+  const transactions: TxRow[] = [];
+  for (let from = 0; from < 100_000; from += 1000) {
+    const { data: page, error: pageError } = await supabase
+      .from("transactions")
+      .select(
+        "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer, title"
+      )
+      .eq("user_id", userId)
+      .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null")
+      .order("date", { ascending: true })
+      .range(from, from + 999);
+    if (pageError) throw pageError;
+    if (!page?.length) break;
+    transactions.push(...(page as TxRow[]));
+    if (page.length < 1000) break;
+  }
 
   if (!transactions?.length) {
     console.log("\nNo fund-linked transactions found.");
