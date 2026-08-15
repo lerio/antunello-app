@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { createClient } from "@/utils/supabase/client";
+import { fetchAllBatches } from "@/utils/supabase/fetch-all";
 import { FundCategory, Transaction } from "@/types/database";
 import { convertToEUR } from "@/utils/currency-conversion";
 
@@ -62,19 +63,24 @@ export function useFundCategories() {
 
       if (fundError) throw fundError;
 
-      // Fetch only required fields for balance calculation (reduces payload)
-      const { data: transactions, error: txError } = await supabase
-        .from("transactions")
-        .select(
-          "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer"
-        )
-        .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null");
-
-      if (txError) throw txError;
+      // Fetch only required fields for balance calculation (reduces payload).
+      // Paginate via fetchAllBatches: PostgREST caps single responses at 1000
+      // rows, so an unpaginated query silently drops the newest transactions
+      // once a user has more than 1000 fund-linked rows.
+      const transactions = await fetchAllBatches<BalanceTransaction>((from, to) =>
+        supabase
+          .from("transactions")
+          .select(
+            "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer"
+          )
+          .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null")
+          .order("date", { ascending: true })
+          .range(from, to)
+      );
 
       // Single-pass grouping: Map fund ID -> transactions affecting that fund
       const txByFund = new Map<string, BalanceTransaction[]>();
-      for (const tx of (transactions as BalanceTransaction[]) || []) {
+      for (const tx of transactions) {
         if (tx.fund_category_id) {
           const arr = txByFund.get(tx.fund_category_id) || [];
           arr.push(tx);
