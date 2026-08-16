@@ -67,7 +67,13 @@ export function ValidationTooltip({
   return (
     <>
       {/* Clone the child element and add ref + props */}
-      <div ref={refs.setReference} {...getReferenceProps()}>
+      <div
+        ref={refs.setReference}
+        {...getReferenceProps()}
+        className={
+          isVisible && message ? "rounded-lg ring-2 ring-red-500" : undefined
+        }
+      >
         {children}
       </div>
 
