@@ -21,6 +21,7 @@ import {
   ArrowRightLeft,
   EyeOff,
   GitFork,
+  AlertCircle,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/ui/date-picker";
 import { parseISODateTime } from "@/utils/date";
@@ -283,6 +284,18 @@ export default function TransactionFormModal({
     subCategory: false,
   });
 
+  // Validation state for tooltips and the missing-information warning
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    emptyValidationErrors
+  );
+
+  // Clear the error for a field as soon as the user corrects it
+  const clearFieldError = useCallback((field: keyof ValidationErrors) => {
+    setValidationErrors((prev) =>
+      prev[field] ? { ...prev, [field]: "" } : prev
+    );
+  }, []);
+
   // Handle title suggestion selection
   const handleSuggestionSelect = useCallback((suggestion: TitleSuggestion) => {
     // Auto-fill the fields from the suggestion
@@ -296,6 +309,14 @@ export default function TransactionFormModal({
       mainCategory: true,
       subCategory: !!suggestion.sub_category,
     });
+
+    // Auto-filled fields no longer have missing values
+    setValidationErrors((prev) => ({
+      ...prev,
+      mainCategory: "",
+      subCategory: "",
+      title: "",
+    }));
   }, []);
 
   // Reset auto-fill indicators when user manually changes fields
@@ -315,12 +336,22 @@ export default function TransactionFormModal({
       mainCategory: false,
       subCategory: false,
     }));
-  }, []);
+    clearFieldError("mainCategory");
+  }, [clearFieldError]);
 
   const handleSubCategoryChange = useCallback((value: string) => {
     setSubCategory(value);
     setAutoFilledFields((prev) => ({ ...prev, subCategory: false }));
-  }, []);
+    clearFieldError("subCategory");
+  }, [clearFieldError]);
+
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      setTitle(value);
+      clearFieldError("title");
+    },
+    [clearFieldError]
+  );
 
   // Protect amount field from browser extension errors
   useFormFieldProtection("amount");
@@ -382,11 +413,6 @@ export default function TransactionFormModal({
     splitAcrossYearRef.current = value;
   }, []);
 
-  // Validation state for tooltips
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
-    emptyValidationErrors
-  );
-
   const { currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(
     () => ({
       subCategories:
@@ -433,11 +459,8 @@ export default function TransactionFormModal({
         : validateTransactionFields(amount, formMainCategory, formSubCategory, formTitle);
 
       if (hasValidationErrors(newErrors)) {
+        // Errors persist until the user corrects the fields (or resubmits)
         setValidationErrors(newErrors);
-        // Auto-dismiss tooltips after 4 seconds
-        setTimeout(() => {
-          setValidationErrors(emptyValidationErrors);
-        }, 4000);
         return;
       }
 
@@ -504,8 +527,9 @@ export default function TransactionFormModal({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const normalized = normalizeAmountForCurrencyInput(e.target.value, selectedCurrency);
       setAmountInput(normalized);
+      clearFieldError("amount");
     },
-    [selectedCurrency]
+    [selectedCurrency, clearFieldError]
   );
 
   const handleAmountBlur = useCallback(() => {
@@ -670,7 +694,7 @@ export default function TransactionFormModal({
                   <div>
                     <TitleSuggestionInput
                       value={title}
-                      onChange={setTitle}
+                      onChange={handleTitleChange}
                       onSuggestionSelect={handleSuggestionSelect}
                       placeholder="Enter transaction title..."
                       disabled={disabled}
@@ -766,7 +790,10 @@ export default function TransactionFormModal({
                   <FundSelect
                     options={fundCategories.filter((fund) => fund.is_active)}
                     value={selectedFundCategoryId}
-                    onChange={setSelectedFundCategoryId}
+                    onChange={(id) => {
+                      setSelectedFundCategoryId(id);
+                      clearFieldError("mainCategory");
+                    }}
                     placeholder="Select source fund"
                     disabled={disabled || fundCategoriesLoading}
                   />
@@ -793,7 +820,10 @@ export default function TransactionFormModal({
                   <FundSelect
                     options={fundCategories.filter((fund) => fund.is_active)}
                     value={targetFundCategoryId}
-                    onChange={setTargetFundCategoryId}
+                    onChange={(id) => {
+                      setTargetFundCategoryId(id);
+                      clearFieldError("subCategory");
+                    }}
                     placeholder="Select target fund"
                     disabled={disabled || fundCategoriesLoading}
                     error={
@@ -852,6 +882,26 @@ export default function TransactionFormModal({
             />
           </div>
         </div>
+
+        {/* Missing Required Information Warning */}
+        {hasValidationErrors(validationErrors) && (
+          <div
+            role="alert"
+            className="mt-3 sm:mt-6 rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3"
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-400">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              Missing required information
+            </div>
+            <ul className="mt-1.5 list-disc pl-5 text-sm text-red-600 dark:text-red-400">
+              {Object.entries(validationErrors)
+                .filter(([, message]) => message)
+                .map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+            </ul>
+          </div>
+        )}
 
         {/* Submit and Cancel Buttons */}
         {!showDeleteConfirm && (
