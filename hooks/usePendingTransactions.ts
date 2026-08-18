@@ -47,7 +47,7 @@ export type PendingTransaction = {
  *
  * Queries the `pending_transactions` table for all records with `status = 'pending'`
  * belonging to the current authenticated user. Refetches every 60 seconds
- * and on window focus.
+ * while the page is visible.
  *
  * @returns SWR response with the list of `PendingTransaction` objects
  */
@@ -72,7 +72,8 @@ export function usePendingTransactions() {
     };
 
     return useSWR('pending-transactions', fetcher, {
-        refreshInterval: 60000,
-        revalidateOnFocus: true
+        refreshInterval: 60000
+        // revalidateOnFocus inherits the global false: focus refetches add
+        // to the burst of work when returning to an iOS Safari tab.
     });
 }

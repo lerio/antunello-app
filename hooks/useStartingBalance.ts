@@ -150,7 +150,9 @@ export function useStartingBalance(
     ([_, range, hidden, uid]: [string, TimeRange, boolean, string]) => startingBalanceFetcher(cacheKey, range, hidden, uid),
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+      // revalidateOnReconnect inherits the global false: reconnect
+      // revalidation re-fires heavy batched fetches when iOS wakes the
+      // radio on tab resume
       dedupingInterval: 60000, // 1 minute
       focusThrottleInterval: 300000, // 5 minutes
       refreshInterval: 0,
