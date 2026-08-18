@@ -80,7 +80,10 @@ def auth_initiate():
             phone_no=phone,
             pin=pin,
             save_cookies=False,
-            waf_token="playwright",
+            # awswaf solves the WAF challenge in pure Python — no Chromium
+            # binary on Render (playwright needs `playwright install chromium`
+            # and risks OOM on the free tier; see pytr_cli.py).
+            waf_token="awswaf",
         )
         countdown = tr.initiate_weblogin()
         pid = tr._process_id

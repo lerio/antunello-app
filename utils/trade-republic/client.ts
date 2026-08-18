@@ -1,8 +1,8 @@
 /**
  * Trade Republic API client — delegates to the Render Python microservice.
  *
- * The Render service wraps pytr, handling WAF challenges via Playwright
- * and writing results directly to Supabase pending_transactions.
+ * The Render service wraps pytr, handling WAF challenges via pytr's
+ * awswaf solver and writing results directly to Supabase pending_transactions.
  * The Vercel app just triggers the sync and returns immediately.
  *
  * Set TR_SERVICE_URL env var to the Render service URL.
