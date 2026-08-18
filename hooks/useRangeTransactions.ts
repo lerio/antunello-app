@@ -164,7 +164,9 @@ export function useRangeTransactions(
     ([_, range]: [string, TimeRange]) => rangeTransactionsFetcher(cacheKey, range),
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+      // revalidateOnReconnect inherits the global false: reconnect
+      // revalidation re-fires heavy batched fetches when iOS wakes the
+      // radio on tab resume
       dedupingInterval: 60000,
       focusThrottleInterval: 300000,
       refreshInterval: 0,

@@ -37,6 +37,8 @@ export function useBackgroundSync(userId: string | undefined): BackgroundSyncSta
   const [hasUpdates, setHasUpdates] = useState(false)
   const [updateCount, setUpdateCount] = useState(0)
   const lastCheckRef = useRef<{ count: number; lastUpdate: string } | null>(null)
+  // Timestamp of when the tab was last hidden, to gate resume-time sync checks
+  const hiddenAtRef = useRef<number | null>(null)
   // Stable ref so the effect and recordLocalMutation use the same client
   // without causing effect re-runs on every render.
   const supabaseRef = useRef(createClient())
@@ -100,9 +102,20 @@ export function useBackgroundSync(userId: string | undefined): BackgroundSyncSta
     // Check every 60 seconds
     const interval = setInterval(checkForUpdates, 60000)
 
-    // Resume checking when tab becomes visible
+    // Resume checking when the tab becomes visible again, but only after a
+    // real absence: a quick tab flip shouldn't fire an immediate query and
+    // add to the burst of work on iOS Safari tab resume.
     const handleVisibilityChange = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
+      if (typeof document === 'undefined') return
+
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now()
+        return
+      }
+
+      const hiddenAt = hiddenAtRef.current
+      hiddenAtRef.current = null
+      if (hiddenAt !== null && Date.now() - hiddenAt > 60000) {
         checkForUpdates()
       }
     }
