@@ -1,8 +1,8 @@
 /**
  * Trade Republic API client — delegates to the Render Python microservice.
  *
- * The Render service wraps pytr, handling WAF challenges via pytr's
- * awswaf solver and writing results directly to Supabase pending_transactions.
+ * The Render service wraps pytr, using its v2 web login (no WAF token or
+ * browser needed) and writing results directly to Supabase pending_transactions.
  * The Vercel app just triggers the sync and returns immediately.
  *
  * Set TR_SERVICE_URL env var to the Render service URL.
@@ -36,17 +36,26 @@ async function call(path: string, body: Record<string, unknown>): Promise<Record
 }
 
 export class TradeRepublicClient {
-  // Auth steps (fast, keep as-is)
+  // Auth steps — v2 login: the user confirms in the TR app, so `complete`
+  // may answer { pending: true } until they do. `code` is only needed for
+  // accounts that verify via an authenticator app.
   static async initiateDeviceReset(phone: string, pin: string) {
     const data = await call('/auth/initiate', { phone, pin });
     return {
       processId: data.processId as string,
       countdownSeconds: data.countdownSeconds as number,
+      needsAuthenticator: data.needsAuthenticator as boolean,
     };
   }
 
-  static async completeDeviceReset(phone: string, pin: string, processId: string, code: string) {
+  static async completeDeviceReset(
+    phone: string,
+    pin: string,
+    processId: string,
+    code?: string,
+  ): Promise<{ cookies: string } | { pending: true }> {
     const data = await call('/auth/complete', { phone, pin, processId, code });
+    if (data.status === 'pending') return { pending: true };
     return { cookies: data.cookies_b64 as string };
   }
 

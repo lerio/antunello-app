@@ -1,17 +1,16 @@
 /**
- * Trade Republic authentication — 2-step web login via Render service.
+ * Trade Republic authentication — v2 web login via Render service.
  *
- * Step 1: { step: 1, phoneNumber, pin }
- *   → initiates web login via Render, push notification sent to phone
+ * Initiate: { step: 1, phoneNumber, pin } or { step: 'reauth_initiate', accountId }
+ *   → starts the login, returns { processId, countdownSeconds, needsAuthenticator }
  *
- * Step 2: { step: 2, phoneNumber, pin, processId, code }
- *   → completes login, stores session cookies in integration_configs
- *
- * Re-auth (preserves fund mappings, bulk-fetch toggle, etc.):
- *   reauth_initiate: { step: 'reauth_initiate', accountId }
- *     → reads stored phone + PIN, initiates device reset
- *   reauth_complete: { step: 'reauth_complete', accountId, processId, code }
- *     → completes login, PATCHes only session_cookies + auth_status
+ * Complete: { step: 2, phoneNumber, pin, processId, code? } or
+ *           { step: 'reauth_complete', accountId, processId, code? }
+ *   → most accounts confirm inside the TR app, so the Render service is
+ *     polled and { pending: true } is returned until confirmed; once
+ *     confirmed, session cookies are stored in integration_configs
+ *     (re-auth PATCHes only session_cookies + auth_status, preserving
+ *     all other settings). Accounts with authenticator 2FA must send `code`.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -103,10 +102,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
 
-      const { processId, countdownSeconds } =
+      const { processId, countdownSeconds, needsAuthenticator } =
         await TradeRepublicClient.initiateDeviceReset(phone, pin);
 
-      return NextResponse.json({ processId, countdownSeconds });
+      return NextResponse.json({ processId, countdownSeconds, needsAuthenticator });
     }
 
     // ---- Step 2: Complete auth or re-auth ----
@@ -119,8 +118,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const processId = (body.processId || '').trim();
       const code = (body.code || '').trim();
 
-      if (!processId || !code) {
-        return NextResponse.json({ error: 'processId and code required' }, { status: 400 });
+      if (!processId) {
+        return NextResponse.json({ error: 'processId required' }, { status: 400 });
       }
 
       if (step === 2) {
@@ -146,9 +145,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
 
-      const { cookies } = await TradeRepublicClient.completeDeviceReset(
-        phone, pin, processId, code,
+      const result = await TradeRepublicClient.completeDeviceReset(
+        phone, pin, processId, code || undefined,
       );
+
+      // v2 login: waiting for the user to confirm in the TR app — the
+      // caller polls again. Do not touch integration_configs yet.
+      if ('pending' in result) {
+        return NextResponse.json({ pending: true });
+      }
+
+      const { cookies } = result;
 
       if (step === 2) {
         const accountId = `tr_${phone.replace(/[^0-9]/g, '')}`;

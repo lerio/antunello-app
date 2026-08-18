@@ -50,6 +50,7 @@ function SettingsContent() {
     code: "",
     isLoading: false,
     reauthAccountId: "",
+    needsAuthenticator: false,
   });
 
   // Fetch integration configs including 'settings' to get bank name/IBAN
@@ -97,6 +98,7 @@ function SettingsContent() {
         code: "",
         isLoading: false,
         reauthAccountId: "",
+        needsAuthenticator: false,
       });
       return;
     }
@@ -246,6 +248,7 @@ function SettingsContent() {
       setTrState((prev) => ({
         ...prev,
         processId: data.processId,
+        needsAuthenticator: !!data.needsAuthenticator,
         step: 2,
       }));
       toast.success("Push notification sent. Check your Trade Republic app.");
@@ -302,6 +305,7 @@ function SettingsContent() {
         code: "",
         isLoading: false,
         reauthAccountId: "",
+        needsAuthenticator: false,
       });
     } catch (e: any) {
       toast.error(`Error: ${e.message}`);
@@ -330,6 +334,7 @@ function SettingsContent() {
       setTrState((prev) => ({
         ...prev,
         processId: data.processId,
+        needsAuthenticator: !!data.needsAuthenticator,
       }));
       toast.success("Push notification sent. Check your Trade Republic app.");
     } catch (e: any) {
@@ -343,6 +348,87 @@ function SettingsContent() {
       setTrState((prev) => ({ ...prev, isLoading: false }));
     }
   };
+
+  // v2 login without authenticator 2FA: poll until the user confirms in
+  // the Trade Republic app.
+  useEffect(() => {
+    const {
+      isOpen,
+      step,
+      needsAuthenticator,
+      processId,
+      reauthAccountId,
+      phone,
+      pin,
+    } = trState;
+    if (!isOpen || step !== 2 || needsAuthenticator || !processId) {
+      return;
+    }
+
+    let cancelled = false;
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      setTrState((prev) => ({ ...prev, isLoading: true }));
+      try {
+        const body = reauthAccountId
+          ? { step: "reauth_complete", accountId: reauthAccountId, processId }
+          : { step: 2, phoneNumber: phone.trim(), pin: pin.trim(), processId };
+        const res = await fetch("/api/trade-republic/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Verification failed");
+        if (data.pending) {
+          timer = setTimeout(poll, 4000);
+          return;
+        }
+        toast.success(
+          reauthAccountId
+            ? "Session renewed successfully!"
+            : "Trade Republic connected successfully!",
+        );
+        await mutate();
+        setTrState({
+          isOpen: false,
+          step: 1,
+          phone: "",
+          pin: "",
+          processId: "",
+          code: "",
+          isLoading: false,
+          reauthAccountId: "",
+          needsAuthenticator: false,
+        });
+      } catch (e: any) {
+        toast.error(`Error: ${e.message}`);
+        setTrState((prev) => ({ ...prev, isOpen: false, reauthAccountId: "" }));
+      } finally {
+        inFlight = false;
+        if (!cancelled) setTrState((prev) => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    poll();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [
+    trState.isOpen,
+    trState.step,
+    trState.needsAuthenticator,
+    trState.processId,
+    trState.reauthAccountId,
+    trState.phone,
+    trState.pin,
+    mutate,
+  ]);
 
   const isConnected = (bankName: string) => {
     return connectedAccounts?.some((acc) => {
@@ -585,18 +671,18 @@ function SettingsContent() {
                         {trState.isLoading ? "Logging in..." : "Login"}
                       </Button>
                     </div>
-                  ) : (
+                  ) : trState.needsAuthenticator ? (
                     <div className="space-y-3">
                       <p className="text-xs text-gray-500">
                         {trState.reauthAccountId
-                          ? "A push notification was sent to your Trade Republic app. Enter the code to renew your session."
-                          : "A push notification was sent to your Trade Republic app. Enter the verification code below."}
+                          ? "Enter the code from your authenticator app to renew your session."
+                          : "Enter the code from your authenticator app."}
                       </p>
                       <input
                         type="text"
                         inputMode="numeric"
                         maxLength={6}
-                        placeholder="Verification code"
+                        placeholder="Authenticator code"
                         value={trState.code}
                         onChange={(e) => setTrState((prev) => ({ ...prev, code: e.target.value.replace(/[^0-9]/g, "") }))}
                         className="w-full rounded-md border px-3 py-2 text-sm dark:bg-gray-800"
@@ -608,6 +694,21 @@ function SettingsContent() {
                           : trState.reauthAccountId
                             ? "Renew Session"
                             : "Verify & Connect"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-500">
+                        Confirm the login in your Trade Republic app. Waiting for confirmation...
+                      </p>
+                      <Button
+                        onClick={() => setTrState((prev) => ({ ...prev, isOpen: false, reauthAccountId: "" }))}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={trState.isLoading}
+                      >
+                        Cancel
                       </Button>
                     </div>
                   )}
