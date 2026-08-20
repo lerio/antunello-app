@@ -2,8 +2,7 @@
 
 import useSWR from "swr";
 import { createClient } from "@/utils/supabase/client";
-import { fetchAllBatches } from "@/utils/supabase/fetch-all";
-import { FundCategory, Transaction } from "@/types/database";
+import { FundCategory } from "@/types/database";
 import { convertToEUR } from "@/utils/currency-conversion";
 
 /**
@@ -18,28 +17,23 @@ export interface FundCategoryWithBalance extends FundCategory {
   current_eur_amount: number;
 }
 
-// Minimal transaction fields needed for balance calculation
-type BalanceTransaction = Pick<
-  Transaction,
-  | "id"
-  | "fund_category_id"
-  | "target_fund_category_id"
-  | "amount"
-  | "currency"
-  | "date"
-  | "type"
-  | "is_money_transfer"
->;
+/** Row shape returned by the `get_fund_balances` RPC. */
+type FundBalanceRow = {
+  fund_id: string;
+  balance: number;
+};
 
 /**
  * Hook to fetch all fund categories with their computed current balances.
  *
- * Fetches fund categories and all transactions linked to a fund category (as source
- * or target), then computes the running balance for each fund by processing:
+ * Fetches fund categories and their transaction deltas from the
+ * `get_fund_balances` RPC (computed in SQL — no client-side scan of every
+ * fund-linked transaction), then computes each fund's balance by starting
+ * from its base amount and applying:
  *  - Regular income/expense transactions (add/subtract amount).
  *  - Money transfers (subtract from source fund, add to target fund).
  *
- * Non-EUR fund balances are batch-converted to EUR using the Frankfurter API
+ * Non-EUR fund balances are converted to EUR using the Frankfurter API
  * (via `convertToEUR`). The total balance across all funds is also computed.
  *
  * @returns An object containing:
@@ -63,61 +57,28 @@ export function useFundCategories() {
 
       if (fundError) throw fundError;
 
-      // Fetch only required fields for balance calculation (reduces payload).
-      // Paginate via fetchAllBatches: PostgREST caps single responses at 1000
-      // rows, so an unpaginated query silently drops the newest transactions
-      // once a user has more than 1000 fund-linked rows.
-      const transactions = await fetchAllBatches<BalanceTransaction>((from, to) =>
-        supabase
-          .from("transactions")
-          .select(
-            "id, fund_category_id, target_fund_category_id, amount, currency, date, type, is_money_transfer"
-          )
-          .or("fund_category_id.not.is.null,target_fund_category_id.not.is.null")
-          .order("date", { ascending: true })
-          .range(from, to)
-      );
+      // Transaction deltas are computed in SQL via the get_fund_balances RPC.
+      // Local session read (no network round trip) — getUser() would re-hit auth.
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      const balanceByFundId = new Map<string, number>();
+      if (userId) {
+        const { data: fundBalances, error: rpcError } = await supabase.rpc(
+          "get_fund_balances",
+          { p_user_id: userId }
+        );
 
-      // Single-pass grouping: Map fund ID -> transactions affecting that fund
-      const txByFund = new Map<string, BalanceTransaction[]>();
-      for (const tx of transactions) {
-        if (tx.fund_category_id) {
-          const arr = txByFund.get(tx.fund_category_id) || [];
-          arr.push(tx);
-          txByFund.set(tx.fund_category_id, arr);
-        }
-        if (tx.target_fund_category_id && tx.target_fund_category_id !== tx.fund_category_id) {
-          const arr = txByFund.get(tx.target_fund_category_id) || [];
-          arr.push(tx);
-          txByFund.set(tx.target_fund_category_id, arr);
+        if (rpcError) throw rpcError;
+
+        for (const row of (fundBalances ?? []) as FundBalanceRow[]) {
+          balanceByFundId.set(row.fund_id, Number(row.balance) || 0);
         }
       }
 
-      // Calculate balances synchronously (no awaits in loop)
+      // Start from the fund's manual base amount and add the transaction delta.
       const fundsWithBalances = fundCategories.map((fund) => {
-        const fundTxs = txByFund.get(fund.id) || [];
-        let currentAmount = fund.amount;
-
-        for (const tx of fundTxs) {
-          if (tx.is_money_transfer) {
-            if (tx.fund_category_id === fund.id) {
-              // This fund is SOURCE - subtract amount
-              // For cross-currency transfers, amount is in target currency
-              // We subtract as-is since exact conversion would require async
-              currentAmount -= tx.amount;
-            } else if (tx.target_fund_category_id === fund.id) {
-              // This fund is TARGET - add amount
-              currentAmount += tx.amount;
-            }
-          } else {
-            // Regular transaction: income adds, expense subtracts
-            if (tx.type === "income") {
-              currentAmount += tx.amount;
-            } else if (tx.type === "expense") {
-              currentAmount -= tx.amount;
-            }
-          }
-        }
+        const currentAmount =
+          Number(fund.amount) + (balanceByFundId.get(fund.id) ?? 0);
 
         return {
           fund,

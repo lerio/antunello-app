@@ -124,6 +124,7 @@ const startingBalanceBeforeDateFetcher = async (
  * @param timeRange  - The time range whose start defines the cutoff.
  * @param includeHidden - Whether to include hidden-from-totals transactions.
  * @param userId     - The current authenticated user's ID (or `undefined` while loading).
+ * @param enabled    - When `false`, fetching is skipped (SWR `null` key).
  *
  * @returns An object containing:
  *  - `startingBalance` – The computed balance before the cutoff (defaults to `0`)
@@ -135,7 +136,8 @@ const startingBalanceBeforeDateFetcher = async (
 export function useStartingBalance(
   timeRange: TimeRange,
   includeHidden: boolean,
-  userId: string | undefined
+  userId: string | undefined,
+  enabled = true
 ) {
   // Create unique cache key per time range and hidden state
   const cacheKey = `starting-balance-${timeRange}-${includeHidden}`;
@@ -146,7 +148,7 @@ export function useStartingBalance(
     isLoading,
     mutate,
   } = useSWR<number>(
-    userId ? [cacheKey, timeRange, includeHidden, userId] : null, // Only fetch if we have userId
+    enabled && userId ? [cacheKey, timeRange, includeHidden, userId] : null, // Only fetch if we have userId
     ([_, range, hidden, uid]: [string, TimeRange, boolean, string]) => startingBalanceFetcher(cacheKey, range, hidden, uid),
     {
       revalidateOnFocus: false,
@@ -177,6 +179,7 @@ export function useStartingBalance(
  * @param cutoffDate  - The explicit cutoff date (YYYY-MM-DD).
  * @param includeHidden - Whether to include hidden-from-totals transactions.
  * @param userId      - The current authenticated user's ID (or `undefined`).
+ * @param enabled     - When `false`, fetching is skipped (SWR `null` key).
  *
  * @returns An object containing:
  *  - `startingBalance` – The computed balance before the date (defaults to `0`)
@@ -188,7 +191,8 @@ export function useStartingBalance(
 export function useStartingBalanceBeforeDate(
   cutoffDate: string,
   includeHidden: boolean,
-  userId: string | undefined
+  userId: string | undefined,
+  enabled = true
 ) {
   const cacheKey = `starting-balance-before-${cutoffDate}-${includeHidden}`;
 
@@ -198,7 +202,7 @@ export function useStartingBalanceBeforeDate(
     isLoading,
     mutate,
   } = useSWR<number>(
-    userId ? [cacheKey, cutoffDate, includeHidden, userId] : null,
+    enabled && userId ? [cacheKey, cutoffDate, includeHidden, userId] : null,
     ([_, date, hidden, uid]: [string, string, boolean, string]) =>
       startingBalanceBeforeDateFetcher(cacheKey, date, hidden, uid),
     {

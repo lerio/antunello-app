@@ -5,24 +5,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Search, Filter } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
-import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useYearPrefetch } from "@/hooks/useYearPrefetch";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
 import { Button } from "@/components/ui/button";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
-import { UpdateBanner } from "@/components/ui/update-banner";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/utils/supabase/client";
 
 import TransactionSummary from "@/components/features/transaction-summary";
 
 export default function YearSummaryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
-  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   const initialYear = useMemo(() => {
     const yearParam = searchParams.get("year");
@@ -40,26 +36,23 @@ export default function YearSummaryPage() {
     setCurrentYear(initialYear);
   }, [initialYear]);
 
-  // Get user ID for background sync
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-    getUser();
-  }, [supabase]);
-
   const { transactions, isLoading, error, mutate } =
     useYearTransactions(currentYear);
   const { availableYears, isLoading: yearsLoading } = useAvailableYears();
 
-  // Background sync for detecting updates
-  const { hasUpdates, updateCount, dismissUpdate, refreshData } =
-    useBackgroundSync(userId);
+  const { prefetchAdjacentYears } = useYearPrefetch();
+
+  // Prefetch adjacent years for instant navigation. Lives here (not in
+  // useYearTransactions) so other consumers of that hook — e.g. the
+  // transactions page summary — don't trigger full-year prefetch cascades.
+  useEffect(() => {
+    if (!isLoading && !error) {
+      prefetchAdjacentYears(currentYear);
+    }
+  }, [currentYear, isLoading, error, prefetchAdjacentYears]);
+
+  // Background sync is handled by the provider in the /protected layout
+  // (update banner rendered there); no page-level sync state is needed here.
 
   // Pull-to-refresh functionality
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
@@ -138,14 +131,6 @@ export default function YearSummaryPage() {
         pullDistance={pullDistance}
         isRefreshing={isRefreshing}
       />
-
-      {hasUpdates && (
-        <UpdateBanner
-          updateCount={updateCount}
-          onRefresh={() => refreshData(mutate)}
-          onDismiss={dismissUpdate}
-        />
-      )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* View Tabs and Actions Row */}

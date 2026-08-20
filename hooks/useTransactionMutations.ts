@@ -65,6 +65,18 @@ export function useTransactionMutations() {
     transactionCache.delete(yearKey)
   }
 
+  // Helper function to invalidate split-source caches when transactions change
+  const invalidateSplitSources = () => {
+    // Remove from SWR cache to force refetch
+    mutate(
+      (key) => typeof key === 'string' && key.startsWith('split-sources-'),
+      undefined,
+      { revalidate: true }
+    )
+    // The shared split-source fetcher serves from the LRU first, so clear it too
+    transactionCache.deleteByPrefix('split-sources-')
+  }
+
   // Helper function to invalidate balance chart caches when transactions change
   const invalidateBalanceCaches = () => {
     const ranges = ['1m', '1y', '5y', 'all']
@@ -204,6 +216,8 @@ export function useTransactionMutations() {
       }
       // Invalidate balance chart caches to ensure chart is updated
       invalidateBalanceCaches()
+      // Invalidate split-source caches
+      invalidateSplitSources()
       // Revalidate overall totals
       mutate('/api/overall-totals', undefined, true)
       // Revalidate fund categories to update balance
@@ -317,6 +331,7 @@ export function useTransactionMutations() {
       invalidateYearCache(nextYear.toISOString())
     }
     invalidateBalanceCaches()
+    invalidateSplitSources()
     mutate('/api/overall-totals', undefined, true)
     mutate('fund-categories', undefined, true)
   }
@@ -449,6 +464,8 @@ export function useTransactionMutations() {
       }
       // Invalidate balance chart caches to ensure chart is updated
       invalidateBalanceCaches()
+      // Invalidate split-source caches
+      invalidateSplitSources()
       // Revalidate overall totals
       mutate('/api/overall-totals', undefined, true)
       // Revalidate fund categories to update balance

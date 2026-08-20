@@ -17,8 +17,8 @@ import {
   getTotalAmountClass,
   getMonthlyAmountClass,
 } from "@/utils/styling-utils";
-import { createClient } from "@/utils/supabase/client";
 import { createMonthKey, transactionFetcher } from "@/utils/transaction-fetcher";
+import { useSplitSourcesForYear } from "@/hooks/useSplitSourcesForYear";
 import useSWR from "swr";
 
 type CategoryData = {
@@ -311,61 +311,6 @@ function getExpectedMonthlySplitAmountEur(
   );
 
   return calculateExpectedSplitAmountEur(allSplitForMonth, visibleTransactions);
-}
-
-function useSplitSourcesForYear(year?: number) {
-  const supabase = createClient();
-
-  return useSWR<Transaction[]>(
-    year !== undefined ? `transaction-summary-split-sources-${year}` : null,
-    async () => {
-      const y = year! // SWR key is null when year is undefined, so year is always defined here
-      const yearStart = `${y}-01-01T00:00:00.000Z`;
-      const yearEnd = `${y}-12-31T23:59:59.999Z`;
-      const prevYearStart = `${y - 1}-01-01T00:00:00.000Z`;
-      const prevYearEnd = `${y - 1}-12-31T23:59:59.999Z`;
-
-      const [currentResult, prevResult] = await Promise.all([
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", yearStart)
-          .lte("date", yearEnd)
-          .range(0, 9999),
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", prevYearStart)
-          .lte("date", prevYearEnd)
-          .range(0, 9999),
-      ]);
-
-      const error = currentResult.error || prevResult.error;
-      if (error) {
-        const msg = (error.message || "").toLowerCase();
-        const code =
-          typeof (error as unknown as Record<string, unknown>).code === "string"
-            ? ((error as unknown as Record<string, unknown>).code as string)
-            : undefined;
-
-        if (code === "42703" || msg.includes("split_across_year")) {
-          return [];
-        }
-
-        throw error;
-      }
-
-      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 30000,
-      keepPreviousData: true,
-    },
-  );
 }
 
 function useMonthTransactions(year?: number, month?: number) {

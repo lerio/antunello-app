@@ -1,15 +1,6 @@
 import { useMemo } from 'react'
 import { useDateRangeTransactions } from './useDateRangeTransactions'
-
-function formatDate(date: Date): string {
-    return date.toISOString().split('T')[0]
-}
-
-function subDays(date: Date, days: number): Date {
-    const result = new Date(date)
-    result.setDate(result.getDate() - days)
-    return result
-}
+import { getComparisonWindows30 } from '@/utils/comparison-windows'
 
 /**
  * Hook to fetch transactions across three 30-day comparison periods for dashboard insights.
@@ -30,30 +21,9 @@ function subDays(date: Date, days: number): Date {
  *  - `refresh`: Async function that revalidates all three caches concurrently.
  */
 export function useDashboardComparison() {
-    // Calculate date ranges
-    // Current: Last 30 days (including today)
-    // Prev: The 30 days before that
-    // Last Year: The same 30-day period one year ago
-
-    const dates = useMemo(() => {
-        const today = new Date()
-        const currentEnd = today
-        const currentStart = subDays(today, 29) // 29 days ago + today = 30 days
-
-        const prevEnd = subDays(currentStart, 1) // Day before current start
-        const prevStart = subDays(prevEnd, 29) // 30 days duration
-
-        const lastYearEnd = new Date(currentEnd)
-        lastYearEnd.setFullYear(lastYearEnd.getFullYear() - 1)
-        const lastYearStart = new Date(currentStart)
-        lastYearStart.setFullYear(lastYearStart.getFullYear() - 1)
-
-        return {
-            current: { start: formatDate(currentStart), end: formatDate(currentEnd) },
-            prev: { start: formatDate(prevStart), end: formatDate(prevEnd) },
-            lastYear: { start: formatDate(lastYearStart), end: formatDate(lastYearEnd) }
-        }
-    }, []) // Empty dependency array as 'today' is effectively constant for the component lifecycle
+    // Shared windows: identical to the ones used by the balance comparison
+    // chart so overlapping `range-transactions-*` fetches dedupe via SWR.
+    const dates = useMemo(() => getComparisonWindows30(), []) // Empty dependency array as 'today' is effectively constant for the component lifecycle
 
     // Fetch data for all 3 ranges
     const currentData = useDateRangeTransactions(dates.current.start, dates.current.end)

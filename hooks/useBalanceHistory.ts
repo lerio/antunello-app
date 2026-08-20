@@ -170,37 +170,42 @@ function calculateBalanceHistory(
  *
  * @param timeRange - The time window to analyze (`"1m"`, `"1y"`, `"5y"`, or `"all"`).
  * @param includeHidden - When `true`, transactions flagged with `hide_from_totals` are included.
+ * @param enabled - When `false`, all underlying fetches are skipped (SWR `null` key).
  * @returns A `BalanceStats` object extended with `isLoading` and `error` fields.
  */
 export function useBalanceHistory(
   timeRange: TimeRange,
-  includeHidden: boolean
+  includeHidden: boolean,
+  enabled = true
 ) {
   const [userId, setUserId] = useState<string | undefined>(undefined);
 
-  // Get user ID for starting balance calculation
+  // Get user ID for starting balance calculation.
+  // Local session read (no network round trip) — getUser() would re-hit auth.
   useEffect(() => {
     const supabase = createClient();
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
       }
     };
-    getUser();
+    getSessionUser();
   }, []);
 
   // Fetch transactions for the selected time range only
   const { transactions, isLoading: transactionsLoading, error: transactionsError } = useRangeTransactions(
     timeRange,
-    includeHidden
+    includeHidden,
+    enabled
   );
 
   // Fetch starting balance from database (efficient RPC call)
   const { startingBalance, isLoading: balanceLoading, error: balanceError } = useStartingBalance(
     timeRange,
     includeHidden,
-    userId
+    userId,
+    enabled
   );
 
   const isLoading = transactionsLoading || balanceLoading;

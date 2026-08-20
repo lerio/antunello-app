@@ -1,8 +1,7 @@
 import useSWR, { mutate as globalMutate } from 'swr'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
-import { usePrefetch } from './usePrefetch'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
 import { createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
@@ -13,9 +12,10 @@ import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/u
  * Consolidated, optimized hook for fetching and managing monthly transactions.
  *
  * Uses SWR with a month-based cache key (e.g., `transactions-2025-06`). Supports
- * intelligent prefetching of adjacent months, real-time event handling for INSERT /
- * UPDATE / DELETE operations, and memoized summary calculations (totals grouped by
- * currency). Also provides a helper to invalidate the year-level cache.
+ * event handling for INSERT / UPDATE / DELETE operations and memoized summary
+ * calculations (totals grouped by currency). Also provides a helper to
+ * invalidate the year-level cache. Adjacent-month prefetching lives on the
+ * transactions page, which is the only view that navigates between months.
  *
  * @param year  - The year to fetch transactions for (e.g., 2025).
  * @param month - The month number (1-12).
@@ -30,7 +30,6 @@ import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/u
  */
 export function useTransactionsOptimized(year: number, month: number) {
   const supabase = createClient()
-  const { prefetchAdjacentMonths } = usePrefetch()
 
   const monthKey = createMonthKey(year, month)
 
@@ -57,14 +56,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     // Use cache as fallback data to prevent loading states
     fallbackData: transactionCache.get(monthKey) || undefined,
   })
-
-  // Intelligent prefetching of adjacent months
-  useEffect(() => {
-    // Only prefetch after the current month data has loaded or is cached
-    if (!isLoading && !error) {
-      prefetchAdjacentMonths(year, month)
-    }
-  }, [year, month, isLoading, error, prefetchAdjacentMonths])
 
   // Helper to extract date info from transaction
   const getDateInfo = (date: string) => {

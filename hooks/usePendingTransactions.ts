@@ -54,13 +54,14 @@ export type PendingTransaction = {
 export function usePendingTransactions() {
     const fetcher = async () => {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return [];
+        // Local session read (no network round trip) — getUser() would re-hit auth.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return [];
 
         const { data, error } = await supabase
             .from('pending_transactions')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', session.user.id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
 

@@ -14,6 +14,7 @@ import { Transaction } from '@/types/database'
 import { transactionCache } from './simple-cache'
 import { expandSplitTransactionsForMonth } from './split-transactions'
 import { sortTransactionsByDateInPlace } from './transaction-utils'
+import { fetchSplitSourcesForYear, createSplitSourcesKey } from './split-sources-fetcher'
 
 // Track in-flight requests to avoid duplicate fetches
 const inflightRequests = new Map<string, Promise<Transaction[]>>()
@@ -80,47 +81,14 @@ async function fetchTransactions(key: string): Promise<Transaction[]> {
 
   const monthTransactions = data || []
 
-  const yearStart = `${targetYear}-01-01T00:00:00.000Z`
-  const yearEnd = `${targetYear}-12-31T23:59:59.999Z`
-  const prevYearStart = `${targetYear - 1}-01-01T00:00:00.000Z`
-  const prevYearEnd = `${targetYear - 1}-12-31T23:59:59.999Z`
-
-  const [currentSplit, prevSplit] = await Promise.all([
-    supabase
-      .from('transactions')
-      .select('*')
-      .eq('split_across_year', true)
-      .gte('date', yearStart)
-      .lte('date', yearEnd)
-      .order('date', { ascending: false })
-      .range(0, 9999),
-    supabase
-      .from('transactions')
-      .select('*')
-      .eq('split_across_year', true)
-      .gte('date', prevYearStart)
-      .lte('date', prevYearEnd)
-      .order('date', { ascending: false })
-      .range(0, 9999),
-  ])
-
-  const splitError = currentSplit.error || prevSplit.error
-  if (splitError) {
-    const msg = (splitError.message || '').toLowerCase()
-    const errObj = splitError as unknown as Record<string, unknown>
-    const code = typeof errObj.code === 'string' ? errObj.code : undefined
-    if (code === '42703' || msg.includes('split_across_year')) {
-      return monthTransactions
-    }
-    throw splitError
-  }
-
-  const splitData = [...(currentSplit.data || []), ...(prevSplit.data || [])]
+  // Shared split-source fetch (current + previous year): deduped with the
+  // page/summary hooks so only one network fetch happens per year pair.
+  const splitData = await fetchSplitSourcesForYear(createSplitSourcesKey(targetYear))
 
   return sortTransactionsByDateInPlace(
     expandSplitTransactionsForMonth(
       monthTransactions,
-      splitData || [],
+      splitData,
       targetYear,
       targetMonth
     )

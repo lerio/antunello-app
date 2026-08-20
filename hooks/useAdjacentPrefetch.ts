@@ -1,13 +1,21 @@
 import { useCallback, useRef } from 'react'
 import { transactionCache } from '@/utils/simple-cache'
 
+/** Scheduled prefetch handle: either an idle-callback id or a timeout id. */
+type PrefetchHandle = { handle: number; isIdle: boolean }
+
 /**
  * Generic prefetch hook that can prefetch data for adjacent periods (months, years, etc.).
  *
  * This hook extracts the common logic shared by `usePrefetch` and `useYearPrefetch`:
- * a module-level dedup set, an in-flight request tracker, cache checking, and a debounced
- * adjacent-prefetch scheduler. The caller provides the fetcher, key builder, and adjacent-key
- * computation, making the hook reusable for any data domain.
+ * a module-level dedup set, an in-flight request tracker, cache checking, and an
+ * idle-gated adjacent-prefetch scheduler. The caller provides the fetcher, key builder,
+ * and adjacent-key computation, making the hook reusable for any data domain.
+ *
+ * Prefetch is scheduled via `requestIdleCallback` (with a timeout) so it never
+ * competes with the first paint on mobile; a `setTimeout` fallback covers
+ * browsers without idle-callback support. Scheduling is skipped while the tab
+ * is hidden.
  *
  * @typeParam TArgs - The argument tuple type passed to `createKey` (e.g., `[number, number]` for months).
  *
@@ -19,7 +27,7 @@ import { transactionCache } from '@/utils/simple-cache'
  *
  * @returns An object containing:
  *  - `prefetchItem(...args)` – Prefetch a single item by its arguments.
- *  - `prefetchAdjacent(...args)` – Debounced prefetch of adjacent items relative to the given arguments.
+ *  - `prefetchAdjacent(...args)` – Idle-gated prefetch of adjacent items relative to the given arguments.
  */
 export function useAdjacentPrefetch<TArgs extends unknown[]>(
   dedupSet: Set<string>,
@@ -27,7 +35,7 @@ export function useAdjacentPrefetch<TArgs extends unknown[]>(
   fetcher: (key: string) => Promise<unknown>,
   prefetchAdjacentKeys: (...args: TArgs) => TArgs[]
 ) {
-  const prefetchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const prefetchHandleRef = useRef<PrefetchHandle | undefined>(undefined)
 
   /**
    * Prefetch data for a single item identified by the given arguments.
@@ -54,22 +62,44 @@ export function useAdjacentPrefetch<TArgs extends unknown[]>(
 
   /**
    * Prefetch adjacent items relative to the current view.
-   * Debounced by 500 ms to avoid duplicate requests during quick navigation.
+   * Scheduled on idle (with a timeout fallback) so it doesn't compete with
+   * the initial load; skipped entirely while the tab is hidden.
    */
   const prefetchAdjacent = useCallback((...args: TArgs) => {
-    const adjacent = prefetchAdjacentKeys(...args)
-
-    // Clear any existing timeout
-    if (prefetchTimeoutRef.current) {
-      clearTimeout(prefetchTimeoutRef.current)
+    // Clear any existing scheduled prefetch
+    if (prefetchHandleRef.current) {
+      if (prefetchHandleRef.current.isIdle) {
+        cancelIdleCallback(prefetchHandleRef.current.handle)
+      } else {
+        clearTimeout(prefetchHandleRef.current.handle)
+      }
+      prefetchHandleRef.current = undefined
     }
 
-    // Debounce prefetching to avoid excessive requests
-    prefetchTimeoutRef.current = setTimeout(() => {
+    // Don't prefetch while the tab is hidden (e.g. iOS Safari background)
+    if (typeof document !== 'undefined' && document.hidden) {
+      return
+    }
+
+    const adjacent = prefetchAdjacentKeys(...args)
+
+    const runPrefetch = () => {
       for (const adjArgs of adjacent) {
         prefetchItem(...adjArgs)
       }
-    }, 500)
+    }
+
+    if (typeof requestIdleCallback === 'function') {
+      prefetchHandleRef.current = {
+        handle: requestIdleCallback(runPrefetch, { timeout: 3000 }),
+        isIdle: true,
+      }
+    } else {
+      prefetchHandleRef.current = {
+        handle: window.setTimeout(runPrefetch, 1500),
+        isIdle: false,
+      }
+    }
   }, [prefetchAdjacentKeys, prefetchItem])
 
   return {
