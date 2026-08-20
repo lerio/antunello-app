@@ -7,6 +7,7 @@ import type { BalanceDataPoint } from "./useBalanceHistory";
 import { createClient } from "@/utils/supabase/client";
 import type { Transaction } from "@/types/database";
 import { getStartDateForTimeRange } from "@/utils/time-range";
+import { getComparisonWindows30 } from "@/utils/comparison-windows";
 
 type BalanceTransaction = Transaction;
 
@@ -178,30 +179,45 @@ function buildSeries(
  *
  * @param timeRange - The length of the current window: `"1m"`, `"1y"`, or `"5y"`.
  * @param includeHidden - When `true`, transactions flagged with `hide_from_totals` are included.
+ * @param enabled - When `false`, all underlying fetches are skipped (SWR `null` key).
  * @returns A `BalanceComparisonStats` object with the merged data points and loading/error state.
  */
 export function useBalanceComparisonHistory(
   timeRange: "1m" | "1y" | "5y",
-  includeHidden: boolean
+  includeHidden: boolean,
+  enabled = true
 ) {
   const [userId, setUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const supabase = createClient();
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
+    // Local session read (no network round trip) — getUser() would re-hit auth.
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
       }
     };
-    getUser();
+    getSessionUser();
   }, []);
 
-  const currentEndDate = useMemo(() => formatUtcDate(new Date()), []);
-  const currentStartDate = useMemo(
-    () => getStartDateForTimeRange(timeRange) ?? currentEndDate,
-    [currentEndDate, timeRange]
-  );
+  const { currentStartDate, currentEndDate } = useMemo(() => {
+    if (timeRange === "1m") {
+      // Share the dashboard's exact 30-day windows so both hooks issue the
+      // same `range-transactions-*` SWR keys and their fetches dedupe.
+      const windows = getComparisonWindows30();
+      return {
+        currentStartDate: windows.current.start,
+        currentEndDate: windows.current.end,
+      };
+    }
+
+    const end = formatUtcDate(new Date());
+    return {
+      currentStartDate: getStartDateForTimeRange(timeRange) ?? end,
+      currentEndDate: end,
+    };
+  }, [timeRange]);
 
   const currentSpanDays = useMemo(
     () => daysInclusive(currentStartDate, currentEndDate),
@@ -220,22 +236,26 @@ export function useBalanceComparisonHistory(
 
   const currentTransactions = useDateRangeTransactions(
     currentStartDate,
-    currentEndDate
+    currentEndDate,
+    enabled
   );
   const previousTransactions = useDateRangeTransactions(
     previousStartDate,
-    previousEndDate
+    previousEndDate,
+    enabled
   );
 
   const currentStartingBalance = useStartingBalanceBeforeDate(
     currentStartDate,
     includeHidden,
-    userId
+    userId,
+    enabled
   );
   const previousStartingBalance = useStartingBalanceBeforeDate(
     previousStartDate,
     includeHidden,
-    userId
+    userId,
+    enabled
   );
 
   const result = useMemo(() => {

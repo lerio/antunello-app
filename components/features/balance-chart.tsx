@@ -213,13 +213,14 @@ export default function BalanceChart() {
   const {
     dataPoints: balanceDataPoints,
     isLoading: balanceLoading,
-  } = useBalanceHistory(timeRange, true);
+  } = useBalanceHistory(timeRange, true, timeRange === "all");
   const {
     dataPoints: comparisonDataPoints,
     isLoading: comparisonLoading,
   } = useBalanceComparisonHistory(
     timeRange === "all" ? "1m" : timeRange,
-    true
+    true,
+    timeRange !== "all"
   );
   const dataPoints: Array<BalanceDataPoint | BalanceComparisonDataPoint> =
     isComparisonMode ? comparisonDataPoints : balanceDataPoints;

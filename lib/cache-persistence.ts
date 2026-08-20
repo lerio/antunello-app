@@ -8,6 +8,8 @@
 const CACHE_KEY = 'antunello-swr-cache'
 const CACHE_VERSION = '1.0'
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000 // 24 hours
+const MAX_MONTH_ENTRIES = 8
+const MAX_SINGLE_ENTRIES = 4
 
 interface CachedData {
   version: string
@@ -42,6 +44,37 @@ export function saveCacheToStorage(cache: Map<string, any>) {
           timestamp: Date.now(),
           isValidating: false
         }
+      }
+    }
+
+    // Cap persisted entries so the blob stays small and the synchronous
+    // parse/serialize at startup stays fast on mobile. Keep the 8 most
+    // recent month entries and up to 4 single-transaction entries; evicted
+    // months simply refetch on navigation (SWR + the in-memory LRU still
+    // cover the active months). Without a cap, the blob grows until the
+    // ~5MB localStorage quota silently stops persistence entirely.
+    const isMonthKey = (key: string) => /^transactions-\d{4}-\d{1,2}$/.test(key)
+
+    const monthKeys = Object.keys(serializedCache)
+      .filter(isMonthKey)
+      .sort((a, b) => {
+        const [aYear, aMonth] = a.slice('transactions-'.length).split('-').map(Number)
+        const [bYear, bMonth] = b.slice('transactions-'.length).split('-').map(Number)
+        return bYear - aYear || bMonth - aMonth
+      })
+
+    const singleKeys = Object.keys(serializedCache)
+      .filter((key) => !isMonthKey(key))
+      .sort((a, b) => serializedCache[b].timestamp - serializedCache[a].timestamp)
+
+    const keepKeys = new Set([
+      ...monthKeys.slice(0, MAX_MONTH_ENTRIES),
+      ...singleKeys.slice(0, MAX_SINGLE_ENTRIES),
+    ])
+
+    for (const key of Object.keys(serializedCache)) {
+      if (!keepKeys.has(key)) {
+        delete serializedCache[key]
       }
     }
 

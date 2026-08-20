@@ -11,18 +11,19 @@ import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { usePendingTransactionModal } from "@/hooks/usePendingTransactionModal";
+import { useSplitSourcesForYear } from "@/hooks/useSplitSourcesForYear";
+import { usePrefetch } from "@/hooks/usePrefetch";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { HorizontalMonthSelector } from "@/components/ui/horizontal-month-selector";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
-import { UpdateBanner } from "@/components/ui/update-banner";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
 import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { transactionCache } from "@/utils/simple-cache";
 import toast from "react-hot-toast";
-import useSWR, { mutate as globalMutate } from "swr";
+import { mutate as globalMutate } from "swr";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
@@ -42,7 +43,6 @@ export default function ProtectedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
-  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   const initialDate = useMemo(() => {
     const yearParam = searchParams.get("year");
@@ -63,19 +63,6 @@ export default function ProtectedPage() {
   useEffect(() => {
     setCurrentDate(initialDate);
   }, [initialDate]);
-
-  // Get user ID for background sync
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-    getUser();
-  }, [supabase]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -125,54 +112,18 @@ export default function ProtectedPage() {
   const selectedYear = currentDate.getFullYear();
   const selectedMonth = currentDate.getMonth() + 1;
 
-  const { data: splitSources = [] } = useSWR<Transaction[]>(
-    `split-sources-${selectedYear}`,
-    async () => {
-      const yearStart = `${selectedYear}-01-01T00:00:00.000Z`;
-      const yearEnd = `${selectedYear}-12-31T23:59:59.999Z`;
-      const prevYearStart = `${selectedYear - 1}-01-01T00:00:00.000Z`;
-      const prevYearEnd = `${selectedYear - 1}-12-31T23:59:59.999Z`;
+  const { prefetchAdjacentMonths } = usePrefetch();
 
-      const [currentResult, prevResult] = await Promise.all([
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", yearStart)
-          .lte("date", yearEnd)
-          .range(0, 9999),
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("split_across_year", true)
-          .gte("date", prevYearStart)
-          .lte("date", prevYearEnd)
-          .range(0, 9999),
-      ]);
+  // Prefetch adjacent months for instant navigation. Lives here (not in
+  // useTransactionsOptimized) so other pages sharing that hook — e.g. the
+  // budgets page — don't pay the prefetch cost on load.
+  useEffect(() => {
+    if (!isLoading && !error) {
+      prefetchAdjacentMonths(selectedYear, selectedMonth);
+    }
+  }, [selectedYear, selectedMonth, isLoading, error, prefetchAdjacentMonths]);
 
-      const error = currentResult.error || prevResult.error;
-      if (error) {
-        const msg = (error.message || "").toLowerCase();
-        const code =
-          typeof (error as unknown as Record<string, unknown>).code === "string"
-            ? ((error as unknown as Record<string, unknown>).code as string)
-            : undefined;
-
-        if (code === "42703" || msg.includes("split_across_year")) {
-          return [];
-        }
-        throw error;
-      }
-
-      return [...(currentResult.data || []), ...(prevResult.data || [])] as Transaction[];
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 30000,
-      keepPreviousData: true,
-    },
-  );
+  const { data: splitSources = [] } = useSplitSourcesForYear(selectedYear);
 
   const expectedSplitAmountEur = useMemo(() => {
     if (!splitSources.length) return 0;
@@ -197,14 +148,9 @@ export default function ProtectedPage() {
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
 
-  // Background sync for detecting updates
-  const {
-    hasUpdates,
-    updateCount,
-    dismissUpdate,
-    refreshData,
-    recordLocalMutation,
-  } = useBackgroundSync(userId);
+  // Background sync for detecting updates (provider is mounted in the
+  // /protected layout; the update banner is rendered there)
+  const { recordLocalMutation } = useBackgroundSync();
 
   // Pull-to-refresh functionality
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
@@ -500,19 +446,6 @@ export default function ProtectedPage() {
         pullDistance={pullDistance}
         isRefreshing={isRefreshing}
       />
-
-      {hasUpdates && (
-        <UpdateBanner
-          updateCount={updateCount}
-          onRefresh={() =>
-            refreshData(mutate, {
-              year: currentDate.getFullYear(),
-              month: currentDate.getMonth() + 1,
-            })
-          }
-          onDismiss={dismissUpdate}
-        />
-      )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* View Tabs and Actions Row */}

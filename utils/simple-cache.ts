@@ -140,6 +140,20 @@ class TransactionCache {
   }
 
   /**
+   * Removes all entries whose key starts with the given prefix.
+   *
+   * @param prefix - The key prefix to match (e.g. "split-sources-")
+   */
+  deleteByPrefix(prefix: string) {
+    const keys = Array.from(this.cache.keys())
+    for (const key of keys) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key)
+      }
+    }
+  }
+
+  /**
    * Clears all entries from the cache.
    */
   clear() {

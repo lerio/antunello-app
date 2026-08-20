@@ -1,18 +1,16 @@
 import useSWR from 'swr'
-import { useEffect } from 'react'
 import { Transaction } from '@/types/database'
 import { yearTransactionFetcher, createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
-import { useYearPrefetch } from './useYearPrefetch'
 
 /**
  * Hook to fetch transactions aggregated by year.
  *
  * Uses SWR with a year-based cache key (e.g., `year-2025`). Fetches all
- * transactions for the given year via the `yearTransactionFetcher` and
- * intelligently prefetches adjacent years after the current year loads.
+ * transactions for the given year via the `yearTransactionFetcher`.
  * Disables refetch on focus and reconnect to prevent hanging on iOS Safari
- * tab wake.
+ * tab wake. Adjacent-year prefetching lives on the year page, which is the
+ * only view that navigates between years.
  *
  * @param year - The full year to fetch transactions for (e.g., 2025).
  *               If omitted, the hook returns empty data.
@@ -25,7 +23,6 @@ import { useYearPrefetch } from './useYearPrefetch'
  *  - `refresh` – Shorthand for `mutate()`
  */
 export function useYearTransactions(year?: number) {
-  const { prefetchAdjacentYears } = useYearPrefetch()
   const yearKey = year ? createYearKey(year) : null
 
   const {
@@ -43,14 +40,6 @@ export function useYearTransactions(year?: number) {
     // Use cache as fallback data to prevent loading states
     fallbackData: yearKey ? transactionCache.get(yearKey) || undefined : undefined,
   })
-
-  // Intelligent prefetching of adjacent years
-  useEffect(() => {
-    // Only prefetch after the current year data has loaded or is cached
-    if (year && !isLoading && !error) {
-      prefetchAdjacentYears(year)
-    }
-  }, [year, isLoading, error, prefetchAdjacentYears])
 
   return {
     transactions: transactions || [],

@@ -19,6 +19,27 @@ import { sortTransactionsByDateInPlace } from './transaction-utils'
 // Track in-flight requests to avoid duplicate fetches
 const inflightRangeRequests = new Map<string, Promise<Transaction[]>>()
 
+// Slim column set: dashboard summaries, comparison series, and split
+// expansion only read these fields. Keeps 30-day range payloads small.
+const RANGE_SELECT =
+  'id, amount, currency, type, main_category, sub_category, date, eur_amount, hide_from_totals, is_money_transfer, split_across_year'
+
+// Row shape actually returned by RANGE_SELECT queries.
+type RangeRow = Pick<
+  Transaction,
+  | 'id'
+  | 'amount'
+  | 'currency'
+  | 'type'
+  | 'main_category'
+  | 'sub_category'
+  | 'date'
+  | 'eur_amount'
+  | 'hide_from_totals'
+  | 'is_money_transfer'
+  | 'split_across_year'
+>
+
 /**
  * Shared transaction fetcher for date ranges. Checks the LRU cache first,
  * then deduplicates in-flight requests, and finally fetches from Supabase.
@@ -77,10 +98,10 @@ async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
   const rangeStartIso = rangeStart.toISOString()
   const rangeEndExclusiveIso = rangeEndExclusive.toISOString()
 
-  const rangeTransactions = await fetchAllBatches<Transaction>((from, to) =>
+  const rangeTransactions = await fetchAllBatches<RangeRow>((from, to) =>
     supabase
       .from('transactions')
-      .select('*')
+      .select(RANGE_SELECT)
       .gte('date', rangeStartIso)
       .lt('date', rangeEndExclusiveIso)
       .order('date', { ascending: false })
@@ -88,7 +109,9 @@ async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
       .range(from, to)
   )
 
-  const regularTransactions = rangeTransactions.filter((t) => !t.split_across_year)
+  // Downstream consumers only read the slimmed columns; cast to the full
+  // Transaction shape for compatibility with the LRU cache and split utils.
+  const regularTransactions = rangeTransactions.filter((t) => !t.split_across_year) as Transaction[]
 
   const startYear = rangeStart.getUTCFullYear()
   const endYear = rangeEndExclusive.getUTCFullYear()
@@ -97,16 +120,16 @@ async function fetchDateRangeTransactions(key: string): Promise<Transaction[]> {
   const splitYearStart = `${startYear - 1}-01-01T00:00:00.000Z`
   const splitYearEndExclusive = `${endYear + 1}-01-01T00:00:00.000Z`
 
-  const splitSources = await fetchAllBatches<Transaction>((from, to) =>
+  const splitSources = (await fetchAllBatches<RangeRow>((from, to) =>
     supabase
       .from('transactions')
-      .select('*')
+      .select(RANGE_SELECT)
       .eq('split_across_year', true)
       .gte('date', splitYearStart)
       .lt('date', splitYearEndExclusive)
       .order('date', { ascending: false })
       .range(from, to)
-  )
+  )) as Transaction[]
 
   const splitByYear: Record<number, Transaction[]> = {}
   for (const tx of splitSources) {

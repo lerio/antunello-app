@@ -13,6 +13,7 @@ import { transactionCache } from '@/utils/simple-cache'
  *
  * @param startDate - ISO date string for the range start (inclusive).
  * @param endDate - ISO date string for the range end (inclusive).
+ * @param enabled - When `false`, fetching is skipped (SWR `null` key).
  * @returns An object containing:
  *  - `transactions`: Array of matching `Transaction` objects (defaults to `[]`).
  *  - `error`: Any fetch error, or `undefined`.
@@ -20,8 +21,8 @@ import { transactionCache } from '@/utils/simple-cache'
  *  - `mutate`: SWR mutate function for manual cache invalidation.
  *  - `refresh`: Convenience wrapper that calls `mutate()`.
  */
-export function useDateRangeTransactions(startDate: string, endDate: string) {
-    const key = createDateRangeKey(startDate, endDate)
+export function useDateRangeTransactions(startDate: string, endDate: string, enabled = true) {
+    const key = enabled ? createDateRangeKey(startDate, endDate) : null
 
     const {
         data: transactions,
@@ -36,7 +37,7 @@ export function useDateRangeTransactions(startDate: string, endDate: string) {
         keepPreviousData: true,
         refreshInterval: 0,
         // Use cache as fallback data to prevent loading states
-        fallbackData: transactionCache.get(key) || undefined,
+        fallbackData: key ? transactionCache.get(key) || undefined : undefined,
     })
 
     return {

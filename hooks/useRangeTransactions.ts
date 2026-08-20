@@ -140,6 +140,7 @@ const rangeTransactionsFetcher = async (
  *
  * @param timeRange  - The time range to query (e.g., `'1m'`, `'1y'`, `'all'`).
  * @param includeHidden - Whether to include transactions flagged as hidden from totals.
+ * @param enabled - When `false`, fetching is skipped (SWR `null` key).
  *
  * @returns An object containing:
  *  - `transactions`: The list of `BalanceTransaction` objects (empty array while loading)
@@ -150,7 +151,8 @@ const rangeTransactionsFetcher = async (
  */
 export function useRangeTransactions(
   timeRange: TimeRange,
-  includeHidden: boolean
+  includeHidden: boolean,
+  enabled = true
 ) {
   const cacheKey = `balance-transactions-${timeRange}-${includeHidden}`
 
@@ -160,7 +162,7 @@ export function useRangeTransactions(
     isLoading,
     mutate,
   } = useSWR<BalanceTransaction[]>(
-    [cacheKey, timeRange],
+    enabled ? [cacheKey, timeRange] : null,
     ([_, range]: [string, TimeRange]) => rangeTransactionsFetcher(cacheKey, range),
     {
       revalidateOnFocus: false,
