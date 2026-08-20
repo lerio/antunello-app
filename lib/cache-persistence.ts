@@ -121,9 +121,12 @@ export function loadCacheFromStorage(): Map<string, any> | null {
     // Restore cache
     const cache = new Map<string, any>()
     for (const [key, entry] of Object.entries(cachedData.data)) {
-      // Only restore if data is not too old (6 hours for transactions)
+      // Entries live as long as the blob itself (24h). A reload after idle
+      // then paints cached data instantly while SWR revalidates in the
+      // background (revalidateOnMount) and the 15s background sync picks up
+      // remote changes — so nothing stale survives beyond a revalidation.
       const dataAge = Date.now() - (entry as SerializedCacheEntry).timestamp
-      const maxAge = key.startsWith('transactions-') ? 6 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000
+      const maxAge = CACHE_EXPIRY_MS
 
       if (dataAge < maxAge && (entry as SerializedCacheEntry).data) {
         cache.set(key, (entry as SerializedCacheEntry).data)
