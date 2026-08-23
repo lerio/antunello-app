@@ -38,18 +38,12 @@ const BackgroundSyncContext = createContext<BackgroundSyncState | undefined>(
 
 /**
  * SWR keys revalidated when a remote change is detected: transaction
- * month/year/range/split-source/fund caches (string keys) and
- * balance/starting-balance caches (array keys).
+ * month/year/range/anchored-chart/split-source/fund caches (string keys).
  */
 function isTransactionDataKey(key: unknown): boolean {
   if (typeof key === "string") {
-    return /^(transactions-|year-transactions-|range-transactions-|split-sources-|fund-categories)/.test(
+    return /^(transactions-|year-transactions-|range-transactions-|anchored-transactions-|split-sources-|fund-categories)/.test(
       key
-    );
-  }
-  if (Array.isArray(key) && typeof key[0] === "string") {
-    return /^(balance-transactions-|starting-balance-|starting-balance-before-)/.test(
-      key[0]
     );
   }
   return false;

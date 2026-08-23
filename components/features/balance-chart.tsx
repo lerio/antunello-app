@@ -8,18 +8,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
 import {
-  useBalanceHistory,
-  TimeRange,
-  BalanceDataPoint,
-} from "@/hooks/useBalanceHistory";
-import {
-  useBalanceComparisonHistory,
-  BalanceComparisonDataPoint,
-} from "@/hooks/useBalanceComparisonHistory";
+  useAnchoredBalanceHistory,
+  AnchoredDataPoint,
+} from "@/hooks/useAnchoredBalanceHistory";
+import { TimeRange } from "@/utils/time-range";
+import { useFundCategories } from "@/hooks/useFundCategories";
 import { formatCurrency } from "@/utils/currency";
 import { ChartSkeleton } from "@/components/ui/skeletons";
 
@@ -29,7 +27,7 @@ import { ChartSkeleton } from "@/components/ui/skeletons";
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{
-    payload: BalanceDataPoint | BalanceComparisonDataPoint;
+    payload: AnchoredDataPoint;
     value: number;
   }>;
 }
@@ -89,7 +87,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
       </div>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between items-center gap-4">
-          <span className="text-gray-600 dark:text-gray-400">Balance:</span>
+          <span className="text-gray-600 dark:text-gray-400">Actual:</span>
           <span
             className={`font-semibold ${
               data.balance >= 0
@@ -100,13 +98,13 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
             {formatCurrency(data.balance, "EUR")}
           </span>
         </div>
-        {"previousBalance" in data && data.previousBalance !== null && (
+        {data.splitAdjustedBalance != null && (
           <div className="flex justify-between items-center gap-4">
             <span className="text-gray-600 dark:text-gray-400">
-              Previous period:
+              Split-adjusted:
             </span>
             <span className="font-medium text-gray-500 dark:text-gray-400">
-              {formatCurrency(data.previousBalance, "EUR")}
+              {formatCurrency(data.splitAdjustedBalance, "EUR")}
             </span>
           </div>
         )}
@@ -187,20 +185,6 @@ function BalanceChartControls({
   );
 }
 
-
-/**
- * Empty state when no data is available
- */
-function EmptyState() {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 text-center">
-      <p className="text-gray-500 dark:text-gray-400 mb-2">
-        No transaction data available
-      </p>
-    </div>
-  );
-}
-
 /**
  * Main balance chart component
  */
@@ -208,23 +192,15 @@ export default function BalanceChart() {
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const isComparisonMode = timeRange === "1m" || timeRange === "1y" || timeRange === "5y";
 
-  const {
-    dataPoints: balanceDataPoints,
-    isLoading: balanceLoading,
-  } = useBalanceHistory(timeRange, true, timeRange === "all");
-  const {
-    dataPoints: comparisonDataPoints,
-    isLoading: comparisonLoading,
-  } = useBalanceComparisonHistory(
-    timeRange === "all" ? "1m" : timeRange,
-    true,
-    timeRange !== "all"
+  // The series is anchored to the Balance card total so today's point always
+  // matches it exactly. The card fetches this on the same page, so this SWR
+  // call dedupes.
+  const { totalBalanceEUR, isLoading: anchorLoading } = useFundCategories();
+  const { dataPoints, isLoading } = useAnchoredBalanceHistory(
+    timeRange,
+    totalBalanceEUR
   );
-  const dataPoints: Array<BalanceDataPoint | BalanceComparisonDataPoint> =
-    isComparisonMode ? comparisonDataPoints : balanceDataPoints;
-  const isLoading = isComparisonMode ? comparisonLoading : balanceLoading;
 
   // Detect mobile screen size
   useEffect(() => {
@@ -236,20 +212,22 @@ export default function BalanceChart() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  if (isLoading) {
+  if (anchorLoading || isLoading) {
     return <ChartSkeleton />;
   }
 
-  if (dataPoints.length === 0) {
-    return <EmptyState />;
-  }
+  // The dotted split-adjusted line is rendered only when it differs from the
+  // actual line somewhere in the window.
+  const showSplitAdjusted = dataPoints.some(
+    (d) => d.splitAdjustedBalance != null
+  );
 
   // Calculate min and max balance for Y-axis domain
-  const balances = isComparisonMode
-    ? (dataPoints as BalanceComparisonDataPoint[]).flatMap((d) =>
-        d.previousBalance !== null ? [d.balance, d.previousBalance] : [d.balance]
-      )
-    : dataPoints.map((d) => d.balance);
+  const balances = dataPoints.flatMap((d) =>
+    d.splitAdjustedBalance != null
+      ? [d.balance, d.splitAdjustedBalance]
+      : [d.balance]
+  );
   const minBalance = Math.min(...balances);
   const maxBalance = Math.max(...balances);
 
@@ -287,7 +265,7 @@ export default function BalanceChart() {
         <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
           <LineChart
             data={dataPoints}
-            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+            margin={{ top: 10, right: 10, left: -25, bottom: 10 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -332,15 +310,16 @@ export default function BalanceChart() {
               opacity={0.5}
             />
 
-            {isComparisonMode && (
+            {showSplitAdjusted && (
               <Line
                 type="monotone"
-                dataKey="previousBalance"
-                stroke="hsl(var(--foreground))"
-                strokeOpacity={0.28}
+                dataKey="splitAdjustedBalance"
+                name="Split-adjusted"
+                stroke="hsl(var(--muted-foreground))"
                 strokeWidth={2}
+                strokeDasharray="5 5"
                 dot={false}
-                activeDot={false}
+                activeDot={{ r: 4 }}
                 isAnimationActive={false}
               />
             )}
@@ -348,11 +327,21 @@ export default function BalanceChart() {
             <Line
               type="monotone"
               dataKey="balance"
+              name="Actual"
               stroke="hsl(var(--foreground))"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
               isAnimationActive={false}
+            />
+
+            <Legend
+              iconType="plainline"
+              wrapperStyle={{
+                fontSize: 12,
+                color: "hsl(var(--muted-foreground))",
+                paddingTop: 8,
+              }}
             />
           </LineChart>
         </ResponsiveContainer>

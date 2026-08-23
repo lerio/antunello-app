@@ -85,7 +85,7 @@ Antunello is a comprehensive personal finance tracking application built with Ne
 - **Split Transactions**: Distribute a transaction amount evenly across months of the year
 - **Monthly/Yearly Views**: Organized transaction views with sticky scrollable period selectors
 - **Dashboard**: Period-over-period comparison with income/expense/balance breakdowns
-- **Balance Charts**: Interactive line chart with previous-period overlay comparison
+- **Balance Charts**: Balance line anchored to the Balance card total, with a dotted split-adjusted overlay
 - **Category Charts**: Bar chart for category-specific spending history
 - **Advanced Filtering**: Multi-dimensional transaction filtering (type, category, currency, fund, amount range, period)
 - **Search**: Real-time full-text search across all transactions
@@ -228,21 +228,19 @@ Bank-imported transactions awaiting review:
 - `transactions-table-optimized.tsx` — Optimized transactions list with date-grouped cards, daily totals, category icons, split indicators, hidden transaction dimming, gradient fade masks (321 lines)
 - `transaction-summary.tsx` — Monthly/yearly totals with comparison rows (vs previous month, vs same month last year), category breakdown, proration for current month, split handling (1330 lines)
 - `dashboard-summary.tsx` — Dashboard with current/previous/same-month-last-year comparison tables, category breakdown with expandable subcategories (561 lines)
-- `balance-chart.tsx` — Interactive balance line chart with previous-period overlay, time range selector (1M/1Y/5Y/All), responsive sizing (361 lines)
+- `balance-chart.tsx` — Anchored balance line chart matching the Balance card total with dotted split-adjusted overlay, time range selector (1M/1Y/5Y/All), responsive sizing (351 lines)
 - `category-chart.tsx` — Bar chart for category spending over time with transaction count summary (349 lines)
 - `balance.tsx` — Expandable fund categories grouped by top-level category, collapsible sections (188 lines)
-- `overall-totals.tsx` — Global balance total display
 - `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
 - `filter-controls.tsx` — Advanced filter panel: type/category/currency/fund/amount-range/period multi-select with chip badges (389 lines)
 - `search-summary.tsx` — Search results summary with income/expense/hidden breakdown (135 lines)
 - `budget-card.tsx` — Budget display card with progress bar and color-coded thresholds (green/amber/red)
 - `budget-form.tsx` — Budget add/edit form with category selection
 - `pending-transactions-button.tsx` — Floating bell icon with count badge for pending bank transactions
-- `pending-transactions-notifier.tsx` — Polling-based notifier for new bank transactions (60s interval)
 - `no-transactions.tsx` — Empty state with illustration
 
 ### UI Components (`components/ui/`)
-- **Form controls**: `input.tsx`, `label.tsx`, `select.tsx`, `category-select.tsx`, `title-suggestion-input.tsx`, `fund-select.tsx`, `searchable-select.tsx`, `multi-select-chips.tsx`, `switch.tsx`
+- **Form controls**: `input.tsx`, `label.tsx`, `select.tsx`, `category-select.tsx`, `title-suggestion-input.tsx`, `fund-select.tsx`, `multi-select-chips.tsx`, `switch.tsx`
 - **Buttons**: `button.tsx`, `submit-button.tsx`, `floating-button.tsx`
 - **Containers**: `card.tsx`, `badge.tsx`, `modal.tsx` (bottom-sheet with swipe-to-close)
 - **Date/time**: `calendar.tsx`, `date-picker.tsx`, `date-time-picker.tsx`
@@ -261,29 +259,25 @@ Bank-imported transactions awaiting review:
 - Clears localStorage cache on sign-out/session expiry
 - Renders nothing (returns null)
 
-## Custom Hooks (31 total)
+## Custom Hooks (27 total)
 
 ### Data Fetching
 - `useTransaction.ts` — Fetch single transaction by ID
 - `useTransactionsOptimized.ts` — Primary month-transaction hook: SWR with fallback cache, prefetching, real-time subscription handling, memoized totals
 - `useYearTransactions.ts` — Fetch year transactions with CET boundary handling and adjacent-year prefetching
-- `useAllTransactions.ts` — Fetch all user transactions via paginated batches
-- `useOverallTotals.ts` — Fetch global EUR balance from `/api/overall-totals`
 - `useTransactionSearch.ts` — Debounced (300ms) ilike search across transactions
 - `useFundCategories.ts` — Fetch fund categories with calculated balances from transactions
 - `useTitleSuggestions.ts` — Debounced (300ms) title suggestion search from transaction_title_patterns
 - `useFilteredTransactions.ts` — Multi-dimensional filtering with 300ms debounce, supports type/category/currency/fund/amount/period filters
 - `useDateRangeTransactions.ts` — Fetch transactions within arbitrary date ranges
-- `useRangeTransactions.ts` — Fetch lightweight transaction data for time-range-based charts
 - `useCategoryTransactions.ts` — Fetch transactions filtered by main/sub category with time range
+- `useSplitSourcesForYear.ts` — Fetch split-across-year sources for a year plus the previous year
 - `useBudgets.ts` — Fetch budgets and compute spending progress
 
 ### Charts and Analytics
-- `useBalanceHistory.ts` — Compute running balance series for time ranges (daily/weekly/monthly aggregation)
-- `useBalanceComparisonHistory.ts` — Previous-period overlay data for balance charts
+- `useAnchoredBalanceHistory.ts` — Anchored balance series: solid "Actual" line (splits booked at full amount, last point equals the Balance card total) plus dotted "Split-adjusted" line (splits accrued month by month)
 - `useCategoryHistory.ts` — Compute category spending history for time ranges
 - `useDashboardComparison.ts` — Compare current, previous-month, and same-month-last-year transaction sets
-- `useStartingBalance.ts` — Fetch balance-before-date via RPC for chart calculations
 
 ### Mutations
 - `useTransactionMutations.ts` — addTransaction, updateTransaction, deleteTransaction with optimistic updates, EUR conversion, cache invalidation across month/year/balance/fund/overall-totals, rollback on error
@@ -293,11 +287,11 @@ Bank-imported transactions awaiting review:
 - `usePendingTransactionModal.ts` — Zustand-based wizard for reviewing bank-imported transactions (open, next, current index)
 - `usePrivacyMode.ts` — Consume privacy context from PrivacyProvider
 - `usePullToRefresh.ts` — Touch-based pull-to-refresh gesture with resistance curve
-- `useSlideAnimation.ts` — Direction-aware slide animation phase management
 
 ### Utilities
 - `usePrefetch.ts` — Intelligent prefetch of adjacent months with dedup queue (500ms debounce)
 - `useYearPrefetch.ts` — Intelligent prefetch of adjacent years with dedup queue
+- `useAdjacentPrefetch.ts` — Generic adjacent-period prefetch logic shared by `usePrefetch` and `useYearPrefetch`
 - `useAvailableMonths.ts` — Get earliest transaction date, generate month options with fallback range
 - `useAvailableYears.ts` — Generate year options (2016 to current+5)
 - `useBackgroundSync.ts` — Poll for remote changes every 60s when tab visible, compares row count and latest updated_at
@@ -321,7 +315,7 @@ Bank-imported transactions awaiting review:
 - Row Level Security (RLS) policies for complete user data isolation
 - Triggers for `updated_at` auto-updates and title pattern frequency maintenance
 - Composite indexes on `(user_id, date)`, `(user_id, currency)` for query performance
-- RPC functions: `get_overall_total_eur` (efficient total calculation), `get_balance_before_date` (historical balance), `cleanup_old_title_patterns`
+- RPC functions: `get_overall_total_eur` (efficient total calculation), `get_fund_balances` (per-fund transaction deltas), `cleanup_old_title_patterns`
 - Real-time subscriptions via PostgreSQL LISTEN/NOTIFY (disabled on iOS Safari for performance)
 - CET timezone-aware year boundaries (Jan 1 00:00 CET = Dec 31 23:00 UTC)
 

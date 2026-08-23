@@ -79,27 +79,21 @@ export function useTransactionMutations() {
 
   // Helper function to invalidate balance chart caches when transactions change
   const invalidateBalanceCaches = () => {
-    const ranges = ['1m', '1y', '5y', 'all']
-    const hiddenStates = [true, false]
-
-    ranges.forEach(range => {
-      hiddenStates.forEach(hidden => {
-        // Invalidate range transactions cache
-        // SWR key is an array: ['balance-transactions-${range}-${hidden}', range]
-        mutate(
-          (key) => Array.isArray(key) && key[0] === `balance-transactions-${range}-${hidden}`,
-          undefined,
-          { revalidate: true }
-        )
-        // Invalidate starting balance cache
-        // SWR key is an array: ['starting-balance-${range}-${hidden}', range, hidden, userId]
-        mutate(
-          (key) => Array.isArray(key) && key[0] === `starting-balance-${range}-${hidden}`,
-          undefined,
-          { revalidate: true }
-        )
-      })
-    })
+    // Invalidate anchored chart transactions (SWR string keys)
+    mutate(
+      (key) => typeof key === 'string' && key.startsWith('anchored-transactions-'),
+      undefined,
+      { revalidate: true }
+    )
+    // Invalidate range transactions used by the chart's 1m accrued line and
+    // the dashboard comparison (SWR string keys)
+    mutate(
+      (key) => typeof key === 'string' && key.startsWith('range-transactions-'),
+      undefined,
+      { revalidate: true }
+    )
+    // The range fetcher serves from the LRU first, so clear it too
+    transactionCache.deleteByPrefix('range-transactions-')
   }
 
   // Helper to convert currency to EUR
