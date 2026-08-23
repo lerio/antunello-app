@@ -33,6 +33,8 @@ import {
   expandSplitTransactionsForMonth,
 } from "@/utils/split-transactions";
 import { createMonthKey } from "@/utils/transaction-fetcher";
+import { buildTrBonusRows } from "@/utils/tr-bonuses";
+import { isReadOnlyTransaction } from "@/utils/transaction-utils";
 
 import TransactionFormModal from "@/components/features/transaction-form-modal";
 import { usePendingTransactions } from "@/hooks/usePendingTransactions";
@@ -142,10 +144,11 @@ export default function ProtectedPage() {
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
 
   // Prefetch fund categories to avoid lag when opening the add modal
-  // The modal uses this data, and it's heavy to calculate (balances)
-  useFundCategories();
+  // The modal uses this data, and it's heavy to calculate (balances).
+  // Also used to name the TR round-up money transfer bonus rows.
+  const { fundCategories } = useFundCategories();
 
-  const { addTransaction, updateTransaction, deleteTransaction } =
+  const { addTransaction, addBonusTransactions, updateTransaction, deleteTransaction } =
     useTransactionMutations();
 
   // Background sync for detecting updates (provider is mounted in the
@@ -268,7 +271,34 @@ export default function ProtectedPage() {
 
       try {
         // Add the transaction
-        await addTransaction(data);
+        const persistedCard = await addTransaction(data);
+
+        // Create linked TR bonus transactions (saveback income / round-up
+        // money transfer) when the timeline carried the amounts for this
+        // card transaction. Applied to new imports only — the pending data
+        // is enriched by the Render sync.
+        const { rows: bonusRows, warnings } = buildTrBonusRows(
+          currentPending,
+          persistedCard.id,
+          fundCategories,
+        );
+        for (const warning of warnings) toast(warning);
+
+        if (bonusRows.length > 0) {
+          try {
+            await addBonusTransactions(bonusRows);
+          } catch (bonusError: any) {
+            // Compensate: remove the just-created card row so re-accepting
+            // the still-pending transaction does not duplicate it.
+            await deleteTransaction(persistedCard).catch((compensationError) =>
+              console.error("Bonus compensation failed:", compensationError),
+            );
+            throw new Error(
+              `Transaction added but bonus creation failed: ${bonusError.message} — please delete the card transaction and re-accept.`,
+            );
+          }
+        }
+
         await recordLocalMutation();
 
         // Mark as processed
@@ -289,6 +319,9 @@ export default function ProtectedPage() {
     },
     [
       addTransaction,
+      addBonusTransactions,
+      deleteTransaction,
+      fundCategories,
       currentTransaction,
       nextTransaction,
       recordLocalMutation,
@@ -613,13 +646,9 @@ export default function ProtectedPage() {
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
-            onDelete={
-              editingTransaction.split_is_read_only
-                ? undefined
-                : handleDeleteTransaction
-            }
+            onDelete={isReadOnlyTransaction(editingTransaction) ? undefined : handleDeleteTransaction}
             onViewOriginal={handleViewOriginal}
-            disabled={!!editingTransaction.split_is_read_only}
+            disabled={isReadOnlyTransaction(editingTransaction)}
             onClose={closeEditModal}
           />
         )}

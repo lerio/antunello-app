@@ -96,6 +96,16 @@ export function useTransactionMutations() {
     transactionCache.deleteByPrefix('range-transactions-')
   }
 
+  // Helper to run the standard cache invalidation set after any mutation that
+  // changes a transaction row (year, balance chart, overall totals, funds).
+  // Callers add their own extras (split-source invalidation, split next-year).
+  const invalidateAfterMutation = (date: string) => {
+    invalidateYearCache(date)
+    invalidateBalanceCaches()
+    mutate('/api/overall-totals', undefined, true)
+    mutate('fund-categories', undefined, true)
+  }
+
   // Helper to convert currency to EUR
   const convertAndUpdateCurrency = async (amount: number, currency: string, date: string): Promise<Partial<Transaction>> => {
     if (currency === 'EUR') {
@@ -200,22 +210,16 @@ export function useTransactionMutations() {
         )
       })
 
-      // Invalidate year cache to ensure yearly summary is updated
-      invalidateYearCache(data.date)
+      // Invalidate standard caches
+      invalidateAfterMutation(data.date)
       // With rolling split windows, also invalidate the next year
       if (data.split_across_year) {
         const nextYear = new Date(data.date)
         nextYear.setFullYear(nextYear.getFullYear() + 1)
         invalidateYearCache(nextYear.toISOString())
       }
-      // Invalidate balance chart caches to ensure chart is updated
-      invalidateBalanceCaches()
       // Invalidate split-source caches
       invalidateSplitSources()
-      // Revalidate overall totals
-      mutate('/api/overall-totals', undefined, true)
-      // Revalidate fund categories to update balance
-      mutate('fund-categories', undefined, true)
 
       return persistedDisplayTransaction
     } catch (error) {
@@ -315,7 +319,7 @@ export function useTransactionMutations() {
       return sortTransactionsByDateInPlace(transactions.map(t => (t.id === id ? updatedTxn : t)))
     })
     mutate(getTransactionKey(id), updatedTxn, false)
-    invalidateYearCache(oldDate)
+    invalidateAfterMutation(oldDate)
     if (newDate && newDate !== oldDate) invalidateYearCache(newDate)
     // With rolling split windows, also invalidate the year after the updated date
     if (updatedTxn.split_across_year) {
@@ -324,10 +328,7 @@ export function useTransactionMutations() {
       nextYear.setFullYear(nextYear.getFullYear() + 1)
       invalidateYearCache(nextYear.toISOString())
     }
-    invalidateBalanceCaches()
     invalidateSplitSources()
-    mutate('/api/overall-totals', undefined, true)
-    mutate('fund-categories', undefined, true)
   }
 
   // Helper: rollback caches on error
@@ -379,6 +380,12 @@ export function useTransactionMutations() {
     // early if both cache and DB miss). Use a non-null assertion for TypeScript.
     const originalTransaction = resolvedTransaction!
 
+    // Bonus transactions (TR saveback/round-up) are system-generated and
+    // unmodifiable — the RLS policy would silently reject the write anyway.
+    if (originalTransaction.bonus_kind) {
+      throw new Error('Bonus transactions cannot be edited — edit the original transaction instead')
+    }
+
     const optimisticEurAmount = await calculateOptimisticEurAmount(originalTransaction, data)
     const optimisticUpdated: Transaction = {
       ...originalTransaction,
@@ -428,13 +435,23 @@ export function useTransactionMutations() {
    * @throws If the database delete fails.
    */
   const deleteTransaction = async (transaction: Transaction) => {
+    // Bonus transactions (TR saveback/round-up) are system-generated and
+    // undeletable on their own — deleting their parent cascades in the DB.
+    if (transaction.bonus_kind) {
+      throw new Error('Bonus transactions cannot be deleted — delete the original transaction instead')
+    }
+
     const monthKey = getMonthKey(transaction.date)
 
-    // Optimistically remove from cache immediately
+    // Optimistically remove the row and its bonus children from cache
+    // immediately (children share the parent's date, so one month key covers
+    // them; the DB delete cascades them).
     let removedTransaction: Transaction | undefined
+    let removedChildren: Transaction[] = []
     updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
       removedTransaction = transactions.find(t => t.id === transaction.id)
-      return transactions.filter(t => t.id !== transaction.id)
+      removedChildren = transactions.filter(t => t.parent_transaction_id === transaction.id)
+      return transactions.filter(t => t.id !== transaction.id && t.parent_transaction_id !== transaction.id)
     })
 
     // Remove from single transaction cache
@@ -448,29 +465,24 @@ export function useTransactionMutations() {
 
       if (error) throw error
 
-      // Invalidate year cache to ensure yearly summary is updated
-      invalidateYearCache(transaction.date)
+      // Invalidate standard caches
+      invalidateAfterMutation(transaction.date)
       // With rolling split windows, also invalidate the next year
       if (transaction.split_across_year) {
         const nextYear = new Date(transaction.date)
         nextYear.setFullYear(nextYear.getFullYear() + 1)
         invalidateYearCache(nextYear.toISOString())
       }
-      // Invalidate balance chart caches to ensure chart is updated
-      invalidateBalanceCaches()
       // Invalidate split-source caches
       invalidateSplitSources()
-      // Revalidate overall totals
-      mutate('/api/overall-totals', undefined, true)
-      // Revalidate fund categories to update balance
-      mutate('fund-categories', undefined, true)
 
       return transaction
     } catch (error) {
-      // Rollback optimistic update on error
+      // Rollback optimistic update on error (restore the row and any bonus
+      // children that were optimistically removed).
       if (removedTransaction) {
         updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
-          return [...transactions, removedTransaction!]
+          return [...transactions, removedTransaction!, ...removedChildren]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         })
 
@@ -481,8 +493,57 @@ export function useTransactionMutations() {
     }
   }
 
+  /**
+   * Insert system-generated bonus transactions (TR saveback / round-up)
+   * linked to their parent card transaction, in one atomic statement.
+   *
+   * Reuses `addTransaction`'s handling: EUR conversion via
+   * `convertAndUpdateCurrency`, month-cache injection, and the standard
+   * invalidation set. Split-source caches are untouched — bonus rows are
+   * never `split_across_year`.
+   *
+   * @param bonusRows - The bonus rows to insert (already carrying
+   *                    `parent_transaction_id` and `bonus_kind`).
+   * @returns The persisted bonus `Transaction` rows.
+   * @throws If the database insert fails.
+   */
+  const addBonusTransactions = async (
+    bonusRows: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[],
+  ): Promise<Transaction[]> => {
+    if (bonusRows.length === 0) return []
+
+    const transactionData = await Promise.all(
+      bonusRows.map(async (row) => ({
+        ...row,
+        ...(row.eur_amount === undefined
+          ? await convertAndUpdateCurrency(row.amount, row.currency, row.date)
+          : {}),
+      }))
+    )
+
+    const { data: inserted, error } = await supabase
+      .from('transactions')
+      .insert(transactionData)
+      .select()
+
+    if (error) throw error
+
+    const persistedRows = (inserted || []).map(withSplitDisplayIfNeeded)
+
+    // Bonus rows share the parent's date, so one month key covers them all.
+    const monthKey = getMonthKey(persistedRows[0].date)
+    updateBothCaches(monthKey, (transactions: Transaction[] = []) => {
+      return sortTransactionsByDateInPlace([...persistedRows, ...transactions])
+    })
+
+    invalidateAfterMutation(persistedRows[0].date)
+
+    return persistedRows
+  }
+
   return {
     addTransaction,
+    addBonusTransactions,
     updateTransaction,
     deleteTransaction
   }

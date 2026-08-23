@@ -43,6 +43,7 @@ export async function syncTradeRepublicAccount(
       accountId: config.account_id,
       phone: (s.phone_number as string) || '',
       fundCategoryId: (s.fund_category_id as string) || null,
+      wealthFundCategoryId: (s.wealth_fund_category_id as string) || null,
       lastSyncAt: config.last_sync_at || null,
       lastDays,
     });

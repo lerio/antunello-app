@@ -95,6 +95,162 @@ def _parse_json_lines(file_path: pathlib.Path) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Timeline enrichment (saveback / round-up)
+# ---------------------------------------------------------------------------
+
+# Timeline event types for the monthly/batch aggregate executions. Once
+# per-card bonus transactions are generated at accept time, these aggregates
+# would double-count the same money and are skipped on import.
+_AGGREGATE_EVENT_TYPES = frozenset(
+    {
+        "SAVEBACK_AGGREGATE",
+        "SPARE_CHANGE_AGGREGATE",
+        "BENEFITS_SAVEBACK_EXECUTION",
+        "BENEFITS_SPARE_CHANGE_EXECUTION",
+    }
+)
+
+# pytr prefixes the exported Note of card events with one of these
+# (see Event.from_dict in pytr; the raw key may be translated, hence the
+# English form "Card Payment").
+_CARD_NOTE_PREFIXES = (
+    "card_successful_transaction",
+    "CARD_TRANSACTION",
+    "Card Payment",
+)
+
+
+def _parse_de_amount(text: str) -> float | None:
+    """Parse a German-localised amount string like "0,13 €" into a float.
+
+    Returns None when the string cannot be parsed (callers then skip
+    enrichment for that event).
+    """
+    if not text:
+        return None
+    cleaned = (
+        text.replace(" ", " ")  # non-breaking space
+        .replace("€", "")  # euro sign
+        .strip()
+        .replace(",", ".")
+    )
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _extract_bonus_amounts(event: dict) -> tuple[float | None, float | None]:
+    """Extract (saveback, round_up) amounts from a card event's details.
+
+    Card events carry a "Vorteile" (benefits) section whose items are
+    embeddedTimelineItem dicts with a subtitle like "Saveback · 1%" or
+    "Round up · 1×" and a localised amount like "0,13 €". Returns None for
+    amounts that are absent, zero or unparseable.
+    """
+    saveback: float | None = None
+    round_up: float | None = None
+
+    sections = (event.get("details") or {}).get("sections") or []
+    for section in sections:
+        if section.get("title") != "Vorteile":
+            continue
+        for item in section.get("data") or []:
+            if not isinstance(item, dict):
+                continue
+            detail = item.get("detail")
+            if not isinstance(detail, dict) or detail.get("type") != "embeddedTimelineItem":
+                continue
+            amount = _parse_de_amount(detail.get("amount") or "")
+            if amount is None or amount <= 0:
+                continue
+            subtitle = detail.get("subtitle") or ""
+            if subtitle.startswith("Saveback") and saveback is None:
+                saveback = amount
+            elif subtitle.startswith("Round up") and round_up is None:
+                round_up = amount
+    return saveback, round_up
+
+
+def load_event_enrichments(path: pathlib.Path) -> dict[tuple[str, str, float], dict]:
+    """Build a signature -> enrichment map from pytr's event database.
+
+    pytr's `export_transactions` writes `all_events.json` into the output
+    directory (the service cwd) after fetching every event's details, so card
+    events contain the per-payment saveback/round-up amounts. Signatures match
+    the exporter's Date/Note/Value triple: `(timestamp[:19], note, value)`.
+    Card events are indexed under the raw title plus the note-prefixed
+    variants pytr exports. A missing or corrupt file yields an empty map —
+    sync proceeds without enrichment.
+    """
+    enrichments: dict[tuple[str, str, float], dict] = {}
+
+    if not path.exists():
+        logger.warning(
+            "Event database %s not found — sync proceeds without enrichment", path
+        )
+        return enrichments
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            events = json.load(f)
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning(
+            "Event database %s unreadable (%s) — sync proceeds without enrichment",
+            path,
+            exc,
+        )
+        return enrichments
+
+    if not isinstance(events, list):
+        logger.warning(
+            "Event database %s has unexpected shape — sync proceeds without enrichment",
+            path,
+        )
+        return enrichments
+
+    enriched = 0
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        try:
+            timestamp = str(event["timestamp"])[:19]
+            title = str(event["title"])
+            value = float(event["amount"]["value"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        event_type = (event.get("eventType") or "").upper()
+        info: dict = {"is_aggregate": event_type in _AGGREGATE_EVENT_TYPES}
+
+        if event_type == "CARD_TRANSACTION":
+            saveback, round_up = _extract_bonus_amounts(event)
+            if saveback is not None:
+                info["saveback_amount"] = saveback
+            if round_up is not None:
+                info["round_up_amount"] = round_up
+            if saveback is not None or round_up is not None:
+                enriched += 1
+
+        enrichments[(timestamp, title, value)] = info
+        if event_type == "CARD_TRANSACTION":
+            for prefix in _CARD_NOTE_PREFIXES:
+                enrichments[(timestamp, f"{prefix} - {title}", value)] = info
+        elif info["is_aggregate"]:
+            # SAVEBACK aggregates export a second companion row (the DEPOSIT
+            # half of the buy+deposit pair) with the negated value — index it
+            # so both halves are skipped.
+            enrichments[(timestamp, title, -value)] = info
+
+    logger.info(
+        "Event database loaded: %d event(s), %d card event(s) with bonus amounts",
+        len(enrichments),
+        enriched,
+    )
+    return enrichments
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -117,6 +273,10 @@ def run_pytr_export(cookies_b64: str, phone: str, last_days: int) -> PytrResult:
     """
     cookies_path = _set_up_session_cookies(cookies_b64, phone)
 
+    # NOTE: the export file goes to a temp dir, but pytr's event database
+    # (`all_events.json`) is written to its default --outputdir, i.e. the
+    # service cwd — run_sync reads it from there for bonus enrichment. If a
+    # --outputdir flag is ever added here, update run_sync accordingly.
     out_dir = pathlib.Path(tempfile.mkdtemp())
     out_file = out_dir / "transactions.json"
 

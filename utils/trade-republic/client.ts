@@ -72,6 +72,7 @@ export class TradeRepublicClient {
     accountId: string;
     phone?: string;
     fundCategoryId?: string | null;
+    wealthFundCategoryId?: string | null;
     lastSyncAt?: string | null;
     lastDays?: number;
   }) {
@@ -88,6 +89,7 @@ export class TradeRepublicClient {
         account_id: params.accountId,
         phone: params.phone || '',
         fund_category_id: params.fundCategoryId || null,
+        wealth_fund_category_id: params.wealthFundCategoryId || null,
         last_sync_at: params.lastSyncAt || null,
         last_days: params.lastDays || 7,
       }),

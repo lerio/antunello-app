@@ -16,6 +16,7 @@ import TransactionsTable from "@/components/features/transactions-table-optimize
 import SearchSummary from "@/components/features/search-summary";
 import { FilterControls } from "@/components/features/filter-controls";
 import { createClient } from "@/utils/supabase/client";
+import { isReadOnlyTransaction } from "@/utils/transaction-utils";
 
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
@@ -353,8 +354,9 @@ export default function FilterPage() {
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
-            onDelete={handleDeleteTransaction}
+            onDelete={isReadOnlyTransaction(editingTransaction) ? undefined : handleDeleteTransaction}
             onViewOriginal={handleViewOriginal}
+            disabled={isReadOnlyTransaction(editingTransaction)}
             onClose={closeEditModal}
           />
         )}

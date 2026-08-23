@@ -32,6 +32,9 @@ export type Transaction = {
   // Money transfer fields
   is_money_transfer?: boolean
   target_fund_category_id?: string | null
+  // TR bonus transactions (saveback / round-up) linked to their parent
+  parent_transaction_id?: string | null
+  bonus_kind?: 'saveback' | 'round_up' | null
   // Annual split behavior
   split_across_year?: boolean
   // UI-only split instance metadata (not persisted as DB columns)

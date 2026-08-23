@@ -58,6 +58,8 @@ export interface TRSettings {
   auth_status: 'authenticated' | 'session_expired' | 'needs_setup';
   /** Optional fund category ID mapping (same as Enable Banking). */
   fund_category_id?: string | null;
+  /** Optional wealth fund category for saveback/round-up bonus transactions. */
+  wealth_fund_category_id?: string | null;
   /** Whether this account participates in bulk fetch. */
   bulk_fetch_enabled?: boolean;
 }

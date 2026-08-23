@@ -37,6 +37,12 @@ export type PendingTransaction = {
         value_date?: string | null;
         /** Bank's transaction date (YYYY-MM-DD) — when initiated */
         transaction_date?: string | null;
+        /** TR saveback amount earned by this card transaction (EUR) */
+        saveback_amount?: number;
+        /** TR round-up amount moved to the wealth fund (EUR) */
+        round_up_amount?: number;
+        /** TR wealth fund category for bonus transactions */
+        wealth_fund_category_id?: string | null;
     };
     /** Raw payload as received from the external source */
     raw_data?: any;

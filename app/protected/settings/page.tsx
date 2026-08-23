@@ -147,7 +147,11 @@ function SettingsContent() {
     }
   };
 
-  const handleMappingChange = async (accountId: string, fundId: string) => {
+  const handleMappingChange = async (
+    accountId: string,
+    field: "fund_category_id" | "wealth_fund_category_id",
+    fundId: string,
+  ) => {
     const toastId = toast.loading("Updating mapping...");
     try {
       const res = await fetch("/api/enable-banking/update-mapping", {
@@ -155,7 +159,7 @@ function SettingsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account_id: accountId,
-          fund_category_id: fundId || null,
+          [field]: fundId || null,
         }),
       });
 
@@ -167,6 +171,34 @@ function SettingsContent() {
       toast.error("Error updating mapping", { id: toastId });
     }
   };
+
+  // Shared fund-mapping select markup (cash fund and TR wealth fund).
+  const renderFundSelect = (
+    label: string,
+    value: string,
+    onChange: (fundId: string) => void,
+  ) => (
+    <div className="flex flex-col gap-1 w-full sm:w-auto sm:items-end">
+      <label className="text-[10px] text-gray-500 uppercase font-semibold">
+        {label}
+      </label>
+      <select
+        className={getSelectClass(isFundsLoading) + " w-full sm:w-auto"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={isFundsLoading}
+      >
+        <option value="">No mapping</option>
+        {fundCategories
+          .filter((f) => f.is_active)
+          .map((fund) => (
+            <option key={fund.id} value={fund.id}>
+              {fund.name} ({fund.currency})
+            </option>
+          ))}
+      </select>
+    </div>
+  );
 
   const handleBulkFetchChange = async (accountId: string, enabled: boolean) => {
     // Optimistic update could go here, but for now we rely on SWR revalidation
@@ -786,34 +818,28 @@ function SettingsContent() {
                               </Button>
                             </div>
 
-                            <div className="flex flex-col gap-1 w-full sm:w-auto sm:items-end">
-                              <label className="text-[10px] text-gray-500 uppercase font-semibold">
-                                Link to Fund
-                              </label>
-                              <select
-                                className={
-                                  getSelectClass(isFundsLoading) +
-                                  " w-full sm:w-auto"
-                                }
-                                value={settings.fund_category_id || ""}
-                                onChange={(e) =>
+                            {renderFundSelect(
+                              "Link to Fund",
+                              settings.fund_category_id || "",
+                              (fundId) =>
+                                handleMappingChange(
+                                  acc.account_id,
+                                  "fund_category_id",
+                                  fundId,
+                                ),
+                            )}
+
+                            {acc.provider === "trade_republic" &&
+                              renderFundSelect(
+                                "Saveback / Round-up Fund",
+                                settings.wealth_fund_category_id || "",
+                                (fundId) =>
                                   handleMappingChange(
                                     acc.account_id,
-                                    e.target.value,
-                                  )
-                                }
-                                disabled={isFundsLoading}
-                              >
-                                <option value="">No mapping</option>
-                                {fundCategories
-                                  .filter((f) => f.is_active)
-                                  .map((fund) => (
-                                    <option key={fund.id} value={fund.id}>
-                                      {fund.name} ({fund.currency})
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
+                                    "wealth_fund_category_id",
+                                    fundId,
+                                  ),
+                              )}
 
                             <div className="flex items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
                               <label className="text-sm text-gray-600 dark:text-gray-400 font-medium">

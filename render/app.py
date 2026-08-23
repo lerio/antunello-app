@@ -231,6 +231,7 @@ def sync():
         last_sync_at=data.get("last_sync_at"),
         fund_category_id=data.get("fund_category_id"),
         last_days=data.get("last_days", 7),
+        wealth_fund_category_id=data.get("wealth_fund_category_id"),
     )
 
     if result["status"] == "error":

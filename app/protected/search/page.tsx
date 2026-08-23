@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { Transaction } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
+import { isReadOnlyTransaction } from "@/utils/transaction-utils";
 import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
@@ -360,8 +361,9 @@ export default function SearchPage() {
           <TransactionFormModal
             initialData={editingTransaction}
             onSubmit={handleEditSubmit}
-            onDelete={handleDeleteTransaction}
+            onDelete={isReadOnlyTransaction(editingTransaction) ? undefined : handleDeleteTransaction}
             onViewOriginal={handleViewOriginal}
+            disabled={isReadOnlyTransaction(editingTransaction)}
             onClose={closeEditModal}
           />
         )}

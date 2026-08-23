@@ -10,6 +10,8 @@ import { create } from 'zustand';
 interface PendingTransaction {
     /** Unique identifier for the pending transaction record */
     id: string;
+    /** Owner user ID */
+    user_id: string;
     /** External identifier from the source system (e.g., banking API) */
     external_id: string;
     /** Core transaction data that the user will review */
@@ -36,6 +38,12 @@ interface PendingTransaction {
         value_date?: string | null;
         /** Bank's transaction date (YYYY-MM-DD) */
         transaction_date?: string | null;
+        /** TR saveback amount earned by this card transaction (EUR) */
+        saveback_amount?: number;
+        /** TR round-up amount moved to the wealth fund (EUR) */
+        round_up_amount?: number;
+        /** TR wealth fund category for bonus transactions */
+        wealth_fund_category_id?: string | null;
     };
 }
 

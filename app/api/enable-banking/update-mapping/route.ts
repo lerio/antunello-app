@@ -14,6 +14,8 @@ import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-
  * Request body (JSON):
  * - `account_id` (required) – The account whose config should be updated.
  * - `fund_category_id` (optional) – The linked fund category ID (or `null`).
+ * - `wealth_fund_category_id` (optional) – Wealth fund for Trade Republic
+ *   saveback/round-up bonus transactions (or `null`).
  * - `bulk_fetch_enabled` (optional) – Whether bulk fetching is enabled.
  *
  * @param request - The incoming POST request with a JSON body.
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
             return unauthorizedResponse!;
         }
 
-        const { account_id, fund_category_id, bulk_fetch_enabled } = await request.json();
+        const { account_id, fund_category_id, wealth_fund_category_id, bulk_fetch_enabled } = await request.json();
 
         if (!account_id) {
             return NextResponse.json({ error: 'Missing account_id' }, { status: 400 });
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest) {
             // Only update fields if they are provided in the request
             // This allows partial updates (only toggling bulk fetch OR changing mapping)
             ...(fund_category_id !== undefined ? { fund_category_id: fund_category_id || null } : {}),
+            ...(wealth_fund_category_id !== undefined ? { wealth_fund_category_id: wealth_fund_category_id || null } : {}),
             ...(bulk_fetch_enabled !== undefined ? { bulk_fetch_enabled } : {})
         };
 
