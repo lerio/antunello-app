@@ -42,6 +42,8 @@ export type Transaction = {
   split_is_read_only?: boolean
   split_display_amount?: number
   split_display_eur_amount?: number | null
+  // Number of split instances still to come after this one within the 12-month window
+  split_remaining_count?: number
 }
 
 /**

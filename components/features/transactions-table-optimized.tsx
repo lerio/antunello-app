@@ -116,6 +116,11 @@ const TransactionRow = React.memo(
                   aria-label="Split transaction"
                 />
               )}
+              {transaction.split_remaining_count ? (
+                <span className="inline-flex items-center text-xs font-medium normal-case leading-none bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                  {transaction.split_remaining_count} left
+                </span>
+              ) : null}
             </p>
             <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
           </div>

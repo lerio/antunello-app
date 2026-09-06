@@ -304,6 +304,11 @@ export function expandSplitTransactionsForMonth(
     const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, targetMonth, sourceMonth, amountFractionDigits)
     const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, targetMonth, sourceMonth, 2)
 
+    // Position of this instance within the 12-month window (0 = source month)
+    const instanceOffset =
+      targetYear * 12 + (targetMonth - 1) - (sourceYear * 12 + (sourceMonth - 1))
+    const remainingCount = SPLIT_PARTS - 1 - instanceOffset
+
     if (isOriginalMonth) {
       splitInstances.push({
         ...splitSource,
@@ -311,6 +316,7 @@ export function expandSplitTransactionsForMonth(
         split_source_transaction_id: null,
         split_display_amount: splitAmount,
         split_display_eur_amount: splitEurAmount,
+        split_remaining_count: remainingCount,
       })
       continue
     }
@@ -325,6 +331,7 @@ export function expandSplitTransactionsForMonth(
       split_source_transaction_id: splitSource.id,
       split_display_amount: splitAmount,
       split_display_eur_amount: splitEurAmount,
+      split_remaining_count: remainingCount,
     })
   }
 
@@ -370,6 +377,11 @@ export function expandSplitTransactionsForYear(
       const splitAmount = getRoundedSplitAmountForMonth(splitSource.amount, month, sourceMonth, amountFractionDigits)
       const splitEurAmount = getRoundedOptionalSplitAmountForMonth(splitSource.eur_amount, month, sourceMonth, 2)
 
+      // Position of this instance within the 12-month window (0 = source month)
+      const instanceOffset =
+        year * 12 + (month - 1) - (sourceYear * 12 + (sourceMonth - 1))
+      const remainingCount = SPLIT_PARTS - 1 - instanceOffset
+
       if (isOriginalMonth) {
         splitInstances.push({
           ...splitSource,
@@ -377,6 +389,7 @@ export function expandSplitTransactionsForYear(
           split_source_transaction_id: null,
           split_display_amount: splitAmount,
           split_display_eur_amount: splitEurAmount,
+          split_remaining_count: remainingCount,
         })
       } else {
         splitInstances.push({
@@ -389,6 +402,7 @@ export function expandSplitTransactionsForYear(
           split_source_transaction_id: splitSource.id,
           split_display_amount: splitAmount,
           split_display_eur_amount: splitEurAmount,
+          split_remaining_count: remainingCount,
         })
       }
     }
