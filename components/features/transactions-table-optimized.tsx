@@ -109,49 +109,51 @@ const TransactionRow = React.memo(
           <div className="relative">
             <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden uppercase flex items-center gap-2">
               <span>{transaction.title}</span>
-              {transaction.split_across_year && (
-                <GitFork
-                  size={14}
-                  className="text-gray-400 dark:text-gray-500 flex-shrink-0"
-                  aria-label="Split transaction"
-                />
-              )}
-              {transaction.split_remaining_count ? (
-                <span className="inline-flex items-center text-xs font-medium normal-case leading-none bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-1.5 py-0.5 flex-shrink-0">
-                  {transaction.split_remaining_count} left
-                </span>
-              ) : null}
             </p>
             <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
           </div>
-          <p
-            onClick={onSubCategoryClick && transaction.sub_category ? handleSubCategoryClick : undefined}
-            className={`text-sm text-gray-500 dark:text-gray-400 truncate w-fit max-w-full ${onSubCategoryClick && transaction.sub_category
-                ? "cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                : ""
-              }`}
-            role={onSubCategoryClick && transaction.sub_category ? "button" : undefined}
-            tabIndex={onSubCategoryClick && transaction.sub_category ? 0 : undefined}
-            aria-label={
-              onSubCategoryClick && transaction.sub_category
-                ? `View ${transaction.sub_category} subcategory`
-                : undefined
-            }
-            onKeyDown={
-              onSubCategoryClick && transaction.sub_category
-                ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.stopPropagation();
-                    handleSubCategoryClick(
-                      e as unknown as React.MouseEvent
-                    );
+          <div className="flex items-center gap-1.5">
+            <p
+              onClick={onSubCategoryClick && transaction.sub_category ? handleSubCategoryClick : undefined}
+              className={`text-sm text-gray-500 dark:text-gray-400 truncate w-fit max-w-full min-w-0 ${onSubCategoryClick && transaction.sub_category
+                  ? "cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  : ""
+                }`}
+              role={onSubCategoryClick && transaction.sub_category ? "button" : undefined}
+              tabIndex={onSubCategoryClick && transaction.sub_category ? 0 : undefined}
+              aria-label={
+                onSubCategoryClick && transaction.sub_category
+                  ? `View ${transaction.sub_category} subcategory`
+                  : undefined
+              }
+              onKeyDown={
+                onSubCategoryClick && transaction.sub_category
+                  ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      handleSubCategoryClick(
+                        e as unknown as React.MouseEvent
+                      );
+                    }
                   }
-                }
-                : undefined
-            }
-          >
-            {transaction.sub_category}
-          </p>
+                  : undefined
+              }
+            >
+              {transaction.sub_category}
+            </p>
+            {transaction.split_across_year && (
+              <GitFork
+                size={14}
+                className="text-gray-400 dark:text-gray-500 flex-shrink-0"
+                aria-label="Split transaction"
+              />
+            )}
+            {transaction.split_remaining_count ? (
+              <span className="inline-flex items-center text-xs font-medium normal-case leading-none bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                {transaction.split_remaining_count} left
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="flex-shrink-0 ml-4">
           <p
