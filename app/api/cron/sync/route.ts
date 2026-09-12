@@ -19,8 +19,9 @@ export const maxDuration = 60; // Vercel Hobby max
  * target a specific account.
  *
  * @param request - The incoming request. May contain:
- *   - `Authorization: Bearer <CRON_SECRET>` for cron-job auth, or
- *   - a valid Supabase user session cookie.
+ *   - `Authorization: Bearer <CRON_SECRET>` for cron-job auth,
+ *   - or a Supabase user session, as either a session cookie (browser) or a
+ *     bearer access token (native client).
  *   - `?account_id=...` to filter a single account.
  * @returns A JSON response with per-account sync results.
  */
@@ -29,11 +30,25 @@ export async function GET(request: NextRequest) {
 
     // 1. Authenticate Request
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Not a cron job, check for user session
+    const bearer = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length).trim()
+        : null;
+
+    if (bearer !== null && bearer === process.env.CRON_SECRET) {
+        // Cron job. No user filter — it syncs every account.
+    } else {
+        // Not a cron job, so it has to be a user: either a browser sending its
+        // session cookie, or a native client sending its access token in the
+        // Authorization header (which cannot hold the cron secret).
+        //
+        // A bearer token is verified against the auth server rather than decoded.
+        // Reading a JWT proves nothing about it — the signature is the only part
+        // that matters, and only the auth server can check it.
         const { createClient } = await import('@/utils/supabase/server');
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await (bearer
+            ? supabase.auth.getUser(bearer)
+            : supabase.auth.getUser());
 
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
