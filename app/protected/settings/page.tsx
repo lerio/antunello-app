@@ -352,6 +352,7 @@ function SettingsContent() {
       reauthAccountId: accountId,
       isOpen: true,
       step: 2, // skip phone/PIN entry
+      processId: "", // don't poll a processId left over from a previous attempt
       code: "",
       isLoading: true,
     }));
@@ -405,21 +406,12 @@ function SettingsContent() {
       if (cancelled || inFlight) return;
       inFlight = true;
       setTrState((prev) => ({ ...prev, isLoading: true }));
-      try {
-        const body = reauthAccountId
-          ? { step: "reauth_complete", accountId: reauthAccountId, processId }
-          : { step: 2, phoneNumber: phone.trim(), pin: pin.trim(), processId };
-        const res = await fetch("/api/trade-republic/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Verification failed");
-        if (data.pending) {
-          timer = setTimeout(poll, 4000);
-          return;
-        }
+
+      const body = reauthAccountId
+        ? { step: "reauth_complete", accountId: reauthAccountId, processId }
+        : { step: 2, phoneNumber: phone.trim(), pin: pin.trim(), processId };
+
+      const finish = async () => {
         toast.success(
           reauthAccountId
             ? "Session renewed successfully!"
@@ -437,7 +429,55 @@ function SettingsContent() {
           reauthAccountId: "",
           needsAuthenticator: false,
         });
+      };
+
+      // Confirming the login means leaving the browser for the Trade
+      // Republic app, where iOS suspends this page and Safari drops the
+      // in-flight request. The renewal can still complete server-side, so
+      // check the stored config before reporting a failure.
+      const sessionWasStored = async () => {
+        const accounts = await mutate();
+        return (accounts || []).some(
+          (a) =>
+            a.provider === "trade_republic" &&
+            (!reauthAccountId || a.account_id === reauthAccountId) &&
+            ((a.settings as any) || {}).auth_status === "authenticated",
+        );
+      };
+
+      try {
+        let res: Response;
+        try {
+          res = await fetch("/api/trade-republic/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        } catch {
+          // Transport failure, not a rejected login: the process is still
+          // pending server-side. Safari reuses a dead pooled connection
+          // after the page was suspended and does not retry it, so poll
+          // again instead of surfacing "Load failed" to the user.
+          timer = setTimeout(poll, 4000);
+          return;
+        }
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Verification failed");
+        if (data.pending) {
+          timer = setTimeout(poll, 4000);
+          return;
+        }
+        await finish();
       } catch (e: any) {
+        // The request failed, but the renewal may still have completed
+        // server-side — e.g. the confirming poll consumed the login process
+        // while this tab was suspended and its response was lost. Only
+        // report a failure once the stored config says nothing was renewed.
+        if (await sessionWasStored()) {
+          await finish();
+          return;
+        }
         toast.error(`Error: ${e.message}`);
         setTrState((prev) => ({ ...prev, isOpen: false, reauthAccountId: "" }));
       } finally {
