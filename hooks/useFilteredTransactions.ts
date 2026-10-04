@@ -139,12 +139,19 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
         )
       }
 
-      // Amount range filter
+      // Amount range filter, in euros (the slider is labelled €). Compares
+      // eur_amount; a EUR row with no eur_amount falls back to amount, while a
+      // non-EUR row with no conversion cannot be placed in the range and is
+      // left out. Separate .or() calls are ANDed together.
       if (amountMin !== null) {
-        query = query.gte('amount', amountMin)
+        query = query.or(
+          `eur_amount.gte.${amountMin},and(eur_amount.is.null,currency.eq.EUR,amount.gte.${amountMin})`
+        )
       }
       if (amountMax !== null) {
-        query = query.lte('amount', amountMax)
+        query = query.or(
+          `eur_amount.lte.${amountMax},and(eur_amount.is.null,currency.eq.EUR,amount.lte.${amountMax})`
+        )
       }
 
       // Currency filter

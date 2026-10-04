@@ -24,7 +24,7 @@
 - Add, edit, and delete transactions with **optimistic updates** — the UI reflects changes instantly and rolls back on error
 - **Multi-currency support**: automatic EUR conversion using ECB exchange rates (Frankfurter API), with local DB caching and retry logic
 - **Money transfers** between fund accounts with source/target fund selection and validation
-- **Split transactions**: distribute a transaction evenly across all 12 months of the year (penny rounding handled)
+- **Split transactions**: distribute a transaction evenly across a rolling 12-month window starting at its source month (penny rounding handled; the source month takes the remainder)
 - **Hide from totals**: flag individual transactions to exclude them from summaries
 - **Title suggestions**: auto-tracked by category with frequency-based ranking and one-click auto-fill
 
@@ -33,7 +33,7 @@
 - **Monthly view**: transactions grouped by date with daily totals, sticky scrollable period selector, and comparison against previous month and same month last year
 - **Yearly view**: income/expense/balance aggregated by month with monthly averages
 - **Dashboard**: current vs previous month vs same-month-last-year comparison tables with expandable category breakdowns
-- **Balance chart**: interactive line chart with previous-period overlay, time range selector (1M/1Y/5Y/All), responsive sizing
+- **Balance chart**: interactive line chart anchored to the Balance card total, with a dotted split-adjusted overlay, time range selector (1M/1Y/5Y/All), responsive sizing
 - **Category charts**: bar chart for category-specific spending history with transaction counts
 - **Advanced filtering**: multi-dimensional filter panel — type, category/subcategory, currency, fund, amount range, period — with chip badges
 
@@ -51,8 +51,8 @@
 ### 💸 Budgets
 
 - Set category-based monthly budgets
-- Color-coded progress bars: green (< 90%), amber (90–100%), red (> 100%)
-- Spending alerts when approaching or exceeding limits
+- Progress bars in the primary colour, turning amber above 90% and red above 100%
+- Visual warning (amber/red bar and an "Over" label) when approaching or exceeding limits
 
 ### 🏦 Bank Integration (Enable Banking)
 
@@ -87,7 +87,7 @@
 
 - **Dual cache system**: SWR (in-memory) + localStorage (persistent) for zero-load navigation
 - Intelligent **prefetching** of adjacent months/years with dedup queues
-- `pushState`-based navigation avoids server round-trips on month/year changes
+- Query-param navigation (`?year=&month=`) with prefetched adjacent periods keeps month/year changes fast
 - Memoized components and calculations throughout
 - Paginated batch fetching for large datasets
 
@@ -100,7 +100,7 @@
 | **Framework**     | Next.js 16.2 (App Router, Turbopack)              |
 | **UI Library**    | React 19.2                                        |
 | **Language**      | TypeScript 6.0 (strict mode)                      |
-| **Database**      | Supabase (PostgreSQL + RLS + real-time)           |
+| **Database**      | Supabase (PostgreSQL + RLS)                     |
 | **Auth**          | Supabase Auth (`@supabase/ssr`, cookie-based)     |
 | **Styling**       | Tailwind CSS v4 + shadcn/ui + Radix UI primitives |
 | **Data Fetching** | SWR 2.4 with localStorage persistence             |
@@ -225,7 +225,7 @@ antunello-app/
 │   ├── features/                 # Business logic components (17 files)
 │   ├── layout/                   # Navigation, header, hero, theme, privacy
 │   └── ui/                       # Base components + skeletons (30+ files)
-├── hooks/                        # Custom React hooks (31 total)
+├── hooks/                        # Custom React hooks (27 total)
 ├── utils/
 │   ├── supabase/                 # Client, server, middleware, admin, DB utils
 │   ├── enable-banking/           # API client + sync service
@@ -269,7 +269,7 @@ Cached ECB rates: `date`, `base_currency`, `target_currency`, `rate`, `source`, 
 
 ### PendingTransaction
 
-Bank-imported transactions awaiting review: `account_id`, `amount`, `currency`, `description`, `booking_date`, `status` (pending/accepted/rejected).
+Bank-imported transactions awaiting review: `account_id`, `amount`, `currency`, `description`, `booking_date`, `status` (pending/added/dismissed).
 
 ### Categories (20 total)
 
@@ -280,11 +280,11 @@ Bank-imported transactions awaiting review: `account_id`, `amount`, `currency`, 
 
 ## Key Architecture Decisions
 
-- **Query-param navigation**: Month/year changes use `?year=2024&month=12` with `pushState` instead of route-based URLs. This eliminates server round-trips on period navigation.
+- **Query-param navigation**: Month/year changes use `?year=2024&month=12` as query parameters (`router.push`) instead of route-based URLs, with adjacent periods prefetched so period navigation does not wait on the server.
 - **Dual cache**: SWR handles in-memory caching and revalidation while localStorage provides instant data on reload. Both are kept in sync on every mutation.
 - **Optimistic updates**: Mutations update all affected caches (month, year, balance, fund categories, overall totals) immediately, with full rollback on error.
 - **CET timezone awareness**: Year boundaries use CET (Jan 1 00:00 CET = Dec 31 23:00 UTC) to match the user's timezone.
-- **No real-time on iOS Safari**: PostgreSQL LISTEN/NOTIFY subscriptions are disabled on iOS Safari to avoid performance issues — background polling (`useBackgroundSync`) serves as fallback.
+- **No real-time subscriptions**: there is no Supabase Realtime / LISTEN/NOTIFY. `BackgroundSyncProvider` polls a count-and-latest-`updated_at` fingerprint every 15 seconds while the tab is visible, revalidates the visible data in place and shows an update banner.
 - **Custom component implementations**: Dropdown menus, modals, and selects use custom implementations rather than headless UI libraries to minimize bundle size and maximize control.
 - **Tailwind v4 CSS-native config**: All theme values are defined via `@theme` in `globals.css` — there is no `tailwind.config.ts` file.
 

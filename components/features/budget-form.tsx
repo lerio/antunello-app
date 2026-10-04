@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Budget, MAIN_CATEGORIES } from "@/types/database"
+import { Budget, MAIN_CATEGORIES, getCategoryType } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -25,9 +25,16 @@ export function BudgetForm({ initialData, existingCategories = [], mode }: Budge
     const [amount, setAmount] = useState(initialData?.amount?.toString() || "")
     const [error, setError] = useState<string | null>(null)
 
-    // Filter available categories
+    // Only expense categories: spending is summed from expenses and excludes
+    // transfers, so a budget on an income category or on Money Transfer could
+    // never show anything but 0. The category being edited is always kept, even
+    // if it predates this rule.
     const availableCategories = MAIN_CATEGORIES.filter(
-        cat => !existingCategories.includes(cat) || (initialData && initialData.category === cat)
+        cat =>
+            (initialData && initialData.category === cat) ||
+            (getCategoryType(cat) === "expense" &&
+                cat !== "Money Transfer" &&
+                !existingCategories.includes(cat))
     ).sort()
 
     async function onSubmit(e: React.FormEvent) {

@@ -60,7 +60,11 @@ export const resetPasswordAction = async (formData: FormData) => {
   }
 
   if (password !== confirmPassword) {
-    encodedRedirect("error", "/reset-password", "Passwords do not match");
+    encodedRedirect(
+      "error",
+      "/protected/reset-password",
+      "Passwords do not match",
+    );
   }
 
   const { error } = await supabase.auth.updateUser({

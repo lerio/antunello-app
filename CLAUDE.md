@@ -61,7 +61,7 @@ Antunello is a comprehensive personal finance tracking application built with Ne
 ## Architecture
 
 - **Framework**: Next.js 16.2.9 with App Router, React 19.2.7
-- **Database**: Supabase (PostgreSQL with RLS policies and real-time subscriptions)
+- **Database**: Supabase (PostgreSQL with RLS policies)
 - **Authentication**: Supabase Auth with cookie-based sessions (@supabase/ssr)
 - **Styling**: Tailwind CSS v4.3.0 configured via CSS `@theme` directives (no tailwind.config file)
 - **State Management**: SWR 2.4.1 with localStorage persistence, Zustand 5.0.14 for UI state
@@ -89,7 +89,7 @@ Antunello is a comprehensive personal finance tracking application built with Ne
 - **Category Charts**: Bar chart for category-specific spending history
 - **Advanced Filtering**: Multi-dimensional transaction filtering (type, category, currency, fund, amount range, period)
 - **Search**: Real-time full-text search across all transactions
-- **Budgets**: Category-based budget tracking with progress bars and spending alerts
+- **Budgets**: Category-based budget tracking with progress bars and colour-coded warnings
 - **CSV Import**: Bulk import from Cashew-formatted CSV files with validation
 - **Title Suggestions**: Auto-tracked transaction titles with frequency-based ranking and auto-fill
 - **Exchange Rate Caching**: Local database caching with retry logic for missing rates
@@ -99,7 +99,7 @@ Antunello is a comprehensive personal finance tracking application built with Ne
 - **Background Sync**: Polling-based detection of remote changes with update banners
 - **Enable Banking Integration**: Automatic bank transaction import via OAuth
 - **Pending Transaction Review**: Accept/reject wizard for bank-imported transactions
-- **Real-time Sync**: PostgreSQL LISTEN/NOTIFY for instant updates across devices
+- **Background Sync**: 15-second polling of a count/`updated_at` fingerprint detects changes from other devices and revalidates in place
 
 ## Common Commands
 
@@ -121,7 +121,7 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
   - `features/` - Business logic components (forms, tables, summaries, charts, balance, budgets)
   - `layout/` - Layout components (navigation, header, hero, theme toggle, privacy)
   - `providers/` - Empty placeholder directory for future providers
-- `hooks/` - 31 custom React hooks for data operations and state management
+- `hooks/` - 27 custom React hooks for data operations and state management
 - `utils/` - General utilities and Supabase client configurations
   - `supabase/` - Client, server, middleware, database-utils, pattern-utils, env
   - `enable-banking/` - Enable Banking API client and sync service
@@ -203,7 +203,7 @@ Category-based budget tracking:
 
 ### PendingTransaction
 Bank-imported transactions awaiting review:
-- Fields: `id`, `user_id`, `account_id`, `transaction_id`, `amount`, `currency`, `description`, `booking_date`, `status` (pending/accepted/rejected), timestamps
+- Fields: `id`, `user_id`, `account_id`, `transaction_id`, `amount`, `currency`, `description`, `booking_date`, `status` (pending/added/dismissed), timestamps
 
 ### Categories
 20 main categories with subcategories defined in `types/database.ts`:
@@ -234,7 +234,7 @@ Bank-imported transactions awaiting review:
 - `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
 - `filter-controls.tsx` — Advanced filter panel: type/category/currency/fund/amount-range/period multi-select with chip badges (389 lines)
 - `search-summary.tsx` — Search results summary with income/expense/hidden breakdown (135 lines)
-- `budget-card.tsx` — Budget display card with progress bar and color-coded thresholds (green/amber/red)
+- `budget-card.tsx` — Budget display card with progress bar and color-coded thresholds (primary colour, amber above 90%, red above 100%)
 - `budget-form.tsx` — Budget add/edit form with category selection
 - `pending-transactions-button.tsx` — Floating bell icon with count badge for pending bank transactions
 - `no-transactions.tsx` — Empty state with illustration
@@ -263,7 +263,7 @@ Bank-imported transactions awaiting review:
 
 ### Data Fetching
 - `useTransaction.ts` — Fetch single transaction by ID
-- `useTransactionsOptimized.ts` — Primary month-transaction hook: SWR with fallback cache, prefetching, real-time subscription handling, memoized totals
+- `useTransactionsOptimized.ts` — Primary month-transaction hook: SWR with fallback cache, prefetching, memoized totals
 - `useYearTransactions.ts` — Fetch year transactions with CET boundary handling and adjacent-year prefetching
 - `useTransactionSearch.ts` — Debounced (300ms) ilike search across transactions
 - `useFundCategories.ts` — Fetch fund categories with calculated balances from transactions
@@ -294,7 +294,7 @@ Bank-imported transactions awaiting review:
 - `useAdjacentPrefetch.ts` — Generic adjacent-period prefetch logic shared by `usePrefetch` and `useYearPrefetch`
 - `useAvailableMonths.ts` — Get earliest transaction date, generate month options with fallback range
 - `useAvailableYears.ts` — Generate year options (2016 to current+5)
-- `useBackgroundSync.ts` — Poll for remote changes every 60s when tab visible, compares row count and latest updated_at
+- `useBackgroundSync.ts` — Consumes `BackgroundSyncProvider` (components/layout), which polls every 15s while the tab is visible, comparing row count and latest updated_at
 - `useFormFieldProtection.ts` — Defensive hook preventing browser extension (1Password) conflicts with form fields
 - `usePendingTransactions.ts` — Poll for pending bank transactions every 60s via SWR
 
@@ -316,7 +316,7 @@ Bank-imported transactions awaiting review:
 - Triggers for `updated_at` auto-updates and title pattern frequency maintenance
 - Composite indexes on `(user_id, date)`, `(user_id, currency)` for query performance
 - RPC functions: `get_overall_total_eur` (efficient total calculation), `get_fund_balances` (per-fund transaction deltas), `cleanup_old_title_patterns`
-- Real-time subscriptions via PostgreSQL LISTEN/NOTIFY (disabled on iOS Safari for performance)
+- No real-time subscriptions; changes from other devices are found by polling (see `BackgroundSyncProvider`)
 - CET timezone-aware year boundaries (Jan 1 00:00 CET = Dec 31 23:00 UTC)
 
 ### Authentication Flow
@@ -373,7 +373,7 @@ Bank-imported transactions awaiting review:
 - **Dual Cache**: SWR (memory) + localStorage (persistence) for zero-load navigation
 - **Prefetching**: Adjacent month/year data loaded proactively with dedup queue (500ms debounce)
 - **Debounced Saves**: 500ms debounce for localStorage cache writes, 2s debounce for save calls
-- **Client-Side Navigation**: `pushState` for month/year changes avoids RSC server round-trips
+- **Client-Side Navigation**: month/year changes use query params with `router.push`, with adjacent periods prefetched
 - **Memoized Components**: `TransactionRow` wrapped in `React.memo`, summary calculations memoized
 - **Paginated Fetching**: `fetchAllBatches` for large datasets (1000 rows per page)
 - **Simple In-Memory Cache**: LRU cache avoids redundant Supabase queries for frequently accessed data
@@ -402,7 +402,7 @@ Bank-imported transactions awaiting review:
 ### Key Implementation Details
 - Transaction forms support creation, editing, and money transfer modes with full validation
 - Money transfers require source and target fund selection with different-funds validation
-- Split transactions distribute amounts evenly across 12 months (penny rounding: January takes remainder)
+- Split transactions distribute amounts evenly across a rolling 12-month window starting at the source month (penny rounding: the source month takes the remainder)
 - Monthly/yearly views use sticky scrollable period selectors that auto-center on selection
 - Exchange rates cached locally with `is_missing` flag for retry logic
 - CSV import supports Cashew format with batch validation and rate-limited currency conversion
@@ -412,13 +412,13 @@ Bank-imported transactions awaiting review:
 - Privacy mode blurs all financial data (6px blur filter) and persists to localStorage
 - Pull-to-refresh on mobile with resistance curve and 80px threshold
 - Search preserves referrer context for back-navigation
-- Budgets display color-coded progress: green (< 90%), amber (90-100%), red (> 100%)
+- Budgets display progress in the primary colour, amber above 90% and red above 100%
 - Dashboard comparison shows current vs previous month vs same month last year in expandable sections
 - Split read-only instances shown at 60% opacity with desaturation
 - Daily hidden transaction indicator (EyeOff icon with count)
 
 ### Navigation and Routing
-- Month navigation uses query parameters (`?year=2024&month=12`) with `pushState`
+- Month navigation uses query parameters (`?year=2024&month=12`) with `router.push`
 - Category/subcategory routes at `/protected/category/[category]` and `/protected/category/[category]/[subcategory]`
 - Navigation component hides on add/edit pages
 - Mobile: fixed bottom nav bar with safe-area-inset-bottom padding
@@ -461,3 +461,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## TypeSafe / Jev
+
+For every prompt, first invoke the `typesafe:typesafe-ai` skill and decide whether Jev should make any semantic judgment (routing, ranking, extraction, verification). Read the live docs (https://docs.typesafe.ai/llms.txt) before writing an integration. Keep API credentials server-side and deterministic logic in code.
