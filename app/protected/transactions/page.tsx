@@ -513,9 +513,16 @@ export default function ProtectedPage() {
                       });
                       mutatePending();
                     } else {
-                      toast.success("Fetch complete. No new transactions.", {
-                        id: toastId,
-                      });
+                      // The count separates "the bank returned nothing" from
+                      // "everything it returned was already imported".
+                      const totalFetched = data.results.reduce(
+                        (acc: number, r: any) => acc + (r.fetched || 0),
+                        0,
+                      );
+                      toast.success(
+                        `Fetch complete. No new transactions (${totalFetched} fetched from the bank).`,
+                        { id: toastId },
+                      );
                     }
 
                     // Show per-account errors.

@@ -244,13 +244,34 @@ function SettingsContent() {
         }
         mutate();
       } else if (newFound) {
-        toast.success("Sync complete! New transactions found.", {
+        const totalNew = results.reduce(
+          (acc: number, r: any) => acc + (r.new_pending || 0),
+          0,
+        );
+        toast.success(`Sync complete! ${totalNew} new transaction(s) found.`, {
           id: toastId,
         });
         globalMutate("pending-transactions");
         mutate();
       } else {
-        toast.success("Sync complete. No new transactions.", { id: toastId });
+        // Say what the sync actually did. A bare "no new transactions" hides
+        // the difference between the bank returning nothing at all and every
+        // transaction it returned already being imported.
+        const result = results[0];
+        const fetched = result?.fetched ?? 0;
+        const {
+          already_pending = 0,
+          already_imported = 0,
+          unusable = 0,
+        } = result?.skipped || {};
+        const detail =
+          fetched === 0
+            ? `bank returned no transactions since ${result?.window_from ?? "the last sync"}`
+            : `${fetched} fetched, ${already_pending + already_imported} already imported, ${unusable} unusable`;
+        toast.success(`Sync complete. No new transactions — ${detail}.`, {
+          id: toastId,
+          duration: 6000,
+        });
         mutate();
       }
     } catch (e: any) {

@@ -37,12 +37,39 @@ const getBestDate = (tx: EnableBankingTransaction): string | undefined => {
     return tx.value_date || tx.transaction_date || tx.booking_date;
 };
 
+/** Milliseconds in a day. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How far back each sync reaches beyond the previous sync's timestamp.
+ *
+ * Banks report transactions late and out of date order: Revolut posts an entry
+ * when it reaches its value date, which can be days after the date the
+ * transaction itself carries. A window starting at the previous sync never asks
+ * for anything dated before it, so a transaction that surfaces late is never
+ * requested again — and the caller sees a successful sync that found nothing.
+ * Re-querying the overlap costs one API call per page and is free of
+ * duplicates, since every fetched transaction is deduplicated below.
+ */
+const SYNC_OVERLAP_DAYS = 14;
+
+/** History fetched for an account that has never synced. */
+const FIRST_SYNC_DAYS = 7;
+
+/**
+ * Upper bound on the window, in days, however stale the last sync is. Enable
+ * Banking rejects periods an ASPSP does not serve, and the consent itself is
+ * requested for 89 days (see `/api/enable-banking/auth`).
+ */
+const MAX_WINDOW_DAYS = 89;
+
 /**
  * Synchronises bank transactions from a configured Enable Banking account
  * into the application's pending_transactions table.
  *
  * The function:
- * 1. Determines the fetch start date (last sync timestamp, or last 7 days)
+ * 1. Determines the fetch window (last sync, backed off by the overlap, or the
+ *    last 7 days when the account has never synced)
  * 2. Fetches transactions from the Enable Banking API
  * 3. Deduplicates against existing transactions (by amount+date+currency signature)
  *    and existing pending transactions (by external_id)
@@ -53,8 +80,10 @@ const getBestDate = (tx: EnableBankingTransaction): string | undefined => {
  * @param config - The integration configuration object (must include
  *                 account_id, user_id, last_sync_at, id, and settings)
  * @param client - An initialised EnableBankingClient for API calls
- * @returns A result object with account, fetched count, new pending count,
- *          and optionally an error message on failure
+ * @returns A result object with account, fetched count, new pending count, the
+ *          start of the window queried, a per-reason breakdown of the fetched
+ *          transactions that were not added, and optionally an error message
+ *          on failure
  */
 export async function syncAccount(
     supabase: SupabaseClient,
@@ -62,21 +91,39 @@ export async function syncAccount(
     client: EnableBankingClient
 ) {
     try {
-        // 1. Determine fetch date
-        const lastSync = config.last_sync_at ? new Date(config.last_sync_at) : undefined;
-        // Default to last 7 days if not set or very old, to avoid flooding
-        const fetchFrom = lastSync || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        // 1. Determine fetch window: the previous sync, backed off by the
+        //    overlap so late-reporting transactions are still asked for, and
+        //    capped so a long-stale account cannot request a period the bank
+        //    refuses. Never past `now`: a window that opens in the future would
+        //    return nothing at all.
+        const now = Date.now();
+        const lastSync = config.last_sync_at ? new Date(config.last_sync_at).getTime() : null;
+        const windowStart = lastSync === null
+            ? now - FIRST_SYNC_DAYS * DAY_MS
+            : Math.min(
+                Math.max(lastSync - SYNC_OVERLAP_DAYS * DAY_MS, now - MAX_WINDOW_DAYS * DAY_MS),
+                now
+            );
+        const fetchFrom = new Date(windowStart);
+        const fromDateStr = toISODate(fetchFrom.toISOString());
 
         // 2. Fetch from Enable Banking
         const fetchedTransactions = await client.getAccountTransactions(config.account_id, fetchFrom);
 
         if (fetchedTransactions.length === 0) {
-            return { account: config.account_id, status: 'no_new_transactions' };
+            // Reported rather than silent: "the bank sent nothing for this
+            // window" is a different problem from "everything was already
+            // imported", and only the caller can tell them apart.
+            return {
+                account: config.account_id,
+                fetched: 0,
+                new_pending: 0,
+                window_from: fromDateStr,
+            };
         }
 
         // 3. Deduplicate
         // 3a. Fetch existing DB transactions for this user in the relevant date range
-        const fromDateStr = toISODate(fetchFrom.toISOString());
 
         const { data: existingTransactions } = await supabase
             .from('transactions')
@@ -97,12 +144,23 @@ export async function syncAccount(
 
         const newPendingTransactions = [];
 
+        // Why transactions the bank returned did not become pending rows. A
+        // sync that adds nothing is otherwise indistinguishable from one that
+        // found nothing, which is what made this worth counting.
+        let skippedKnown = 0;
+        let skippedImported = 0;
+        let skippedUnusable = 0;
+
         for (const tx of fetchedTransactions) {
-            if (existingPendingIds.has(tx.transaction_id || tx.entry_reference)) continue;
+            if (existingPendingIds.has(tx.transaction_id || tx.entry_reference)) {
+                skippedKnown++;
+                continue;
+            }
 
             const amountObj = tx.transaction_amount || tx.amount;
             if (!amountObj || !amountObj.amount) {
                 console.warn(`Transaction ${tx.transaction_id || tx.entry_reference} is missing amount data. Skipping.`, JSON.stringify(tx));
+                skippedUnusable++;
                 continue;
             }
 
@@ -110,6 +168,7 @@ export async function syncAccount(
             const date = getBestDate(tx);
             if (!date) {
                 console.warn(`Transaction ${tx.transaction_id || tx.entry_reference} is missing date fields. Skipping.`);
+                skippedUnusable++;
                 continue;
             }
             const currency = amountObj.currency;
@@ -126,60 +185,68 @@ export async function syncAccount(
                 title = tx.remittance_information_structured;
             }
 
-            let txAmount = Math.abs(amount);
-            const signature = `${txAmount.toFixed(2)}_${date}_${currency}`;
+            const txAmount = Math.abs(amount);
 
-            if (!existingTxSignature.has(signature)) {
-                // Determine transaction type from credit_debit_indicator
-                const txType = tx.credit_debit_indicator === 'CRDT' ? 'income' : 'expense';
-
-                const accountIban = txType === 'expense'
-                    ? (tx.debtor_account?.iban || null)
-                    : (tx.creditor_account?.iban || null);
-
-                const fundCategoryId = config.settings?.fund_category_id || null;
-
-                let transactionTimestamp: string;
-                if (date.includes('T')) {
-                    // Date is already an ISO timestamp (some banks provide full datetime).
-                    // Ensure it has explicit timezone info — if the bank omits the 'Z' or
-                    // offset suffix, JavaScript would parse it as local time instead of UTC,
-                    // causing an offset equal to the local timezone (e.g. 2 hours in CEST).
-                    const zonedDate =
-                        date.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(date)
-                            ? date
-                            : date + 'Z';
-                    transactionTimestamp = new Date(zonedDate).toISOString();
-                } else {
-                    // Date is YYYY-MM-DD. Prefer the bank-provided time if present
-                    // (non-standard, but observed from some institutions). Fall back
-                    // to noon UTC so the date stays correct across all timezones
-                    // from UTC-12 to UTC+12.
-                    const timeStr = tx.transaction_time || '12:00:00';
-                    transactionTimestamp = new Date(`${date}T${timeStr}Z`).toISOString();
-                }
-
-                newPendingTransactions.push({
-                    user_id: config.user_id,
-                    external_id: tx.transaction_id || tx.entry_reference,
-                    data: {
-                        amount: txAmount,
-                        currency: currency,
-                        date: transactionTimestamp,
-                        title: title,
-                        type: txType,
-                        account_iban: accountIban,
-                        fund_category_id: fundCategoryId,
-                        original_amount: amount,
-                        // Preserve original date fields so the review UI can
-                        // surface discrepancies (e.g. value_date vs booking_date)
-                        booking_date: tx.booking_date || null,
-                        value_date: tx.value_date || null,
-                        transaction_date: tx.transaction_date || null,
-                    },
-                    status: 'pending'
-                });
+            let transactionTimestamp: string;
+            if (date.includes('T')) {
+                // Date is already an ISO timestamp (some banks provide full datetime).
+                // Ensure it has explicit timezone info — if the bank omits the 'Z' or
+                // offset suffix, JavaScript would parse it as local time instead of UTC,
+                // causing an offset equal to the local timezone (e.g. 2 hours in CEST).
+                const zonedDate =
+                    date.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(date)
+                        ? date
+                        : date + 'Z';
+                transactionTimestamp = new Date(zonedDate).toISOString();
+            } else {
+                // Date is YYYY-MM-DD. Prefer the bank-provided time if present
+                // (non-standard, but observed from some institutions). Fall back
+                // to noon UTC so the date stays correct across all timezones
+                // from UTC-12 to UTC+12.
+                const timeStr = tx.transaction_time || '12:00:00';
+                transactionTimestamp = new Date(`${date}T${timeStr}Z`).toISOString();
             }
+
+            // Signature is (amount, date, currency) against the same shape
+            // built from the transactions table above — so both sides have to
+            // agree on the date. Keyed off the stored timestamp, not the raw
+            // bank string: some banks send a full datetime there, which could
+            // never equal a stored "YYYY-MM-DD".
+            const signature = `${txAmount.toFixed(2)}_${toISODate(transactionTimestamp)}_${currency}`;
+            if (existingTxSignature.has(signature)) {
+                skippedImported++;
+                continue;
+            }
+
+            // Determine transaction type from credit_debit_indicator
+            const txType = tx.credit_debit_indicator === 'CRDT' ? 'income' : 'expense';
+
+            const accountIban = txType === 'expense'
+                ? (tx.debtor_account?.iban || null)
+                : (tx.creditor_account?.iban || null);
+
+            const fundCategoryId = config.settings?.fund_category_id || null;
+
+            newPendingTransactions.push({
+                user_id: config.user_id,
+                external_id: tx.transaction_id || tx.entry_reference,
+                data: {
+                    amount: txAmount,
+                    currency: currency,
+                    date: transactionTimestamp,
+                    title: title,
+                    type: txType,
+                    account_iban: accountIban,
+                    fund_category_id: fundCategoryId,
+                    original_amount: amount,
+                    // Preserve original date fields so the review UI can
+                    // surface discrepancies (e.g. value_date vs booking_date)
+                    booking_date: tx.booking_date || null,
+                    value_date: tx.value_date || null,
+                    transaction_date: tx.transaction_date || null,
+                },
+                status: 'pending'
+            });
         }
 
         // 4. Insert into pending_transactions
@@ -200,7 +267,13 @@ export async function syncAccount(
         return {
             account: config.account_id,
             fetched: fetchedTransactions.length,
-            new_pending: newPendingTransactions.length
+            new_pending: newPendingTransactions.length,
+            window_from: fromDateStr,
+            skipped: {
+                already_pending: skippedKnown,
+                already_imported: skippedImported,
+                unusable: skippedUnusable
+            }
         };
 
     } catch (error: unknown) {
