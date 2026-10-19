@@ -165,7 +165,6 @@ async function importBatchWithRetry(
  * 1. Authenticates the current user.
  * 2. Validates each transaction (skipping invalid entries).
  * 3. Inserts valid transactions in batches of 100 with retry logic.
- * 4. Triggers a revalidation of the overall-totals API cache.
  *
  * @param transactions - Array of transaction data to import.
  * @returns An `ImportResult` summarising the number of successfully imported
@@ -220,18 +219,6 @@ export async function importTransactions(
   result.success = totalImported > 0
 
   console.log('Import complete. Total imported:', totalImported);
-
-  // Revalidate overall totals
-  try {
-    const { mutate: globalMutate } = await import('swr')
-    // In case dynamic import fails, fallback to require
-    // @ts-ignore
-    const gm = globalMutate || (require('swr').mutate)
-    gm('/api/overall-totals', undefined, true)
-  } catch (e) {
-    // Handle gracefully if SWR is not available in this context
-    console.warn('Skipping SWR revalidation after import:', e)
-  }
 
   return result
 }

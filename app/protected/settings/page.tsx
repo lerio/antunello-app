@@ -825,6 +825,11 @@ function SettingsContent() {
                             ? "Trade Republic"
                             : "Unknown");
                       const iban = settings.iban;
+                      // Shown because one IBAN can hold several accounts —
+                      // Revolut exposes a separate account per currency, all
+                      // sharing the IBAN, and the currency is the only thing
+                      // telling them apart in this list.
+                      const currency = settings.currency;
                       const isTR = acc.provider === "trade_republic";
                       const isSessionExpired =
                         settings.auth_status === "session_expired";
@@ -844,6 +849,11 @@ function SettingsContent() {
                                 {iban && (
                                   <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded truncate max-w-[150px] sm:max-w-none">
                                     {iban}
+                                  </span>
+                                )}
+                                {currency && (
+                                  <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">
+                                    {currency}
                                   </span>
                                 )}
                                 {isSessionExpired && (

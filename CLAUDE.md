@@ -84,8 +84,7 @@ Antunello is a comprehensive personal finance tracking application built with Ne
 - **Money Transfers**: Move funds between accounts with source/target fund selection
 - **Split Transactions**: Distribute a transaction amount evenly across months of the year
 - **Monthly/Yearly Views**: Organized transaction views with sticky scrollable period selectors
-- **Dashboard**: Period-over-period comparison with income/expense/balance breakdowns
-- **Balance Charts**: Balance line anchored to the Balance card total, with a dotted split-adjusted overlay
+- **Home Dashboard**: Two blocks — "At a glance" (month-to-date spending vs a typical month at the same point, with the categories driving the gap) and "Net worth" (fund total with an anchored trend, 1M/1Y/5Y/All)
 - **Category Charts**: Bar chart for category-specific spending history
 - **Advanced Filtering**: Multi-dimensional transaction filtering (type, category, currency, fund, amount range, period)
 - **Search**: Real-time full-text search across all transactions
@@ -121,9 +120,9 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
   - `features/` - Business logic components (forms, tables, summaries, charts, balance, budgets)
   - `layout/` - Layout components (navigation, header, hero, theme toggle, privacy)
   - `providers/` - Empty placeholder directory for future providers
-- `hooks/` - 27 custom React hooks for data operations and state management
+- `hooks/` - 26 custom React hooks for data operations and state management
 - `utils/` - General utilities and Supabase client configurations
-  - `supabase/` - Client, server, middleware, database-utils, pattern-utils, env
+  - `supabase/` - Client, server, middleware, database-utils, env
   - `enable-banking/` - Enable Banking API client and sync service
 - `lib/` - Utility functions and configurations
   - `swr-config.ts` - Global SWR configuration with localStorage persistence
@@ -132,7 +131,7 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
   - `utils.ts` - `cn()` class merge utility, `encodedRedirect()` helper
 - `types/` - TypeScript type definitions (database models, category icons, global types)
 - `constants/` - App-wide constants (currency options, symbols)
-- `migrations/` - 17 numbered database migration SQL files
+- `migrations/` - 35 database migration and rollback SQL files (applied by hand in the Supabase SQL editor; `scripts/run-migration.mjs` only prints them)
 - `scripts/` - Data processing scripts (pipe-title find/update, migration runner)
 - `public/` - Static assets (empty-box.png)
 - `certificates/` - HTTPS dev certificates (localhost-key.pem, localhost.pem) — gitignored
@@ -144,7 +143,7 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
 - `/(auth)/sign-in` — Email/password login page
 
 ### Protected (require authentication)
-- `/protected` — Home dashboard with balance overview, charts, and comparison tables
+- `/protected` — Home: "At a glance" (month pace + movers) and "Net worth" (fund total + trend)
 - `/protected/transactions` — Monthly transaction list view
 - `/protected/year` — Yearly summary aggregated by month
 - `/protected/add` — Dedicated transaction add page
@@ -161,7 +160,6 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
 - `/protected/reset-password` — Password reset functionality
 
 ### API Routes
-- `/api/overall-totals` — RPC call for global balance total calculation
 - `/api/transactions/bulk-fetch` — Bulk fetch transactions
 - `/api/pending-transactions/[id]` — Accept/reject pending bank transactions
 - `/api/enable-banking/auth` — Enable Banking OAuth authentication
@@ -226,9 +224,9 @@ Bank-imported transactions awaiting review:
 - `transaction-form-modal.tsx` — Modal form for add/edit with type selector (Expense/Income/Money Transfer), category/suggestion auto-fill, fund selection, validation tooltips, split/hide options, delete with confirmation (899 lines)
 - `transaction-form-html-design.tsx` — Alternative HTML form for dedicated add/edit pages with native controls (479 lines)
 - `transactions-table-optimized.tsx` — Optimized transactions list with date-grouped cards, daily totals, category icons, split indicators, hidden transaction dimming, gradient fade masks (321 lines)
-- `transaction-summary.tsx` — Monthly/yearly totals with comparison rows (vs previous month, vs same month last year), category breakdown, proration for current month, split handling (1330 lines)
-- `dashboard-summary.tsx` — Dashboard with current/previous/same-month-last-year comparison tables, category breakdown with expandable subcategories (561 lines)
-- `balance-chart.tsx` — Anchored balance line chart matching the Balance card total with dotted split-adjusted overlay, time range selector (1M/1Y/5Y/All), responsive sizing (351 lines)
+- `transaction-summary.tsx` — Monthly/yearly totals, category breakdown, proration for current month, split handling (1064 lines)
+- `at-a-glance-card.tsx` — Home block: month-to-date spending vs a typical month at the same point, the categories driving the gap, previous-month and last-30-days comparisons
+- `net-worth-card.tsx` — Home block: fund total with the month's change, "as of" sync date, anchored trend (1M/1Y/5Y/All), expandable fund list
 - `category-chart.tsx` — Bar chart for category spending over time with transaction count summary (349 lines)
 - `balance.tsx` — Expandable fund categories grouped by top-level category, collapsible sections (188 lines)
 - `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
@@ -259,7 +257,7 @@ Bank-imported transactions awaiting review:
 - Clears localStorage cache on sign-out/session expiry
 - Renders nothing (returns null)
 
-## Custom Hooks (27 total)
+## Custom Hooks (26 total)
 
 ### Data Fetching
 - `useTransaction.ts` — Fetch single transaction by ID
@@ -269,18 +267,17 @@ Bank-imported transactions awaiting review:
 - `useFundCategories.ts` — Fetch fund categories with calculated balances from transactions
 - `useTitleSuggestions.ts` — Debounced (300ms) title suggestion search from transaction_title_patterns
 - `useFilteredTransactions.ts` — Multi-dimensional filtering with 300ms debounce, supports type/category/currency/fund/amount/period filters
-- `useDateRangeTransactions.ts` — Fetch transactions within arbitrary date ranges
 - `useCategoryTransactions.ts` — Fetch transactions filtered by main/sub category with time range
 - `useSplitSourcesForYear.ts` — Fetch split-across-year sources for a year plus the previous year
 - `useBudgets.ts` — Fetch budgets and compute spending progress
 
 ### Charts and Analytics
-- `useAnchoredBalanceHistory.ts` — Anchored balance series: solid "Actual" line (splits booked at full amount, last point equals the Balance card total) plus dotted "Split-adjusted" line (splits accrued month by month)
+- `useMonthPace.ts` — Home's month figures from `get_month_pace` (spent to date, typical-by-today, net vs previous month, last 30 complete days) and `get_month_movers`
+- `useNetWorthSeries.ts` — Per-bucket balance deltas from `get_net_worth_series`, plus `useLastSync` for the oldest bank connection's sync time
 - `useCategoryHistory.ts` — Compute category spending history for time ranges
-- `useDashboardComparison.ts` — Compare current, previous-month, and same-month-last-year transaction sets
 
 ### Mutations
-- `useTransactionMutations.ts` — addTransaction, updateTransaction, deleteTransaction with optimistic updates, EUR conversion, cache invalidation across month/year/balance/fund/overall-totals, rollback on error
+- `useTransactionMutations.ts` — addTransaction, updateTransaction, deleteTransaction with optimistic updates, EUR conversion, cache invalidation across month/year/fund/month-pace/month-movers, rollback on error
 
 ### UI State
 - `useModalState.ts` — Manage add/edit modal open/close state
@@ -306,7 +303,6 @@ Bank-imported transactions awaiting review:
 - `middleware.ts` — Auth middleware: session refresh, protected route redirect, authenticated-user redirect from `/` to `/protected`
 - `admin.ts` — Service-role client for admin operations (CSV import, data management)
 - `database-utils.ts` — Bulk operations: `deleteAllUserTransactions()`, `getUserTransactionCount()`, `importTransactions()` with batch retry logic
-- `pattern-utils.ts` — `TransactionPatternService` class: pattern upsert, ilike search, frequency tracking, cleanup
 - `fetch-all.ts` — Generic paginated fetch-all helper (`fetchAllBatches<T>`)
 - `env.ts` — Environment variable accessors with legacy key fallback
 - `check-env-vars.ts` — Re-exports `hasSupabasePublicEnvVars` as `hasEnvVars` (tutorial compatibility)
@@ -315,7 +311,7 @@ Bank-imported transactions awaiting review:
 - Row Level Security (RLS) policies for complete user data isolation
 - Triggers for `updated_at` auto-updates and title pattern frequency maintenance
 - Composite indexes on `(user_id, date)`, `(user_id, currency)` for query performance
-- RPC functions: `get_overall_total_eur` (efficient total calculation), `get_fund_balances` (per-fund transaction deltas), `cleanup_old_title_patterns`
+- RPC functions: `get_overall_total_eur` (efficient total calculation), `get_fund_balances` (per-fund transaction deltas), `get_month_pace` (month-to-date spend, net and typical-by-today baseline), `get_month_movers` (per-category pace for the gap), `get_net_worth_series` (bucket deltas for the trend), `cleanup_old_title_patterns`
 - No real-time subscriptions; changes from other devices are found by polling (see `BackgroundSyncProvider`)
 - CET timezone-aware year boundaries (Jan 1 00:00 CET = Dec 31 23:00 UTC)
 
@@ -413,7 +409,7 @@ Bank-imported transactions awaiting review:
 - Pull-to-refresh on mobile with resistance curve and 80px threshold
 - Search preserves referrer context for back-navigation
 - Budgets display progress in the primary colour, amber above 90% and red above 100%
-- Dashboard comparison shows current vs previous month vs same month last year in expandable sections
+- Home's month baseline averages the last 3 complete months with the same 3 calendar months a year earlier; the intra-month shape is the median over the trailing 12 months, and month attribution follows the browser's timezone (passed to the RPC)
 - Split read-only instances shown at 60% opacity with desaturation
 - Daily hidden transaction indicator (EyeOff icon with count)
 

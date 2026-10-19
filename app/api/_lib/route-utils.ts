@@ -33,7 +33,7 @@ export function jsonError(message: string, status = 500) {
  *
  * @returns A {@link NextResponse} with status 401.
  */
-export function jsonUnauthorized() {
+function jsonUnauthorized() {
   return jsonError('Unauthorized', 401);
 }
 

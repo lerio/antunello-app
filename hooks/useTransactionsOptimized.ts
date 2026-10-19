@@ -82,7 +82,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     }
 
     invalidateYearCache(newRecord.date)
-    globalMutate('/api/overall-totals', undefined, true)
   }
 
   // Helper to handle UPDATE event
@@ -111,7 +110,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     if (newRecord.date !== oldRecord.date) {
       invalidateYearCache(newRecord.date)
     }
-    globalMutate('/api/overall-totals', undefined, true)
   }
 
   // Helper to handle DELETE event
@@ -125,7 +123,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     }
 
     invalidateYearCache(oldRecord.date)
-    globalMutate('/api/overall-totals', undefined, true)
   }
 
   // Real-time subscriptions removed for iOS Safari optimization

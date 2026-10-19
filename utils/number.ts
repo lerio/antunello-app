@@ -16,7 +16,7 @@
  * @param value - The input string to normalize (e.g. "1,50" or "1.50")
  * @returns The normalized string with commas replaced by dots (e.g. "1.50")
  */
-export function normalizeDecimalSeparator(value: string): string {
+function normalizeDecimalSeparator(value: string): string {
   return value.replace(/,/g, '.');
 }
 

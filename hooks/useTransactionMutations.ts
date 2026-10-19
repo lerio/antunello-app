@@ -77,33 +77,14 @@ export function useTransactionMutations() {
     transactionCache.deleteByPrefix('split-sources-')
   }
 
-  // Helper function to invalidate balance chart caches when transactions change
-  const invalidateBalanceCaches = () => {
-    // Invalidate anchored chart transactions (SWR string keys)
-    mutate(
-      (key) => typeof key === 'string' && key.startsWith('anchored-transactions-'),
-      undefined,
-      { revalidate: true }
-    )
-    // Invalidate range transactions used by the chart's 1m accrued line and
-    // the dashboard comparison (SWR string keys)
-    mutate(
-      (key) => typeof key === 'string' && key.startsWith('range-transactions-'),
-      undefined,
-      { revalidate: true }
-    )
-    // The range fetcher serves from the LRU first, so clear it too
-    transactionCache.deleteByPrefix('range-transactions-')
-  }
-
   // Helper to run the standard cache invalidation set after any mutation that
-  // changes a transaction row (year, balance chart, overall totals, funds).
+  // changes a transaction row (year, funds, Home's month figures).
   // Callers add their own extras (split-source invalidation, split next-year).
   const invalidateAfterMutation = (date: string) => {
     invalidateYearCache(date)
-    invalidateBalanceCaches()
-    mutate('/api/overall-totals', undefined, true)
     mutate('fund-categories', undefined, true)
+    mutate('month-pace', undefined, true)
+    mutate('month-movers', undefined, true)
   }
 
   // Helper to convert currency to EUR

@@ -17,7 +17,7 @@ import { ExchangeRate } from '@/types/database';
 /**
  * Result of a currency conversion operation.
  */
-export interface CurrencyConversionResult {
+interface CurrencyConversionResult {
   /** The amount converted to EUR (or original amount if already in EUR) */
   eurAmount: number;
   /** The exchange rate used for the conversion (1 EUR = X target currency) */
@@ -28,19 +28,6 @@ export interface CurrencyConversionResult {
   isMissing: boolean;
 }
 
-/**
- * Raw response structure from the Frankfurter exchange rate API.
- */
-export interface ExchangeRateResponse {
-  /** Whether the API request was successful */
-  success: boolean;
-  /** The date of the exchange rates in the response */
-  date: string;
-  /** The base currency for the rates (always EUR) */
-  base: string;
-  /** A map of target currencies to their exchange rates */
-  rates: Record<string, number>;
-}
 
 /**
  * Parse and validate exchange rate from API response.

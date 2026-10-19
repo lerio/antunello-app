@@ -21,7 +21,7 @@ interface PendingBonusData {
   wealth_fund_category_id?: string | null;
 }
 
-export interface TrBonusBuildResult {
+interface TrBonusBuildResult {
   rows: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>[];
   /** Human-readable reasons why a bonus was skipped (surfaced as toasts). */
   warnings: string[];

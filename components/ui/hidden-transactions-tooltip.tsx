@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { EyeOff } from 'lucide-react'
 import { formatCurrency } from '@/utils/currency'
 

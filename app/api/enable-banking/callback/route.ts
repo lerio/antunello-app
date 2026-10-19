@@ -135,7 +135,18 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            // 3) Match by IBAN
+            // 3) Match by IBAN and currency.
+            //
+            //    An IBAN on its own does not identify an account. Revolut
+            //    exposes each currency of one account as its own account, and
+            //    those share the IBAN: matching on the IBAN alone makes the
+            //    second one match the row the first just wrote, collapsing both
+            //    into a single connection — the last one in the session wins —
+            //    so the app syncs a currency the user may never spend from
+            //    while the settings screen shows the familiar IBAN.
+            //
+            //    A config stored before the currency was recorded matches
+            //    anything with the same IBAN, as it did before.
             if (!existingConfig && acc.account_id?.iban) {
                 const { data: allConfigs } = await supabase
                     .from('integration_configs')
@@ -144,7 +155,9 @@ export async function GET(request: NextRequest) {
                     .eq('provider', 'enable_banking');
 
                 const matchingConfig = allConfigs?.find((cfg) => {
-                    return (cfg.settings as any)?.iban === acc.account_id?.iban;
+                    const settings = (cfg.settings as any) || {};
+                    return settings.iban === acc.account_id?.iban
+                        && (!settings.currency || settings.currency === acc.account_id?.currency);
                 });
 
                 if (matchingConfig) {

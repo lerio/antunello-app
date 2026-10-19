@@ -105,9 +105,3 @@ export const getClientSwrConfig = (): SWRConfiguration => {
   return baseConfig
 }
 
-/**
- * Application-wide SWR configuration (server-safe, without client-side
- * persistence). Prefer {@link getClientSwrConfig} when running in the
- * browser.
- */
-export const swrConfig = getSwrConfig()

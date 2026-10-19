@@ -11,13 +11,29 @@ import { BalanceSkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
 
-export default function Balance() {
+export default function Balance({ embedded = false }: { embedded?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { fundCategories, isLoading, error, totalBalanceEUR } = useFundCategories();
   const { privacyMode } = usePrivacyMode();
 
-  if (error) return null;
+  // Fail in place rather than disappearing: a block that vanishes reads as
+  // "nothing to see", which is worse than saying it could not load.
+  if (error) {
+    return (
+      <div
+        className={
+          embedded
+            ? ""
+            : "bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 mb-2"
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Couldn&apos;t load your funds.
+        </p>
+      </div>
+    );
+  }
 
   const amountColorClass = totalBalanceEUR >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
@@ -55,9 +71,15 @@ export default function Balance() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 mb-2">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div
+      className={
+        embedded
+          ? ""
+          : "bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 mb-2"
+      }
+    >
+      {/* Header — hidden when embedded, where the block supplies the title and total. */}
+      <div className={embedded ? "hidden" : "flex items-center justify-between"}>
         <h3 className="text-lg font-semibold m-0">Balance</h3>
         <div className="flex items-center gap-2">
           <div className={`text-lg font-semibold ${amountColorClass}`}>
@@ -83,9 +105,9 @@ export default function Balance() {
         </div>
       </div>
 
-      {/* Expanded Content */}
-      {isExpanded && (
-        <div className="mt-4">
+      {/* Expanded Content — always visible when embedded, behind the chevron otherwise. */}
+      {(embedded || isExpanded) && (
+        <div className={embedded ? "" : "mt-4"}>
           {(() => {
             if (isLoading) {
               return <BalanceSkeleton />;

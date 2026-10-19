@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * Base and state-specific Tailwind CSS class configurations for transaction type
  * toggle buttons (expense, income, transfer).
  */
-export const typeButtonStyles = {
+const typeButtonStyles = {
   base: "flex-1 py-3 px-4 rounded-lg flex items-center justify-center font-medium border-2 transition-all",
   expense: {
     selected:
@@ -62,7 +62,7 @@ export function getTypeButtonClass(
 /**
  * Base and color Tailwind CSS class configurations for input fields.
  */
-export const inputStyles = {
+const inputStyles = {
   base: "block w-full rounded-lg shadow-sm focus:outline-none text-base h-12 px-4",
   colors: "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
   disabled: "opacity-50 cursor-not-allowed",
@@ -82,7 +82,7 @@ export function getInputClass(isDisabled: boolean = false): string {
 /**
  * Base and color Tailwind CSS class configurations for select dropdowns.
  */
-export const selectStyles = {
+const selectStyles = {
   base: "w-full px-3 py-2 border rounded-md text-sm focus:outline-none",
   colors: "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
   disabled: "opacity-50 cursor-not-allowed",
@@ -96,34 +96,6 @@ export const selectStyles = {
  */
 export function getSelectClass(isDisabled: boolean = false): string {
   return cn(selectStyles.base, selectStyles.colors, isDisabled && selectStyles.disabled);
-}
-
-// Submit button styles
-/**
- * Variant-specific Tailwind CSS class configurations for action buttons.
- */
-export const buttonStyles = {
-  primary:
-    "flex-1 flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700",
-  secondary:
-    "flex-1 flex justify-center py-4 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none",
-  destructive:
-    "flex-1 flex justify-center items-center py-4 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white transition-all transform hover:scale-105 focus:outline-none bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800",
-  disabled: "opacity-50 cursor-not-allowed",
-} as const;
-
-/**
- * Returns the combined Tailwind CSS class string for an action button.
- *
- * @param variant - The button variant ("primary", "secondary", or "destructive")
- * @param isDisabled - Whether the button should appear disabled (default: false)
- * @returns A combined CSS class string
- */
-export function getButtonClass(
-  variant: "primary" | "secondary" | "destructive",
-  isDisabled: boolean = false
-): string {
-  return cn(buttonStyles[variant], isDisabled && buttonStyles.disabled);
 }
 
 /**

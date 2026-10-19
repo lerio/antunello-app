@@ -19,7 +19,7 @@ export interface CategoryDataPoint {
 /**
  * Aggregate category expense statistics for the selected time range.
  */
-export interface CategoryStats {
+interface CategoryStats {
   /** Total expense amount across the entire time range. */
   totalAmount: number;
   /** Total number of transactions across the entire time range. */

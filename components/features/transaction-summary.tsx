@@ -17,9 +17,7 @@ import {
   getTotalAmountClass,
   getMonthlyAmountClass,
 } from "@/utils/styling-utils";
-import { createMonthKey, transactionFetcher } from "@/utils/transaction-fetcher";
 import { useSplitSourcesForYear } from "@/hooks/useSplitSourcesForYear";
-import useSWR from "swr";
 
 type CategoryData = {
   type: "income" | "expense";
@@ -59,12 +57,6 @@ type TotalsItem = {
   isSubCategory?: boolean;
   type?: "income" | "expense";
   icon?: React.ComponentType<LucideProps>;
-};
-
-type MonthlyComparisonRow = {
-  label: string;
-  percentage: number | null;
-  referenceValue: number | null;
 };
 
 function getMonthlyAverage(total: number, numberOfMonths: number = 12) {
@@ -124,38 +116,6 @@ function formatDifference(
   );
 }
 
-function formatPercentage(
-  percentage: number,
-  privacyMode: boolean = false,
-) {
-  const sign = percentage > 0 ? "+" : "-";
-  const colorClass = getDifferenceColorClass(percentage, true);
-  return (
-    <span className={`${colorClass} text-sm sm:text-sm`}>
-      <PrivacyBlur blur={privacyMode}>
-        {sign}
-        {formatAmount(Math.abs(percentage))}%
-      </PrivacyBlur>
-    </span>
-  );
-}
-
-function formatReferenceAmount(
-  amount: number,
-  privacyMode: boolean = false,
-) {
-  const sign = amount < 0 ? "-" : "";
-
-  return (
-    <span className="text-xs sm:text-xs text-muted-foreground">
-      <PrivacyBlur blur={privacyMode}>
-        {" "}
-        ({sign}€{formatAmount(Math.abs(amount))})
-      </PrivacyBlur>
-    </span>
-  );
-}
-
 function inc(map: Record<string, number>, key: string, amount: number) {
   map[key] = (map[key] || 0) + amount;
 }
@@ -208,87 +168,6 @@ function computeBalanceTotal(transactions: ReadonlyArray<Transaction>): number {
   return incomeTotal - expenseTotal;
 }
 
-function getPreviousMonth(selectedYear: number, selectedMonth: number) {
-  if (selectedMonth === 1) {
-    return { year: selectedYear - 1, month: 12 };
-  }
-
-  return { year: selectedYear, month: selectedMonth - 1 };
-}
-
-function formatPreviousMonthComparisonLabel(
-  selectedYear: number,
-  previousYear: number,
-  previousMonth: number,
-) {
-  const monthLabel = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-  })
-    .format(new Date(previousYear, previousMonth - 1, 1))
-    .toUpperCase();
-
-  if (selectedYear === previousYear) {
-    return `VS ${monthLabel}`;
-  }
-
-  const shortYear = String(previousYear).slice(-2);
-  return `VS ${monthLabel} '${shortYear}`;
-}
-
-function calculatePercentageDifference(
-  currentValue: number,
-  previousValue: number,
-): number | null {
-  if (previousValue === 0) return null;
-  return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
-}
-
-function getMonthComparisonMode(selectedYear: number, selectedMonth: number) {
-  const now = new Date();
-  const currentMonthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-  ).getTime();
-  const selectedMonthStart = new Date(selectedYear, selectedMonth - 1, 1).getTime();
-
-  if (selectedMonthStart > currentMonthStart) {
-    return {
-      isFutureMonth: true,
-      cutoffDay: null as number | null,
-      previousMonthCutoffDay: null as number | null,
-    };
-  }
-
-  if (selectedMonthStart === currentMonthStart) {
-    return {
-      isFutureMonth: false,
-      cutoffDay: now.getDate(),
-      previousMonthCutoffDay: now.getDate(),
-    };
-  }
-
-  return {
-    isFutureMonth: false,
-    cutoffDay: new Date(selectedYear, selectedMonth, 0).getDate(),
-    previousMonthCutoffDay: null as number | null,
-  };
-}
-
-function filterTransactionsThroughDay(
-  transactions: ReadonlyArray<Transaction>,
-  cutoffDay?: number | null,
-) {
-  if (cutoffDay === undefined || cutoffDay === null) {
-    return transactions;
-  }
-
-  return transactions.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    return transactionDate.getDate() <= cutoffDay;
-  });
-}
-
 function getExpectedMonthlySplitAmountEur(
   splitSources: ReadonlyArray<Transaction>,
   visibleTransactions: ReadonlyArray<Transaction>,
@@ -311,20 +190,6 @@ function getExpectedMonthlySplitAmountEur(
   );
 
   return calculateExpectedSplitAmountEur(allSplitForMonth, visibleTransactions);
-}
-
-function useMonthTransactions(year?: number, month?: number) {
-  const monthKey =
-    year !== undefined && month !== undefined ? createMonthKey(year, month) : null;
-
-  const { data } = useSWR<Transaction[]>(monthKey, transactionFetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    dedupingInterval: 10000,
-    keepPreviousData: true,
-  });
-
-  return data || [];
 }
 
 function computePrevYearTotals(
@@ -601,7 +466,6 @@ type TotalsTableProps = {
   readonly currentYear?: number;
   readonly previousYear?: number;
   readonly expectedSplitAmountEur?: number;
-  readonly monthlyComparisonRows?: ReadonlyArray<MonthlyComparisonRow>;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
   readonly onToggleIncome: () => void;
@@ -611,6 +475,7 @@ type TotalsTableProps = {
   readonly privacyMode: boolean;
   readonly isCurrentYearView: boolean;
   readonly lastCompleteMonth: number;
+  readonly isCurrentMonthView?: boolean;
 };
 
 function TotalsTable({
@@ -618,7 +483,6 @@ function TotalsTable({
   currentYear,
   previousYear,
   expectedSplitAmountEur = 0,
-  monthlyComparisonRows = [],
   isIncomeExpanded,
   isExpensesExpanded,
   onToggleIncome,
@@ -628,15 +492,20 @@ function TotalsTable({
   privacyMode,
   isCurrentYearView,
   lastCompleteMonth,
+  isCurrentMonthView = false,
 }: TotalsTableProps) {
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
   const isGains = balanceTotal >= 0;
   const title = isGains ? "Gains" : "Losses";
+  // A month in progress always looks like a loss before payday, so say which
+  // figure this is rather than letting the header imply a finished month.
   const subtitle = isCurrentYearView && lastCompleteMonth >= 0
     ? formatMonthRange(lastCompleteMonth)
-    : null;
+    : isCurrentMonthView
+      ? "so far this month"
+      : null;
 
   // Filter data - when collapsed, show nothing (title shows the balance); when expanded, show all except balance
   const filteredData = isDetailsExpanded
@@ -716,30 +585,6 @@ function TotalsTable({
             </thead>
           )}
           <tbody>
-            {currentYear === undefined &&
-              isDetailsExpanded &&
-              monthlyComparisonRows.map((row) => (
-                <tr key={row.label}>
-                  <td className="py-2 sm:py-3 px-1 sm:px-2">
-                    <span className="font-medium text-muted-foreground text-sm sm:text-sm">
-                      {row.label}
-                    </span>
-                  </td>
-                  <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                    {row.percentage === null ? (
-                      <span className="text-muted-foreground text-sm sm:text-sm">
-                        -
-                      </span>
-                    ) : (
-                      <>
-                        {formatPercentage(row.percentage, privacyMode)}
-                        {row.referenceValue !== null &&
-                          formatReferenceAmount(row.referenceValue, privacyMode)}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
             {filteredData.map((item) => {
               const isHiddenExpense = item.isHiddenExpense;
               const isSubCategory = item.isSubCategory;
@@ -997,19 +842,8 @@ export default function TransactionSummary({
     useYearTransactions(previousYear);
   const comparisonYear = selectedYear ?? currentYear;
   const comparisonMonth = selectedMonth;
-  const previousMonthDate =
-    comparisonYear !== undefined && comparisonMonth !== undefined
-      ? getPreviousMonth(comparisonYear, comparisonMonth)
-      : undefined;
-  const previousMonthTransactions = useMonthTransactions(
-    previousMonthDate?.year,
-    previousMonthDate?.month,
-  );
   const { data: currentSplitSources = [] } =
     useSplitSourcesForYear(comparisonYear);
-  const { data: previousMonthSplitSources = [] } = useSplitSourcesForYear(
-    previousMonthDate?.year,
-  );
 
   // Determine if viewing the current year — cap at last complete month
   const isCurrentYearView = useMemo(
@@ -1172,74 +1006,6 @@ export default function TransactionSummary({
     [incomeCategoryTotals, expenseCategoryTotals],
   );
 
-  const monthlyComparisonRows = useMemo<MonthlyComparisonRow[]>(() => {
-    if (
-      currentYear !== undefined ||
-      comparisonYear === undefined ||
-      comparisonMonth === undefined ||
-      previousMonthDate === undefined
-    ) {
-      return [];
-    }
-
-    const { isFutureMonth, cutoffDay, previousMonthCutoffDay } =
-      getMonthComparisonMode(comparisonYear, comparisonMonth);
-
-    if (isFutureMonth || cutoffDay === null) {
-      return [];
-    }
-
-    const currentComparisonTransactions = filterTransactionsThroughDay(
-      transactions,
-      cutoffDay,
-    );
-    const previousMonthComparisonTransactions = filterTransactionsThroughDay(
-      previousMonthTransactions,
-      previousMonthCutoffDay,
-    );
-    const currentDisplayedBalance =
-      computeBalanceTotal(currentComparisonTransactions) -
-      getExpectedMonthlySplitAmountEur(
-        currentSplitSources,
-        currentComparisonTransactions,
-        comparisonYear,
-        comparisonMonth,
-        cutoffDay,
-      );
-    const previousMonthDisplayedBalance =
-      computeBalanceTotal(previousMonthComparisonTransactions) -
-      getExpectedMonthlySplitAmountEur(
-        previousMonthSplitSources,
-        previousMonthComparisonTransactions,
-        previousMonthDate.year,
-        previousMonthDate.month,
-        cutoffDay,
-      );
-    return [
-      {
-        label: formatPreviousMonthComparisonLabel(
-          comparisonYear,
-          previousMonthDate.year,
-          previousMonthDate.month,
-        ),
-        percentage: calculatePercentageDifference(
-          currentDisplayedBalance,
-          previousMonthDisplayedBalance,
-        ),
-        referenceValue: previousMonthDisplayedBalance,
-      },
-    ];
-  }, [
-    currentYear,
-    comparisonYear,
-    comparisonMonth,
-    previousMonthDate,
-    transactions,
-    currentSplitSources,
-    previousMonthTransactions,
-    previousMonthSplitSources,
-  ]);
-
   // Loading state (after all hooks)
   if (isLoading) {
     // Year view shows both totals and category breakdown
@@ -1252,6 +1018,12 @@ export default function TransactionSummary({
 
   const shouldShowTotals = currentYear === undefined || hasData;
 
+  const monthViewNow = new Date();
+  const isCurrentMonthView =
+    currentYear === undefined &&
+    comparisonYear === monthViewNow.getFullYear() &&
+    comparisonMonth === monthViewNow.getMonth() + 1;
+
   return (
     <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
       {shouldShowTotals && (
@@ -1260,7 +1032,6 @@ export default function TransactionSummary({
           currentYear={currentYear}
           previousYear={previousYear}
           expectedSplitAmountEur={expectedSplitAmountEur}
-          monthlyComparisonRows={monthlyComparisonRows}
           isIncomeExpanded={isIncomeExpanded}
           isExpensesExpanded={isExpensesExpanded}
           onToggleIncome={handleToggleIncome}
@@ -1270,6 +1041,7 @@ export default function TransactionSummary({
           privacyMode={privacyMode}
           isCurrentYearView={isCurrentYearView}
           lastCompleteMonth={lastCompleteMonth}
+          isCurrentMonthView={isCurrentMonthView}
         />
       )}
 

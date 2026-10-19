@@ -154,31 +154,3 @@ export function clearCacheStorage() {
   }
 }
 
-/**
- * Get cache storage usage info.
- *
- * @returns An object describing the cached payload (version, age, byte size,
- *          entry count), or `null` if nothing is cached or an error occurs.
- */
-export function getCacheStorageInfo() {
-  if (globalThis.localStorage === undefined) return null
-
-  try {
-    const cached = localStorage.getItem(CACHE_KEY)
-    if (!cached) return null
-
-    const size = new Blob([cached]).size
-    const cachedData: CachedData = JSON.parse(cached)
-
-    return {
-      version: cachedData.version,
-      timestamp: cachedData.timestamp,
-      age: Date.now() - cachedData.timestamp,
-      size: size,
-      entries: Object.keys(cachedData.data).length
-    }
-  } catch (error) {
-    console.warn('Failed to get cache storage info:', error)
-    return null
-  }
-}

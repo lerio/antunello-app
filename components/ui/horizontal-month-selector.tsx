@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { MonthOption } from "@/hooks/useAvailableMonths";
 
 function getMonthButtonVariant(

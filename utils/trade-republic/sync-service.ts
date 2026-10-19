@@ -10,7 +10,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { TradeRepublicClient } from './client';
 
-export interface TRConfig {
+interface TRConfig {
   id: string;
   user_id: string;
   account_id: string;
