@@ -14,15 +14,17 @@ type CurrencyConfig = {
 }
 
 const CURRENCY_FORMATS: Record<string, CurrencyConfig> = {
-  EUR: { locale: 'it-IT', currency: 'EUR' },
+  // German rather than Italian CLDR data: both render `1.234,56 €`, but Italian
+  // sets minimumGroupingDigits=2 and leaves 5448,96 ungrouped. German groups it.
+  EUR: { locale: 'de-DE', currency: 'EUR' },
   USD: { locale: 'en-US', currency: 'USD' },
   JPY: { locale: 'ja-JP', currency: 'JPY' },
 }
 
 /**
  * Formats a numeric amount into a locale-aware currency string.
- * Uses currency-specific locales (e.g., EUR uses Italian formatting with "." as
- * thousands separator and "," for decimals). JPY is formatted with 0 decimal places;
+ * Uses currency-specific locales (e.g., EUR uses "." as thousands separator and
+ * "," for decimals). JPY is formatted with 0 decimal places;
  * all other currencies use 2 decimal places.
  *
  * @param amount - The numeric amount to format

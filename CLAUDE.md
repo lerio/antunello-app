@@ -273,7 +273,7 @@ Bank-imported transactions awaiting review:
 
 ### Charts and Analytics
 - `useMonthPace.ts` — Home's month figures from `get_month_pace` (spent to date, typical-by-today, net vs previous month, last 30 complete days) and `get_month_movers`
-- `useNetWorthSeries.ts` — Per-bucket balance deltas from `get_net_worth_series`, plus `useLastSync` for the oldest bank connection's sync time
+- `useNetWorthSeries.ts` — Per-bucket balance deltas from `get_net_worth_series`
 - `useCategoryHistory.ts` — Compute category spending history for time ranges
 
 ### Mutations

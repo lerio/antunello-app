@@ -71,38 +71,3 @@ export function useNetWorthSeries(from: string | null, bucket: SeriesBucket) {
 
   return { buckets: data ?? [], isLoading, error, mutate };
 }
-
-/**
- * Hook to fetch when the user's bank connections were last synced.
- *
- * This is the only true "when did data last arrive" signal in the schema:
- * manually maintained funds have no sync of their own, and a ledger timestamp
- * would report a dormant fund as stale forever. Returns the oldest connection,
- * so the block is pessimistic about its own freshness rather than flattering.
- *
- * @returns The oldest `last_sync_at` as `YYYY-MM-DD`, or `null` when nothing
- *          is connected.
- */
-export function useLastSync() {
-  const supabase = createClient();
-
-  const { data, error, isLoading, mutate } = useSWR<string | null>(
-    "last-sync",
-    async () => {
-      const { data: rows, error: queryError } = await supabase
-        .from("integration_configs")
-        .select("last_sync_at");
-
-      if (queryError) throw queryError;
-
-      const synced = ((rows ?? []) as { last_sync_at: string | null }[])
-        .map((row) => row.last_sync_at)
-        .filter((value): value is string => Boolean(value))
-        .sort();
-
-      return synced.length > 0 ? synced[0].split("T")[0] : null;
-    }
-  );
-
-  return { lastSync: data ?? null, isLoading, error, mutate };
-}

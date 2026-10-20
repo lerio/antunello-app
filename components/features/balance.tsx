@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
-import { formatAmountWithoutSymbol } from "@/utils/format-utils";
 import { getCurrencyIcon } from "@/utils/currency-icons";
 import { FundCategoryWithBalance, useFundCategories } from "@/hooks/useFundCategories";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,7 +86,7 @@ export default function Balance({ embedded = false }: { embedded?: boolean }) {
               <Skeleton className="inline-block w-20 h-5 align-middle" />
             ) : (
               <PrivacyBlur blur={privacyMode}>
-                €{formatAmountWithoutSymbol(Math.abs(totalBalanceEUR))}
+                {formatCurrency(Math.abs(totalBalanceEUR), "EUR")}
               </PrivacyBlur>
             )}
           </div>
@@ -157,7 +156,7 @@ export default function Balance({ embedded = false }: { embedded?: boolean }) {
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
                               <PrivacyBlur blur={privacyMode}>
-                                €{formatAmountWithoutSymbol(Math.abs(totalEUR))}
+                                {formatCurrency(Math.abs(totalEUR), "EUR")}
                               </PrivacyBlur>
                             </div>
                           </button>

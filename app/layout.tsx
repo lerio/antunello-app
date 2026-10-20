@@ -75,7 +75,7 @@ export default function RootLayout({
 
                 {/* New Header Design */}
                 <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
-                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+                  <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6 lg:max-w-[1200px] lg:px-8">
                     <div className="flex items-center gap-8">
                       <Link
                         href="/protected"
@@ -133,7 +133,7 @@ export default function RootLayout({
 
                 <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 mb-16 md:mb-0">
                   <p>
-                    Made in 🇯🇵&nbsp;&nbsp;by{" "}
+                    Made in 🇯🇵 🇪🇸 by{" "}
                     <a
                       href="https://www.linkedin.com/in/valerio-donati-b0b0b21/"
                       target="_blank"
