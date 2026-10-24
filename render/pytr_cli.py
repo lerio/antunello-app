@@ -143,10 +143,12 @@ def _parse_de_amount(text: str) -> float | None:
 def _extract_bonus_amounts(event: dict) -> tuple[float | None, float | None]:
     """Extract (saveback, round_up) amounts from a card event's details.
 
-    Card events carry a "Vorteile" (benefits) section whose items are
-    embeddedTimelineItem dicts with a subtitle like "Saveback · 1%" or
-    "Round up · 1×" and a localised amount like "0,13 €". Returns None for
-    amounts that are absent, zero or unparseable.
+    Card events carry a "Vorteile" (benefits) section whose items have a
+    subtitle like "Saveback · 1%" or "Round up · 1×" and a localised amount
+    like "0,13 €". TR switched these from ``embeddedTimelineItem`` (amount /
+    subtitle at the top level) to ``listItem`` (amount in trailing.title,
+    subtitle in content.subtitle) around mid-October 2026; both are handled.
+    Returns None for amounts that are absent, zero or unparseable.
     """
     saveback: float | None = None
     round_up: float | None = None
@@ -159,12 +161,21 @@ def _extract_bonus_amounts(event: dict) -> tuple[float | None, float | None]:
             if not isinstance(item, dict):
                 continue
             detail = item.get("detail")
-            if not isinstance(detail, dict) or detail.get("type") != "embeddedTimelineItem":
+            if not isinstance(detail, dict):
                 continue
-            amount = _parse_de_amount(detail.get("amount") or "")
+            if detail.get("type") == "embeddedTimelineItem":
+                subtitle = detail.get("subtitle") or ""
+                amount_text = detail.get("amount") or ""
+            elif detail.get("type") == "listItem":
+                content = detail.get("content")
+                trailing = detail.get("trailing")
+                subtitle = (content.get("subtitle") or "") if isinstance(content, dict) else ""
+                amount_text = (trailing.get("title") or "") if isinstance(trailing, dict) else ""
+            else:
+                continue
+            amount = _parse_de_amount(amount_text)
             if amount is None or amount <= 0:
                 continue
-            subtitle = detail.get("subtitle") or ""
             if subtitle.startswith("Saveback") and saveback is None:
                 saveback = amount
             elif subtitle.startswith("Round up") and round_up is None:
