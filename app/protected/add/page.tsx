@@ -41,8 +41,6 @@ function AddTransactionContent() {
     const title = searchParams.get('title');
     const date = searchParams.get('date');
     const type = searchParams.get('type');
-    const externalId = searchParams.get('external_id');
-    const pendingId = searchParams.get('pending_id');
 
     if (!amount && !title) return undefined;
 

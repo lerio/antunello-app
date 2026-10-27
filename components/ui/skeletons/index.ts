@@ -1,4 +1,3 @@
-export { BalanceSkeleton } from './balance-skeleton'
 export { ChartSkeleton } from './chart-skeleton'
 export { TransactionListSkeleton } from './transaction-list-skeleton'
 export { SummarySkeleton } from './summary-skeleton'

@@ -231,7 +231,7 @@ export default function FundCategoriesManager() {
             return (
               fundCategories
                 .sort((a, b) => a.order_index - b.order_index)
-                .map((fund, index) => (
+                .map((fund) => (
                   <div
                     key={fund.id}
                     className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"

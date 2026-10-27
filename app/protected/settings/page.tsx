@@ -830,7 +830,6 @@ function SettingsContent() {
                       // sharing the IBAN, and the currency is the only thing
                       // telling them apart in this list.
                       const currency = settings.currency;
-                      const isTR = acc.provider === "trade_republic";
                       const isSessionExpired =
                         settings.auth_status === "session_expired";
 

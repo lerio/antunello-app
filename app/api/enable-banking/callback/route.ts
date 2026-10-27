@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state') || '';
 
     // Parse state: "userId:Bank Name"
-    const [stateUserId, stateBankName] = state.includes(':') ? state.split(':') : [state, undefined];
+    const [, stateBankName] = state.includes(':') ? state.split(':') : [state, undefined];
 
     // Determine Redirect Target (Settings Page)
     let baseUrl = 'http://localhost:3000';

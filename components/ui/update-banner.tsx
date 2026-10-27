@@ -25,7 +25,7 @@ export function UpdateBanner({
             />
             <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
               {updateCount === 0
-                ? "Transactions updated on another device"
+                ? "Activity updated on another device"
                 : `${updateCount} ${updateCount === 1 ? "new transaction" : "new transactions"} available`}
             </span>
           </div>

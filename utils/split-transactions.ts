@@ -63,7 +63,12 @@ function getRoundedSplitMinorUnits(
   fractionDigits: number
 ): { regularMonthMinorUnits: number; firstMonthMinorUnits: number } {
   const totalMinorUnits = roundToMinorUnits(totalAmount, fractionDigits)
-  const regularMonthMinorUnits = roundToMinorUnits(totalAmount / SPLIT_PARTS, fractionDigits)
+  // Divide in integer minor units. `totalAmount / 12` can land exactly on a
+  // half-cent, where floating point rounds 72.025 down and SQL's numeric
+  // round() rounds it up; that cent-level disagreement must not exist.
+  const regularMonthMinorUnits =
+    Math.sign(totalMinorUnits) *
+    Math.floor(Math.abs(totalMinorUnits) / SPLIT_PARTS + 0.5)
   const firstMonthMinorUnits = totalMinorUnits - regularMonthMinorUnits * (SPLIT_PARTS - 1)
 
   return { regularMonthMinorUnits, firstMonthMinorUnits }

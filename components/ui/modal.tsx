@@ -11,7 +11,6 @@ const ANIMATION_DURATION = 300
 export function Modal({ isOpen, onClose, children }: ModalProps) {
   const [isAnimating, setIsAnimating] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
-  const [contentReady, setContentReady] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<MutationObserver | null>(null)
@@ -44,7 +43,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
   useEffect(() => {
     if (isOpen && !shouldRender) {
       setShouldRender(true)
-      setContentReady(false)
       animationTriggeredRef.current = false
       document.body.style.overflow = 'hidden'
     }
@@ -76,7 +74,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
           void dialog.offsetHeight
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              setContentReady(true)
               setIsAnimating(true)
             })
           })
@@ -107,7 +104,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
             observerRef.current.disconnect()
             observerRef.current = null
           }
-          setContentReady(true)
           setIsAnimating(true)
         }
       }, 150)
@@ -129,8 +125,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
 
       const timer = setTimeout(() => {
         setShouldRender(false)
-        setContentReady(false)
-        animationTriggeredRef.current = false
+          animationTriggeredRef.current = false
         document.body.style.overflow = 'unset'
       }, ANIMATION_DURATION)
 

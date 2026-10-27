@@ -16,7 +16,7 @@ import { createClient } from '@/utils/supabase/server';
  * @returns A JSON response indicating success, or an error with status 500.
  */
 export async function DELETE(
-    request: NextRequest,
+    _request: NextRequest,
     { params }: { params: Promise<{ id: string }> } // Params is a Promise in Next.js 15+ (and 16)
 ) {
     const { id } = await params;

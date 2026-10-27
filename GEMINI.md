@@ -149,8 +149,8 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
 - `/protected/year` — Yearly summary aggregated by month
 - `/protected/add` — Dedicated transaction add page
 - `/protected/edit/[id]` — Edit transaction by ID
-- `/protected/search` — Real-time transaction search with filters
-- `/protected/filter` — Advanced multi-dimensional filtered transaction view
+- `/protected/search` — Search with an expandable filter panel, over real transaction rows
+- `/protected/filter` — Redirects to the search page with the filter panel open
 - `/protected/category/[category]` — Transactions filtered by main category with chart
 - `/protected/category/[category]/[subcategory]` — Transactions filtered by subcategory
 - `/protected/budgets` — Budget list with progress bars
@@ -216,7 +216,6 @@ Bank-imported transactions awaiting review:
 - `navigation.tsx` — Mobile (fixed bottom) and desktop (inline top) navigation with active state detection
 - `header-auth.tsx` — Async server component: auth header with user menu or sign-in link
 - `user-menu.tsx` — Dropdown user menu with sign-out option
-- `theme-toggle.tsx` — Dark/light theme switcher with animated icon
 - `privacy-provider.tsx` — Context provider for privacy mode (persisted to localStorage)
 - `privacy-toggle.tsx` — Privacy mode toggle button (Eye/EyeOff icons)
 - `hero.tsx` — Landing page hero section
@@ -230,7 +229,6 @@ Bank-imported transactions awaiting review:
 - `dashboard-summary.tsx` — Dashboard with current/previous/same-month-last-year comparison tables, category breakdown with expandable subcategories (561 lines)
 - `balance-chart.tsx` — Interactive balance line chart with previous-period overlay, time range selector (1M/1Y/5Y/All), responsive sizing (361 lines)
 - `category-chart.tsx` — Bar chart for category spending over time with transaction count summary (349 lines)
-- `balance.tsx` — Expandable fund categories grouped by top-level category, collapsible sections (188 lines)
 - `overall-totals.tsx` — Global balance total display
 - `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
 - `filter-controls.tsx` — Advanced filter panel: type/category/currency/fund/amount-range/period multi-select with chip badges (389 lines)
@@ -239,7 +237,6 @@ Bank-imported transactions awaiting review:
 - `budget-form.tsx` — Budget add/edit form with category selection
 - `pending-transactions-button.tsx` — Floating bell icon with count badge for pending bank transactions
 - `pending-transactions-notifier.tsx` — Polling-based notifier for new bank transactions (60s interval)
-- `no-transactions.tsx` — Empty state with illustration
 
 ### UI Components (`components/ui/`)
 - **Form controls**: `input.tsx`, `label.tsx`, `select.tsx`, `category-select.tsx`, `title-suggestion-input.tsx`, `fund-select.tsx`, `searchable-select.tsx`, `multi-select-chips.tsx`, `switch.tsx`
@@ -254,7 +251,7 @@ Bank-imported transactions awaiting review:
 - **Privacy**: `privacy-blur.tsx` (CSS blur filter wrapper)
 - **Mobile**: `pull-to-refresh-indicator.tsx`
 - **Other**: `transaction-view-tabs.tsx`, `update-banner.tsx`, `daily-hidden-indicator.tsx`, `form-message.tsx`
-- **Skeletons**: `balance-skeleton.tsx`, `chart-skeleton.tsx`, `form-skeleton.tsx`, `summary-skeleton.tsx`, `transaction-list-skeleton.tsx`
+- **Skeletons**: `chart-skeleton.tsx`, `form-skeleton.tsx`, `summary-skeleton.tsx`, `transaction-list-skeleton.tsx`
 
 ### Cache Manager (`components/cache-manager.tsx`)
 - Listens for Supabase auth state changes (SIGNED_OUT, TOKEN_REFRESHED without session)
@@ -269,10 +266,9 @@ Bank-imported transactions awaiting review:
 - `useYearTransactions.ts` — Fetch year transactions with CET boundary handling and adjacent-year prefetching
 - `useAllTransactions.ts` — Fetch all user transactions via paginated batches
 - `useOverallTotals.ts` — Fetch global EUR balance from `/api/overall-totals`
-- `useTransactionSearch.ts` — Debounced (300ms) ilike search across transactions
 - `useFundCategories.ts` — Fetch fund categories with calculated balances from transactions
 - `useTitleSuggestions.ts` — Debounced (300ms) title suggestion search from transaction_title_patterns
-- `useFilteredTransactions.ts` — Multi-dimensional filtering with 300ms debounce, supports type/category/currency/fund/amount/period filters
+- `useFilteredTransactions.ts` — Combined text search and multi-dimensional filters with 300ms debounce
 - `useDateRangeTransactions.ts` — Fetch transactions within arbitrary date ranges
 - `useRangeTransactions.ts` — Fetch lightweight transaction data for time-range-based charts
 - `useCategoryTransactions.ts` — Fetch transactions filtered by main/sub category with time range

@@ -1,14 +1,12 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronRight, GitFork } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronUp, GitFork } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
 import {
-  calculateExpectedSplitAmountEur,
-  expandSplitTransactionsForMonth,
   getTransactionDisplayEurAmount,
 } from "@/utils/split-transactions";
 import {
@@ -17,7 +15,7 @@ import {
   getTotalAmountClass,
   getMonthlyAmountClass,
 } from "@/utils/styling-utils";
-import { useSplitSourcesForYear } from "@/hooks/useSplitSourcesForYear";
+import { formatCurrency } from "@/utils/currency";
 
 type CategoryData = {
   type: "income" | "expense";
@@ -93,10 +91,7 @@ function filterTransactionsToLastCompleteMonth(
 }
 
 function formatAmount(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return formatCurrency(amount, "EUR");
 }
 
 function formatDifference(
@@ -161,35 +156,6 @@ function computeYearTotals(
     expenseCategoryTotals,
     hiddenExpenseTotal,
   };
-}
-
-function computeBalanceTotal(transactions: ReadonlyArray<Transaction>): number {
-  const { incomeTotal, expenseTotal } = computeYearTotals(transactions);
-  return incomeTotal - expenseTotal;
-}
-
-function getExpectedMonthlySplitAmountEur(
-  splitSources: ReadonlyArray<Transaction>,
-  visibleTransactions: ReadonlyArray<Transaction>,
-  year: number,
-  month: number,
-  cutoffDay?: number,
-) {
-  if (!splitSources.length) return 0;
-
-  const lastDayOfMonth = new Date(year, month, 0).getDate();
-  const effectiveCutoffDay =
-    cutoffDay === undefined ? lastDayOfMonth : Math.min(cutoffDay, lastDayOfMonth);
-  const monthEnd = new Date(year, month - 1, effectiveCutoffDay, 23, 59, 59, 999);
-  const allSplitForMonth = expandSplitTransactionsForMonth(
-    [],
-    [...splitSources],
-    year,
-    month,
-    monthEnd,
-  );
-
-  return calculateExpectedSplitAmountEur(allSplitForMonth, visibleTransactions);
 }
 
 function computePrevYearTotals(
@@ -335,7 +301,7 @@ function createBaseData(ctx: BaseDataContext): TotalsItem[] {
 
   const base: TotalsItem[] = [
     {
-      category: balanceTotal >= 0 ? "Gains" : "Losses",
+      category: "Net",
       total: balanceTotal,
       monthlyAverage: getMonthlyAverage(balanceTotal, numberOfMonths),
       difference: getDifferenceIfAvailable(
@@ -402,7 +368,6 @@ function extendWithCategoryRows(
   isExpensesExpanded: boolean,
   incomeCategoryTotals: Record<string, number>,
   expenseCategoryTotals: Record<string, number>,
-  currentYear?: number,
   numberOfMonths: number = 12,
 ): TotalsItem[] {
   const extended: TotalsItem[] = [];
@@ -476,6 +441,7 @@ type TotalsTableProps = {
   readonly isCurrentYearView: boolean;
   readonly lastCompleteMonth: number;
   readonly isCurrentMonthView?: boolean;
+  readonly periodLabel?: string;
 };
 
 function TotalsTable({
@@ -493,17 +459,29 @@ function TotalsTable({
   isCurrentYearView,
   lastCompleteMonth,
   isCurrentMonthView = false,
+  periodLabel,
 }: TotalsTableProps) {
+  // The monthly summary is the redesigned card; the yearly one is deferred.
+  const isMonthly = currentYear === undefined;
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
   const isGains = balanceTotal >= 0;
-  const title = isGains ? "Gains" : "Losses";
+  const title = periodLabel ?? "Net";
+  const signedBalance = `${balanceTotal < 0 ? "−" : balanceTotal > 0 ? "+" : ""}${formatAmount(
+    Math.abs(balanceTotal),
+  )}`;
+  const balanceClass =
+    balanceTotal < 0
+      ? "text-negative"
+      : balanceTotal > 0
+        ? "text-positive"
+        : "text-muted-foreground";
   // A month in progress always looks like a loss before payday, so say which
   // figure this is rather than letting the header imply a finished month.
   const subtitle = isCurrentYearView && lastCompleteMonth >= 0
     ? formatMonthRange(lastCompleteMonth)
-    : isCurrentMonthView
+    : isCurrentMonthView && !periodLabel
       ? "so far this month"
       : null;
 
@@ -513,58 +491,53 @@ function TotalsTable({
     : [];
 
   return (
-    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <h3
-            className={`text-base sm:text-lg font-semibold ${
-              isGains
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {title}
-          </h3>
-          {subtitle && (
-            <span className="text-xs text-muted-foreground">{subtitle}</span>
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
+      <button
+        type="button"
+        onClick={onToggleDetails}
+        aria-expanded={isDetailsExpanded}
+        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <span
+              className={`block truncate text-sm font-medium ${
+                periodLabel
+                  ? "text-muted-foreground"
+                  : isGains
+                    ? "text-positive"
+                    : "text-negative"
+              }`}
+            >
+              {title}
+            </span>
+            {subtitle && (
+              <span className="text-xs text-muted-foreground">{subtitle}</span>
+            )}
+          </div>
+          {isDetailsExpanded ? (
+            <ChevronUp size={18} className="shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronDown size={18} className="shrink-0 text-muted-foreground" />
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-base sm:text-lg font-semibold ${
-              isGains
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            <PrivacyBlur blur={privacyMode}>
-              €{formatAmount(Math.abs(balanceTotal))}
-            </PrivacyBlur>
+
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <span className={`text-2xl font-semibold tabular-nums sm:text-3xl ${balanceClass}`}>
+            <PrivacyBlur blur={privacyMode}>{signedBalance}</PrivacyBlur>
           </span>
           {expectedSplitAmountEur > 0 && (
-            <span className="text-sm text-foreground inline-flex items-center gap-1">
-              <span>(</span>
-              <GitFork size={14} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <GitFork size={12} />
+              <span>Split ·</span>
               <PrivacyBlur blur={privacyMode}>
-                <span>€{formatAmount(Math.abs(expectedSplitAmountEur))}</span>
+                {formatAmount(Math.abs(expectedSplitAmountEur))}
               </PrivacyBlur>
-              <span>)</span>
             </span>
           )}
-          <button
-            onClick={onToggleDetails}
-            className="p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
-            aria-label={isDetailsExpanded ? "Collapse details" : "Expand details"}
-          >
-            {isDetailsExpanded ? (
-              <ChevronDown size={18} className="text-muted-foreground" />
-            ) : (
-              <ChevronRight size={18} className="text-muted-foreground" />
-            )}
-          </button>
         </div>
-      </div>
-      <div className="overflow-hidden">
+      </button>
+      <div className="mt-3 overflow-hidden">
         <table className="w-full">
           {currentYear !== undefined && isDetailsExpanded && (
             <thead>
@@ -601,6 +574,36 @@ function TotalsTable({
                 else if (item.isExpense) onToggleExpenses();
               };
 
+              const isIncomeRow = !!(item.isIncome || item.type === "income");
+              const isExpenseRow = !!(item.isExpense || item.type === "expense");
+              const labelClass = isMonthly
+                ? isHiddenExpense
+                  ? "text-muted-foreground"
+                  : isSubCategory
+                    ? "font-normal text-foreground"
+                    : "font-medium text-foreground"
+                : getCategoryNameClass(
+                    !!isSubCategory,
+                    !!isHiddenExpense,
+                    item.isBalance || false,
+                    item.isIncome || false,
+                    item.total,
+                  );
+              const amountClass = isMonthly
+                ? isIncomeRow
+                  ? "text-positive"
+                  : isExpenseRow
+                    ? "text-negative"
+                    : "text-muted-foreground"
+                : getTotalAmountClass(
+                    !!isSubCategory,
+                    item.type || "",
+                    !!isHiddenExpense,
+                    item.isBalance || false,
+                    item.isIncome || false,
+                    item.total,
+                  );
+
               return (
                 <tr key={`${item.category}`}>
                   <td className="py-2 sm:py-3 px-1 sm:px-2">
@@ -608,15 +611,16 @@ function TotalsTable({
                       {isCollapsible && (
                         <button
                           onClick={handleToggleExpand}
-                          className="mr-2 p-1 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
+                          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.category}`}
+                          className="mr-2 flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {isExpanded ? (
-                            <ChevronDown
+                            <ChevronUp
                               size={16}
                               className="text-muted-foreground"
                             />
                           ) : (
-                            <ChevronRight
+                            <ChevronDown
                               size={16}
                               className="text-muted-foreground"
                             />
@@ -624,37 +628,22 @@ function TotalsTable({
                         </button>
                       )}
                       {isSubCategory && item.icon && (
-                        <item.icon
-                          size={16}
-                          className="text-muted-foreground mr-2"
-                        />
+                        <span className="mr-2 flex h-6 w-6 items-center justify-center">
+                          <item.icon
+                            size={16}
+                            className="text-muted-foreground"
+                          />
+                        </span>
                       )}
-                      <span
-                        className={getCategoryNameClass(
-                          !!isSubCategory,
-                          !!isHiddenExpense,
-                          item.isBalance || false,
-                          item.isIncome || false,
-                          item.total,
-                        )}
-                      >
-                        {item.category}
-                      </span>
+                      <span className={labelClass}>{item.category}</span>
                     </div>
                   </td>
                   <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                    <span
-                      className={getTotalAmountClass(
-                        !!isSubCategory,
-                        item.type || "",
-                        !!isHiddenExpense,
-                        item.isBalance || false,
-                        item.isIncome || false,
-                        item.total,
-                      )}
-                    >
+                    <span className={amountClass}>
                       <PrivacyBlur blur={privacyMode}>
-                        {formatAmount(Math.abs(item.total))}
+                        {`${isMonthly && isIncomeRow ? "+" : ""}${formatAmount(
+                          Math.abs(item.total),
+                        )}`}
                       </PrivacyBlur>
                     </span>
                   </td>
@@ -842,8 +831,6 @@ export default function TransactionSummary({
     useYearTransactions(previousYear);
   const comparisonYear = selectedYear ?? currentYear;
   const comparisonMonth = selectedMonth;
-  const { data: currentSplitSources = [] } =
-    useSplitSourcesForYear(comparisonYear);
 
   // Determine if viewing the current year — cap at last complete month
   const isCurrentYearView = useMemo(
@@ -961,7 +948,6 @@ export default function TransactionSummary({
             isExpensesExpanded,
             incomeCategoryTotals,
             expenseCategoryTotals,
-            currentYear,
             numberOfMonths,
           ),
     [
@@ -1023,6 +1009,16 @@ export default function TransactionSummary({
     currentYear === undefined &&
     comparisonYear === monthViewNow.getFullYear() &&
     comparisonMonth === monthViewNow.getMonth() + 1;
+  const periodLabel =
+    currentYear === undefined
+      ? isCurrentMonthView
+        ? "Net so far this month"
+        : `Net · ${new Date(
+            comparisonYear ?? monthViewNow.getFullYear(),
+            (comparisonMonth ?? monthViewNow.getMonth() + 1) - 1,
+            1,
+          ).toLocaleDateString("en-GB", { month: "long" })}`
+      : undefined;
 
   return (
     <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
@@ -1042,6 +1038,7 @@ export default function TransactionSummary({
           isCurrentYearView={isCurrentYearView}
           lastCompleteMonth={lastCompleteMonth}
           isCurrentMonthView={isCurrentMonthView}
+          periodLabel={periodLabel}
         />
       )}
 

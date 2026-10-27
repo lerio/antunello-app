@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Transaction } from '@/types/database'
-import { expandSplitTransactionsForMonth, expandSplitTransactionsForYear } from '@/utils/split-transactions'
-import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 
 /**
  * Criteria object for filtering transactions in the search/advanced-filter view.
@@ -48,11 +46,12 @@ export const initialFilterCriteria: FilterCriteria = {
  *
  * Builds a Supabase query dynamically from the given `FilterCriteria` and applies a
  * 300 ms debounce before executing. Supports compound type filtering (income/expense
- * combined with movement/money-transfer), split-transaction expansion for month/year
- * views, and an in-place removal helper.
+ * combined with movement/money-transfer), a text search, and an in-place removal
+ * helper. Results are raw transaction rows: split instances are never expanded.
  *
  * @param criteria - The filter criteria to apply.
  * @param enabled - When `false`, the query is skipped and results are cleared.
+ * @param searchQuery - Optional text matched against title and categories.
  * @returns An object containing:
  *  - `results`: The filtered `Transaction` array.
  *  - `isLoading`: `true` while a query is in-flight.
@@ -60,7 +59,11 @@ export const initialFilterCriteria: FilterCriteria = {
  *  - `refetch`: Forces a new query with the latest criteria.
  *  - `removeFromResults`: Removes a single transaction from results by ID (optimistic).
  */
-export function useFilteredTransactions(criteria: FilterCriteria, enabled: boolean) {
+export function useFilteredTransactions(
+  criteria: FilterCriteria,
+  enabled: boolean,
+  searchQuery = '',
+) {
   const [results, setResults] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -96,6 +99,13 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
         .limit(500)
 
       const { types, mainCategories, subCategories, fundSourceIds, amountMin, amountMax, currencies, month, year } = criteriaRef.current
+
+      const term = searchQuery.trim()
+      if (term) {
+        query = query.or(
+          `title.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%`
+        )
+      }
 
       // Type filter with is_money_transfer handling
       if (types.length > 0) {
@@ -139,19 +149,12 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
         )
       }
 
-      // Amount range filter, in euros (the slider is labelled €). Compares
-      // eur_amount; a EUR row with no eur_amount falls back to amount, while a
-      // non-EUR row with no conversion cannot be placed in the range and is
-      // left out. Separate .or() calls are ANDed together.
-      if (amountMin !== null) {
-        query = query.or(
-          `eur_amount.gte.${amountMin},and(eur_amount.is.null,currency.eq.EUR,amount.gte.${amountMin})`
-        )
-      }
-      if (amountMax !== null) {
-        query = query.or(
-          `eur_amount.lte.${amountMax},and(eur_amount.is.null,currency.eq.EUR,amount.lte.${amountMax})`
-        )
+      // The amount range is only offered for one selected currency, and is
+      // compared in that currency's face value rather than converted euros.
+      const amountCurrency = currencies.length === 1 ? currencies[0] : null
+      if (amountCurrency !== null) {
+        if (amountMin !== null) query = query.gte('amount', amountMin)
+        if (amountMax !== null) query = query.lte('amount', amountMax)
       }
 
       // Currency filter
@@ -160,8 +163,6 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
       }
 
       // Date filter (month/year)
-      const hasMonthAndYear = year !== null && month !== null
-
       if (year !== null && month !== null) {
         // Use [start, nextMonthStart) to avoid dropping boundary-day timestamps.
         const startDate = new Date(year, month - 1, 1).toISOString()
@@ -179,95 +180,14 @@ export function useFilteredTransactions(criteria: FilterCriteria, enabled: boole
 
       if (queryError) throw new Error(queryError.message)
 
-      let finalResults = data || []
-
-      // Align split-transaction behavior with month/year views so totals use split values.
-      if (year !== null && month !== null) {
-        const yearStart = `${year}-01-01T00:00:00.000Z`
-        const yearEnd = `${year}-12-31T23:59:59.999Z`
-        const prevYearStart = `${year - 1}-01-01T00:00:00.000Z`
-        const prevYearEnd = `${year - 1}-12-31T23:59:59.999Z`
-
-        const [currentSplit, prevSplit] = await Promise.all([
-          supabase
-            .from('transactions')
-            .select('*')
-            .eq('split_across_year', true)
-            .gte('date', yearStart)
-            .lte('date', yearEnd)
-            .order('date', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(500),
-          supabase
-            .from('transactions')
-            .select('*')
-            .eq('split_across_year', true)
-            .gte('date', prevYearStart)
-            .lte('date', prevYearEnd)
-            .order('date', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(500),
-        ])
-
-        if (currentSplit.error || prevSplit.error) {
-          const err = currentSplit.error || prevSplit.error
-          throw new Error(err!.message)
-        }
-
-        const allSplitSources = [...(currentSplit.data || []), ...(prevSplit.data || [])]
-
-        finalResults = sortTransactionsByDateInPlace(
-          expandSplitTransactionsForMonth(finalResults, allSplitSources, year, month)
-        )
-      } else if (year !== null && !hasMonthAndYear) {
-        // For year-only filter, also need split sources from previous year
-        const yearStart = `${year}-01-01T00:00:00.000Z`
-        const yearEnd = `${year}-12-31T23:59:59.999Z`
-        const prevYearStart = `${year - 1}-01-01T00:00:00.000Z`
-        const prevYearEnd = `${year - 1}-12-31T23:59:59.999Z`
-
-        const [currentSplit, prevSplit] = await Promise.all([
-          supabase
-            .from('transactions')
-            .select('*')
-            .eq('split_across_year', true)
-            .gte('date', yearStart)
-            .lte('date', yearEnd)
-            .order('date', { ascending: false })
-            .limit(500),
-          supabase
-            .from('transactions')
-            .select('*')
-            .eq('split_across_year', true)
-            .gte('date', prevYearStart)
-            .lte('date', prevYearEnd)
-            .order('date', { ascending: false })
-            .limit(500),
-        ])
-
-        if (currentSplit.error || prevSplit.error) {
-          const err = currentSplit.error || prevSplit.error
-          throw new Error(err!.message)
-        }
-
-        const allSplitSources = [...(currentSplit.data || []), ...(prevSplit.data || [])]
-
-        finalResults = sortTransactionsByDateInPlace(
-          expandSplitTransactionsForYear(
-            [...finalResults, ...allSplitSources],
-            year
-          )
-        )
-      }
-
-      setResults(finalResults)
+      setResults(data || [])
     } catch (err) {
       setError(err as Error)
       setResults([])
     } finally {
       setIsLoading(false)
     }
-  }, [enabled])
+  }, [enabled, searchQuery])
 
   useEffect(() => {
     if (!enabled) {

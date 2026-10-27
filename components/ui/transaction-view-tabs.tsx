@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
 import { cn } from "@/lib/utils";
 
 interface TransactionViewTabsProps {
@@ -8,6 +9,11 @@ interface TransactionViewTabsProps {
   readonly year: number;
   readonly month?: number;
 }
+
+const OPTIONS = [
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+] as const;
 
 export function TransactionViewTabs({
   currentView,
@@ -43,29 +49,33 @@ export function TransactionViewTabs({
   };
 
   return (
-    <div className="flex items-center gap-4">
-      <button
-        onClick={handleMonthView}
-        className={cn(
-          "text-2xl font-bold transition-colors",
-          currentView === "month"
-            ? "text-gray-900 dark:text-white"
-            : "text-gray-400 dark:text-gray-600"
-        )}
-      >
-        Month
-      </button>
-      <button
-        onClick={handleYearView}
-        className={cn(
-          "text-2xl font-bold transition-colors",
-          currentView === "year"
-            ? "text-gray-900 dark:text-white"
-            : "text-gray-400 dark:text-gray-600"
-        )}
-      >
-        Year
-      </button>
+    <div
+      role="tablist"
+      aria-label="Transaction view"
+      className="inline-flex items-center gap-1 rounded-lg bg-muted p-1"
+    >
+      {OPTIONS.map((option) => {
+        const selected = option.value === currentView;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() =>
+              option.value === "month" ? handleMonthView() : handleYearView()
+            }
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              selected
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

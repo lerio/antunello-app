@@ -1,9 +1,9 @@
 import { EnvVarWarning } from "@/components/layout/env-var-warning";
+import { HeaderBrand } from "@/components/layout/header-brand";
 import HeaderAuth from "@/components/layout/header-auth";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import Link from "next/link";
 import "./globals.css";
 import { Suspense } from "react";
 import { Toaster } from "react-hot-toast";
@@ -14,7 +14,6 @@ import {
   MobileNavigation,
   DesktopNavigation,
 } from "@/components/layout/navigation";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { PrivacyProvider } from "@/components/layout/privacy-provider";
 import { PrivacyToggle } from "@/components/layout/privacy-toggle";
 
@@ -61,11 +60,14 @@ export default function RootLayout({
         className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
+        {/* A fresh storage key retires any light/dark choice saved by the old
+            toggle, so the system preference is the only source of truth. */}
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          storageKey="antunello-theme-system"
         >
           <PrivacyProvider>
             <SWRConfig value={getClientSwrConfig()}>
@@ -77,17 +79,7 @@ export default function RootLayout({
                 <header className="bg-white dark:bg-gray-800 shadow-sm relative z-[60]">
                   <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6 lg:max-w-[1200px] lg:px-8">
                     <div className="flex items-center gap-8">
-                      <Link
-                        href="/protected"
-                        className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
-                      >
-                        <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg">
-                          A
-                        </div>
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 hidden sm:block">
-                          Antunello
-                        </h1>
-                      </Link>
+                      <HeaderBrand />
 
                       {/* Desktop Navigation */}
                       <Suspense fallback={null}>
@@ -95,8 +87,7 @@ export default function RootLayout({
                       </Suspense>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                      <ThemeToggle />
+                    <div className="flex items-center">
                       <PrivacyToggle />
                       {!hasEnvVars ? (
                         <EnvVarWarning />
@@ -144,12 +135,15 @@ export default function RootLayout({
                     </a>
                   </p>
                 </footer>
-
-                {/* Mobile Navigation */}
-                <Suspense fallback={null}>
-                  <MobileNavigation />
-                </Suspense>
               </div>
+
+              {/* Mobile Navigation. Outside the overflow-clipped wrapper: on
+                  Safari a clipped ancestor can make a fixed element position
+                  against the page instead of the viewport, which hides the bar
+                  until the bottom of a long list. */}
+              <Suspense fallback={null}>
+                <MobileNavigation />
+              </Suspense>
             </SWRConfig>
           </PrivacyProvider>
         </ThemeProvider>

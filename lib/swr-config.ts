@@ -83,7 +83,7 @@ export const getClientSwrConfig = (): SWRConfiguration => {
       },
 
       // Save cache to localStorage on changes
-      onSuccess: (data, key, config) => {
+      onSuccess: (_data, key) => {
         // Save cache after successful updates (debounced)
         if ((key.startsWith('transactions-') || key.startsWith('transaction-')) && globalCache) {
           debouncedSave(() => globalCache && saveCacheToStorage(globalCache))

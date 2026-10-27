@@ -44,7 +44,6 @@ import {
 import { CURRENCY_OPTIONS } from "@/constants/app-constants";
 
 function renderSubmitButtonContent(
-  isLoading: boolean,
   hasInitialData: boolean
 ): React.ReactNode {
   return hasInitialData ? "Save" : "Add";
@@ -550,7 +549,7 @@ export default function TransactionFormModal({
   const inputClass =
     "block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none text-base h-12 px-4";
 
-  const buttonContent = renderSubmitButtonContent(isLoading, !!initialData);
+  const buttonContent = renderSubmitButtonContent(!!initialData);
 
   return (
     <div

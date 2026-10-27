@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <div>
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:max-w-[1200px] lg:px-8">
-        <div className="flex items-center justify-between pt-4 pb-2">
+        <div className="hidden md:flex items-center justify-between pt-4 pb-2">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             Home
           </h2>

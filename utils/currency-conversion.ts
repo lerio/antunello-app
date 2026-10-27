@@ -58,7 +58,7 @@ async function parseExchangeRateResponse(data: any, targetCurrency: string): Pro
  * @returns The fallback rate if on the last attempt and a fallback exists,
  *          undefined to signal that retrying should continue, or null if no fallback found
  */
-async function handleRetryFailure(attempt: number, retries: number, targetCurrency: string, date: string): Promise<{ rate: number; isMissing: boolean } | null | undefined> {
+async function handleRetryFailure(attempt: number, retries: number, targetCurrency: string): Promise<{ rate: number; isMissing: boolean } | null | undefined> {
   if (attempt === retries) {
     // Last attempt failed, try to get the most recent available rate
     const fallbackRate = await getFallbackExchangeRate(targetCurrency);
@@ -112,7 +112,7 @@ export async function fetchExchangeRateFromAPI(
     } catch (error) {
       console.warn(`Attempt ${attempt}/${retries} failed for ${date} ${targetCurrency}:`, error);
 
-      const retryResult = await handleRetryFailure(attempt, retries, targetCurrency, date);
+      const retryResult = await handleRetryFailure(attempt, retries, targetCurrency);
       if (retryResult !== undefined) {
         return retryResult;
       }

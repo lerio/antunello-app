@@ -1,21 +1,17 @@
-import useSWR, { mutate as globalMutate } from 'swr'
-import { useCallback, useMemo } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import useSWR from 'swr'
+import { useMemo } from 'react'
 import { Transaction } from '@/types/database'
 import { transactionFetcher, createMonthKey } from '@/utils/transaction-fetcher'
-import { createYearKey } from '@/utils/year-fetcher'
 import { transactionCache } from '@/utils/simple-cache'
-import { sortTransactionsByDateInPlace } from '@/utils/transaction-utils'
 import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/utils/split-transactions'
 
 /**
  * Consolidated, optimized hook for fetching and managing monthly transactions.
  *
  * Uses SWR with a month-based cache key (e.g., `transactions-2025-06`). Supports
- * event handling for INSERT / UPDATE / DELETE operations and memoized summary
- * calculations (totals grouped by currency). Also provides a helper to
- * invalidate the year-level cache. Adjacent-month prefetching lives on the
- * transactions page, which is the only view that navigates between months.
+ * memoized summary calculations (totals grouped by currency). Adjacent-month
+ * prefetching lives on the transactions page, which is the only view that
+ * navigates between months.
  *
  * @param year  - The year to fetch transactions for (e.g., 2025).
  * @param month - The month number (1-12).
@@ -29,17 +25,7 @@ import { getTransactionDisplayAmount, getTransactionDisplayEurAmount } from '@/u
  *  - `refresh` – Shorthand for `mutate()`
  */
 export function useTransactionsOptimized(year: number, month: number) {
-  const supabase = createClient()
-
   const monthKey = createMonthKey(year, month)
-
-  // Helper to invalidate year cache
-  const invalidateYearCache = useCallback((date: string) => {
-    const transactionDate = new Date(date)
-    const yearKey = createYearKey(transactionDate.getFullYear())
-    globalMutate(yearKey, undefined, true)
-    transactionCache.delete(yearKey)
-  }, [])
 
   const {
     data: transactions,
@@ -56,74 +42,6 @@ export function useTransactionsOptimized(year: number, month: number) {
     // Use cache as fallback data to prevent loading states
     fallbackData: transactionCache.get(monthKey) || undefined,
   })
-
-  // Helper to extract date info from transaction
-  const getDateInfo = (date: string) => {
-    const recordDate = new Date(date)
-    return {
-      year: recordDate.getFullYear(),
-      month: recordDate.getMonth() + 1,
-      key: createMonthKey(recordDate.getFullYear(), recordDate.getMonth() + 1)
-    }
-  }
-
-  // Helper to handle INSERT event
-  const handleInsert = (newRecord: any) => {
-    const recordInfo = getDateInfo(newRecord.date)
-
-    if (recordInfo.year === year && recordInfo.month === month) {
-      mutate((current: Transaction[] = []) => {
-        // Replace temp transaction or add new one
-        if (current.some(t => t.id === newRecord.id || t.id.startsWith('temp-'))) {
-          return current.map(t => (t.id.startsWith('temp-') ? newRecord : t))
-        }
-        return sortTransactionsByDateInPlace([newRecord, ...current])
-      }, false)
-    }
-
-    invalidateYearCache(newRecord.date)
-  }
-
-  // Helper to handle UPDATE event
-  const handleUpdate = (newRecord: any, oldRecord: any) => {
-    const newDateInfo = getDateInfo(newRecord.date)
-    const oldDateInfo = getDateInfo(oldRecord.date)
-
-    if (newDateInfo.key !== oldDateInfo.key) {
-      // Month changed
-      globalMutate(oldDateInfo.key, (transactions: Transaction[] = []) => {
-        return transactions.filter(t => t.id !== newRecord.id)
-      }, false)
-
-      globalMutate(newDateInfo.key, (transactions: Transaction[] = []) => {
-        return sortTransactionsByDateInPlace([newRecord, ...transactions])
-      }, false)
-    } else if (newDateInfo.key === monthKey) {
-      // Same month, update current view
-      mutate((transactions: Transaction[] = []) => {
-        return sortTransactionsByDateInPlace(transactions.map(t => (t.id === newRecord.id ? newRecord : t)))
-      }, false)
-    }
-
-    // Invalidate year caches
-    invalidateYearCache(oldRecord.date)
-    if (newRecord.date !== oldRecord.date) {
-      invalidateYearCache(newRecord.date)
-    }
-  }
-
-  // Helper to handle DELETE event
-  const handleDelete = (oldRecord: any) => {
-    const recordInfo = getDateInfo(oldRecord.date)
-
-    if (recordInfo.year === year && recordInfo.month === month) {
-      mutate((transactions: Transaction[] = []) => {
-        return transactions.filter(t => t.id !== oldRecord.id)
-      }, false)
-    }
-
-    invalidateYearCache(oldRecord.date)
-  }
 
   // Real-time subscriptions removed for iOS Safari optimization
   // Updates will be detected via background polling (see useBackgroundSync hook)

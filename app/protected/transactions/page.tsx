@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ArrowUp, Search, Filter, RefreshCw } from "lucide-react";
+import { Plus, ArrowUp, Search, RefreshCw } from "lucide-react";
 import { useTransactionsOptimized } from "@/hooks/useTransactionsOptimized";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { useAvailableMonths } from "@/hooks/useAvailableMonths";
@@ -156,7 +156,7 @@ export default function ProtectedPage() {
   const { recordLocalMutation } = useBackgroundSync();
 
   // Pull-to-refresh functionality
-  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+  const { pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: async () => {
       // Clear cache before refreshing
       transactionCache.clearRelated(
@@ -199,17 +199,6 @@ export default function ProtectedPage() {
 
     router.push(
       `/protected/search?from_year=${year}&from_month=${month
-        .toString()
-        .padStart(2, "0")}`,
-    );
-  }, [router, currentDate]);
-
-  const handleFilterClick = useCallback(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-
-    router.push(
-      `/protected/filter?from_year=${year}&from_month=${month
         .toString()
         .padStart(2, "0")}`,
     );
@@ -457,22 +446,6 @@ export default function ProtectedPage() {
     [router],
   );
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">
-            Error Loading Transactions
-          </h2>
-          <p className="text-gray-600">{error.message}</p>
-          <Button onClick={() => mutate()} className="mt-4">
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <PullToRefreshIndicator
@@ -480,9 +453,13 @@ export default function ProtectedPage() {
         isRefreshing={isRefreshing}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl px-4 pb-40 sm:px-6 md:pb-8 lg:max-w-[1200px] lg:px-8">
+        <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
+          Activity
+        </h2>
+
         {/* View Tabs and Actions Row */}
-        <div className="flex items-center justify-between pt-4 pb-2">
+        <div className="flex items-center justify-between pt-4 pb-2 md:pt-2">
           <TransactionViewTabs
             currentView="month"
             year={currentDate.getFullYear()}
@@ -549,23 +526,24 @@ export default function ProtectedPage() {
             </button>
             <button
               className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onClick={handleFilterClick}
-              aria-label="Filter transactions"
-            >
-              <Filter size={20} />
-            </button>
-            <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={handleSearchClick}
               aria-label="Search transactions"
             >
               <Search size={20} />
             </button>
+            <Button
+              onClick={handleAddTransaction}
+              size="sm"
+              className="hidden md:inline-flex"
+            >
+              <Plus size={16} />
+              Add transaction
+            </Button>
           </div>
         </div>
 
         {/* Sticky Horizontal Month Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
+        <div className="sticky top-0 z-50 bg-gray-50 py-2 dark:bg-gray-900">
           {monthsLoading ? (
             <div className="flex justify-center">
               <Skeleton className="h-12 w-80 rounded-lg" />
@@ -582,22 +560,51 @@ export default function ProtectedPage() {
           )}
         </div>
 
-        <TransactionSummary
-          transactions={transactions}
-          isLoading={isLoading}
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
-          expectedSplitAmountEur={expectedSplitAmountEur}
-        />
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          {/* Summary first in the DOM so mobile reads it before the list. */}
+          <div className="lg:order-2 lg:col-span-5 lg:sticky lg:top-[68px] lg:-mt-6">
+            {error ? (
+              <div className="rounded-2xl border border-border bg-white p-4 text-sm text-muted-foreground dark:bg-gray-800">
+                Couldn&apos;t load this month&apos;s summary.
+              </div>
+            ) : (
+              <TransactionSummary
+                transactions={transactions}
+                isLoading={isLoading}
+                selectedYear={selectedYear}
+                selectedMonth={selectedMonth}
+                expectedSplitAmountEur={expectedSplitAmountEur}
+              />
+            )}
+          </div>
 
-        <div className="transactions-list mt-4">
-          <TransactionsTable
-            transactions={transactions}
-            onTransactionClick={handleEditTransaction}
-            onCategoryClick={handleCategoryClick}
-            onSubCategoryClick={handleSubCategoryClick}
-            isLoading={isLoading}
-          />
+          <div className="transactions-list lg:order-1 lg:col-span-7">
+            {error ? (
+              <div className="rounded-2xl border border-border bg-white p-6 text-center dark:bg-gray-800">
+                <p className="text-sm text-muted-foreground">
+                  Couldn&apos;t load this month&apos;s transactions.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {error.message}
+                </p>
+                <Button onClick={() => mutate()} className="mt-3">
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <TransactionsTable
+                transactions={transactions}
+                onTransactionClick={handleEditTransaction}
+                onCategoryClick={handleCategoryClick}
+                onSubCategoryClick={handleSubCategoryClick}
+                isLoading={isLoading}
+                emptyMessage={`No transactions in ${currentDate.toLocaleDateString(
+                  "en-GB",
+                  { month: "long" },
+                )}`}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -631,6 +638,7 @@ export default function ProtectedPage() {
             onClick={handleAddTransaction}
             icon={Plus}
             label="Add transaction"
+            className="md:hidden"
           />
         </>
       )}

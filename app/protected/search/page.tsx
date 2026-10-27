@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, ArrowUp, Plus, ArrowLeft } from "lucide-react";
+import { Search, ArrowUp, Plus, ArrowLeft, Filter } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useTransactionSearch } from "@/hooks/useTransactionSearch";
+import { useFilteredTransactions, FilterCriteria, initialFilterCriteria } from "@/hooks/useFilteredTransactions";
 import { useModalState } from "@/hooks/useModalState";
 import { useTransactionMutations } from "@/hooks/useTransactionMutations";
 import { Modal } from "@/components/ui/modal";
@@ -16,6 +16,8 @@ import toast from "react-hot-toast";
 
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import SearchSummary from "@/components/features/search-summary";
+import { FilterControls } from "@/components/features/filter-controls";
+import { cn } from "@/lib/utils";
 
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
@@ -37,6 +39,11 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showFilters, setShowFilters] = useState(searchParams.get("filters") === "1");
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
+  const [availableFundSources, setAvailableFundSources] = useState<Array<{ id: string; name: string }>>([]);
+  const [criteria, setCriteria] = useState<FilterCriteria>(initialFilterCriteria);
 
   const {
     showAddModal,
@@ -64,15 +71,53 @@ export default function SearchPage() {
     }
   }, [isEditModalOpen, openEditModal]);
 
+  const hasSearch = searchQuery.trim().length > 0;
+  const enabled = hasInteracted || hasSearch;
   const {
-    results: searchResults,
-    isLoading: searchLoading,
-    error: searchError,
+    results,
+    isLoading,
+    error,
     removeFromResults,
-    refetch: refetchSearch,
-  } = useTransactionSearch(searchQuery);
+    refetch,
+  } = useFilteredTransactions(criteria, enabled, searchQuery);
   const { addTransaction, updateTransaction, deleteTransaction } =
     useTransactionMutations();
+
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      const supabase = createClient();
+      const [{ data: currencyData, error: currencyError }, { data: fundData, error: fundError }] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("currency")
+          .limit(1000),
+        supabase
+          .from("fund_categories")
+          .select("id, name, is_active")
+          .order("order_index", { ascending: true })
+          .order("name", { ascending: true }),
+      ]);
+
+      if (!currencyError && currencyData) {
+        setAvailableCurrencies(Array.from(new Set(currencyData.map((t) => t.currency))).sort());
+      }
+
+      if (!fundError && fundData) {
+        setAvailableFundSources(
+          fundData
+            .filter((fund) => fund.is_active)
+            .map((fund) => ({ id: fund.id, name: fund.name })),
+        );
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+
+  const handleCriteriaChange = useCallback((next: FilterCriteria) => {
+    setCriteria(next);
+    setHasInteracted(true);
+  }, []);
 
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -176,7 +221,7 @@ export default function SearchPage() {
         data,
         editingTransaction.date
       ).then(async (result) => {
-        await refetchSearch();
+        await refetch();
         return result;
       });
 
@@ -191,7 +236,7 @@ export default function SearchPage() {
         },
       });
     },
-    [updateTransaction, editingTransaction, closeEditModal, refetchSearch]
+    [updateTransaction, editingTransaction, closeEditModal, refetch]
   );
 
   const handleDeleteTransaction = useCallback(
@@ -204,19 +249,19 @@ export default function SearchPage() {
       toast.promise(toastPromise, {
         loading: "Deleting transaction...",
         success: () => {
-          // Ensure search is in sync with DB
-          refetchSearch();
+          // Ensure results are in sync with DB
+          refetch();
           closeEditModal();
           return "Transaction deleted successfully!";
         },
         error: (err) => {
           // On error, refetch to restore previous results
-          refetchSearch();
+          refetch();
           return `Failed to delete transaction: ${err.message}`;
         },
       });
     },
-    [deleteTransaction, removeFromResults, refetchSearch, closeEditModal]
+    [deleteTransaction, removeFromResults, refetch, closeEditModal]
   );
 
   const handleViewOriginal = useCallback(
@@ -248,7 +293,7 @@ export default function SearchPage() {
             <button
               className="flex-shrink-0 px-2 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
               onClick={handleBackToTransactions}
-              aria-label="Back to transactions"
+              aria-label="Back to activity"
             >
               <ArrowLeft size={16} />
             </button>
@@ -261,7 +306,7 @@ export default function SearchPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search transactions..."
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none font-medium text-sm"
-                autoFocus
+                autoFocus={!showFilters}
               />
               <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
                 <Search
@@ -270,11 +315,45 @@ export default function SearchPage() {
                 />
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFilters((open) => !open)}
+              aria-expanded={showFilters}
+              aria-controls="transaction-filters"
+              aria-label={showFilters ? "Hide filters" : "Show filters"}
+              className={cn(
+                "flex-shrink-0 p-2 border rounded-lg transition-colors flex items-center justify-center",
+                showFilters
+                  ? "bg-gray-900 text-white border-gray-900 dark:bg-gray-100 dark:text-gray-900 dark:border-gray-100"
+                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700",
+              )}
+            >
+              <Filter size={18} />
+            </button>
           </div>
         </div>
 
-        {/* Search Results */}
-        {searchLoading && (
+        {showFilters && (
+          <div id="transaction-filters" className="mb-4">
+            <FilterControls
+              criteria={criteria}
+              onCriteriaChange={handleCriteriaChange}
+              availableCurrencies={availableCurrencies}
+              availableFundSources={availableFundSources}
+            />
+          </div>
+        )}
+
+        {/* Results */}
+        {!enabled && (
+          <div className="mt-8 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400">
+              Search transactions or adjust filters to see results.
+            </p>
+          </div>
+        )}
+        {enabled && isLoading && (
           <div className="space-y-4 mt-8">
             {["s1", "s2", "s3", "s4", "s5"].map((key) => (
               <div key={key} className="animate-pulse">
@@ -284,47 +363,34 @@ export default function SearchPage() {
             ))}
           </div>
         )}
-        {searchError && (
+        {enabled && error && (
           <div className="mt-8 text-center py-8">
             <p className="text-red-600 dark:text-red-400">
-              Error searching transactions: {searchError.message}
+              Error loading transactions: {error.message}
             </p>
           </div>
         )}
-        {!searchLoading &&
-          !searchError &&
-          searchQuery.trim() &&
-          searchResults.length === 0 && (
-            <div className="mt-8 text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">
-                No transactions found
-              </p>
-            </div>
-          )}
-        {!searchLoading && !searchError && searchResults.length > 0 && (
+        {enabled && !isLoading && !error && results.length === 0 && (
+          <div className="mt-8 text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400">
+              No transactions found
+            </p>
+          </div>
+        )}
+        {enabled && !isLoading && !error && results.length > 0 && (
           <div className="mt-2">
-            <SearchSummary transactions={searchResults} />
+            <SearchSummary transactions={results} />
             <div className="transactions-list">
               <TransactionsTable
-                transactions={searchResults}
+                transactions={results}
                 onTransactionClick={handleEditTransaction}
                 onCategoryClick={handleCategoryClick}
                 onSubCategoryClick={handleSubCategoryClick}
-                showYear={true}
+                showYear={criteria.year === null}
               />
             </div>
           </div>
         )}
-        {!searchLoading &&
-          !searchError &&
-          !searchQuery.trim() &&
-          searchResults.length === 0 && (
-            <div className="mt-8 text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">
-                Start typing to search transactions...
-              </p>
-            </div>
-          )}
       </div>
 
       {/* Floating Buttons - Hidden when modals are open */}

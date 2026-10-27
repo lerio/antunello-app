@@ -1,7 +1,6 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import { cn } from "@/lib/utils";
 // Checking imports in other files... app/layout.tsx used "clsx" or custom?
 // Actually I don't see `cn` imported in FloatingButton. It uses template literals.
 // "className={`fixed ... ${className}`}"

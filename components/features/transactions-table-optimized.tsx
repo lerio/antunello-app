@@ -6,10 +6,9 @@ import {
   formatDateHeaderWithYear,
 } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
-import { CATEGORY_ICONS } from "@/utils/categories";
-import NoTransactions from "@/components/features/no-transactions";
+import { getTransactionIcon } from "@/utils/categories";
 import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
-import { GitFork, LucideProps } from "lucide-react";
+import { ArrowRightLeft, GitFork, LucideProps } from "lucide-react";
 import { TransactionListSkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
@@ -25,6 +24,8 @@ type TransactionsTableProps = {
   readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
   readonly showYear?: boolean; // For search results - forces year display
   readonly isLoading?: boolean;
+  /** Empty-state sentence, e.g. "No transactions in October". */
+  readonly emptyMessage?: string;
 };
 
 // Optimized transaction row component with new card design
@@ -42,14 +43,37 @@ const TransactionRow = React.memo(
     readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
     readonly privacyMode: boolean;
   }) => {
-    const Icon: React.ComponentType<LucideProps> =
-      CATEGORY_ICONS[transaction.main_category] || CATEGORY_ICONS["Services"];
+    const Icon: React.ComponentType<LucideProps> = getTransactionIcon(
+      transaction.main_category,
+      transaction.sub_category,
+    );
     const amount =
       getTransactionDisplayEurAmount(transaction) ??
       getTransactionDisplayAmount(transaction);
     const showOriginalCurrency =
       (getTransactionDisplayEurAmount(transaction) ?? transaction.eur_amount) &&
       transaction.currency !== "EUR";
+    const isSplit = transaction.split_across_year === true;
+    const isIncome = transaction.type === "income";
+    const isExpense = transaction.type === "expense";
+    const isTransfer = transaction.is_money_transfer === true;
+    const subtitle = isTransfer
+      ? "Movement"
+      : transaction.sub_category || transaction.main_category;
+    // Every expense is red; movements stay neutral because no money leaves.
+    const amountColor = isTransfer
+      ? "text-muted-foreground"
+      : isExpense
+        ? "text-negative"
+        : "text-positive";
+    const dateLabel = new Date(transaction.date).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+    });
+    const amountLabel = `${isIncome ? "+" : ""}${formatCurrency(
+      Math.abs(amount),
+      showOriginalCurrency ? "EUR" : transaction.currency,
+    )}`;
 
     // Handler for category icon click (navigates to main category)
     const handleCategoryClick = (e: React.MouseEvent) => {
@@ -71,11 +95,19 @@ const TransactionRow = React.memo(
       <button
         type="button"
         onClick={() => onClick(transaction)}
-        aria-label={`Open transaction ${transaction.title}`}
+        aria-label={
+          privacyMode
+            ? `${transaction.title}, ${subtitle}, amount hidden, ${dateLabel}`
+            : `${transaction.title}, ${subtitle}, ${amountLabel}, ${dateLabel}`
+        }
         aria-disabled={transaction.split_is_read_only || undefined}
-        className={`group w-full text-left bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 ${transaction.hide_from_totals ? "opacity-50" : ""
-          } ${transaction.split_is_read_only ? "opacity-60 saturate-50" : ""
-          }`}
+        className={`group flex min-h-16 w-full cursor-pointer items-center p-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-gray-700/40 ${
+          transaction.hide_from_totals
+            ? "opacity-50"
+            : isSplit
+              ? "bg-muted/40"
+              : ""
+        }`}
       >
         <div
           onClick={onCategoryClick ? handleCategoryClick : undefined}
@@ -103,31 +135,36 @@ const TransactionRow = React.memo(
               : undefined
           }
         >
-          <Icon size={20} className="text-gray-500 dark:text-gray-400" />
+          {isTransfer ? (
+            <ArrowRightLeft size={20} className="text-gray-500 dark:text-gray-400" />
+          ) : (
+            <Icon size={20} className="text-gray-500 dark:text-gray-400" />
+          )}
         </div>
         <div className="ml-4 flex-1 min-w-0 overflow-hidden">
-          <div className="relative">
-            <p className="font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden uppercase flex items-center gap-2">
-              <span>{transaction.title}</span>
-            </p>
-            <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 via-white/60 dark:via-gray-800/60 to-transparent pointer-events-none"></div>
-          </div>
+          <p className="truncate font-medium text-gray-800 dark:text-gray-200 uppercase">
+            {transaction.title}
+          </p>
           <div className="flex items-center gap-1.5">
             <p
-              onClick={onSubCategoryClick && transaction.sub_category ? handleSubCategoryClick : undefined}
-              className={`text-sm text-gray-500 dark:text-gray-400 truncate w-fit max-w-full min-w-0 ${onSubCategoryClick && transaction.sub_category
+              onClick={
+                !isTransfer && onSubCategoryClick && transaction.sub_category
+                  ? handleSubCategoryClick
+                  : undefined
+              }
+              className={`text-sm text-gray-500 dark:text-gray-400 truncate w-fit max-w-full min-w-0 ${!isTransfer && onSubCategoryClick && transaction.sub_category
                   ? "cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   : ""
                 }`}
-              role={onSubCategoryClick && transaction.sub_category ? "button" : undefined}
-              tabIndex={onSubCategoryClick && transaction.sub_category ? 0 : undefined}
+              role={!isTransfer && onSubCategoryClick && transaction.sub_category ? "button" : undefined}
+              tabIndex={!isTransfer && onSubCategoryClick && transaction.sub_category ? 0 : undefined}
               aria-label={
-                onSubCategoryClick && transaction.sub_category
+                !isTransfer && onSubCategoryClick && transaction.sub_category
                   ? `View ${transaction.sub_category} subcategory`
                   : undefined
               }
               onKeyDown={
-                onSubCategoryClick && transaction.sub_category
+                !isTransfer && onSubCategoryClick && transaction.sub_category
                   ? (e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.stopPropagation();
@@ -139,45 +176,29 @@ const TransactionRow = React.memo(
                   : undefined
               }
             >
-              {transaction.sub_category}
+              {subtitle}
             </p>
-            {transaction.split_across_year && (
-              <GitFork
-                size={14}
-                className="text-gray-400 dark:text-gray-500 flex-shrink-0"
-                aria-label="Split transaction"
-              />
-            )}
-            {transaction.split_remaining_count ? (
-              <span className="inline-flex items-center text-xs font-medium normal-case leading-none bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-1.5 py-0.5 flex-shrink-0">
-                {transaction.split_remaining_count} left
+            {(isSplit || transaction.split_remaining_count) && (
+              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium leading-none text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                <GitFork size={12} aria-hidden />
+                {transaction.split_remaining_count
+                  ? `Split · ${transaction.split_remaining_count} left`
+                  : "Split"}
               </span>
-            ) : null}
+            )}
           </div>
         </div>
         <div className="flex-shrink-0 ml-4">
-          <p
-            className={`font-medium text-right ${transaction.is_money_transfer
-                ? "text-gray-900 dark:text-white"
-                : transaction.type === "expense"
-                  ? "text-red-500"
-                  : "text-green-500"
-              }`}
-          >
-            <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
-              {formatCurrency(
-                amount,
-                showOriginalCurrency ? "EUR" : transaction.currency
-              )}
-            </PrivacyBlur>
+          <p className={`text-right font-medium ${amountColor}`}>
+            <PrivacyBlur blur={privacyMode}>{amountLabel}</PrivacyBlur>
           </p>
           {showOriginalCurrency && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-              <PrivacyBlur blur={privacyMode && transaction.type === "income"}>
-                ({formatCurrency(
-                  getTransactionDisplayAmount(transaction),
+            <p className="text-right text-xs text-gray-400 dark:text-gray-500">
+              <PrivacyBlur blur={privacyMode}>
+                {formatCurrency(
+                  Math.abs(getTransactionDisplayAmount(transaction)),
                   transaction.currency
-                )})
+                )}
               </PrivacyBlur>
             </p>
           )}
@@ -192,7 +213,6 @@ TransactionRow.displayName = "TransactionRow";
 // Optimized date group component with sticky headers
 const DateGroup = React.memo(
   ({
-    date,
     transactions,
     dailyTotal,
     dailySplitTotal,
@@ -202,7 +222,6 @@ const DateGroup = React.memo(
     showYear = false,
     privacyMode,
   }: {
-    readonly date: string;
     readonly transactions: ReadonlyArray<Transaction>;
     readonly dailyTotal: number;
     readonly dailySplitTotal: number;
@@ -216,9 +235,9 @@ const DateGroup = React.memo(
     const hiddenCount = transactions.filter((t) => t.hide_from_totals).length;
 
     return (
-      <div className="mb-3">
+      <div className="mb-6">
         {/* Sticky Date Header */}
-        <div className="sticky top-[63px] z-[45] bg-gray-50/95 dark:bg-gray-900/95 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 backdrop-blur-sm">
+        <div className="sticky top-[52px] z-[45] flex items-center justify-between gap-2 bg-gray-50/95 py-3 backdrop-blur-sm dark:bg-gray-900/95">
           <div className="flex items-center">
             <h3 className="font-semibold text-gray-600 dark:text-gray-400">
               {showYear
@@ -227,30 +246,37 @@ const DateGroup = React.memo(
             </h3>
             <DailyHiddenIndicator count={hiddenCount} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <span
-              className={`font-semibold ${dailyTotal >= 0 ? "text-green-500" : "text-red-500"
-                }`}
+              className={`font-semibold ${
+                dailyTotal === 0
+                  ? "text-muted-foreground"
+                  : dailyTotal > 0
+                    ? "text-positive"
+                    : "text-negative"
+              }`}
             >
               <PrivacyBlur blur={privacyMode}>
-                {formatCurrency(Math.abs(dailyTotal), "EUR")}
+                {`${dailyTotal > 0 ? "+" : ""}${formatCurrency(
+                  Math.abs(dailyTotal),
+                  "EUR",
+                )}`}
               </PrivacyBlur>
             </span>
             {dailySplitTotal !== 0 && (
-              <span className="text-sm text-foreground inline-flex items-center gap-1">
-                <span>(</span>
-                <GitFork size={14} />
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <GitFork size={12} aria-hidden />
+                <span>Split ·</span>
                 <PrivacyBlur blur={privacyMode}>
-                  <span>{formatCurrency(Math.abs(dailySplitTotal), "EUR")}</span>
+                  {formatCurrency(Math.abs(dailySplitTotal), "EUR")}
                 </PrivacyBlur>
-                <span>)</span>
               </span>
             )}
           </div>
         </div>
 
         {/* Transactions List */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-white dark:bg-gray-800">
           {transactions.map((transaction) => (
             <TransactionRow
               key={transaction.id}
@@ -276,6 +302,7 @@ export default function TransactionsTable({
   onSubCategoryClick,
   showYear = false,
   isLoading = false,
+  emptyMessage = "No transactions found",
 }: TransactionsTableProps): React.ReactElement {
   const { privacyMode } = usePrivacyMode();
 
@@ -325,11 +352,15 @@ export default function TransactionsTable({
   );
 
   if (isLoading) {
-    return <TransactionListSkeleton count={10} />;
+    return <TransactionListSkeleton count={3} />;
   }
 
   if (transactions.length === 0) {
-    return <NoTransactions />;
+    return (
+      <p className="py-12 text-center text-sm text-muted-foreground">
+        {emptyMessage}
+      </p>
+    );
   }
 
   return (
@@ -337,7 +368,6 @@ export default function TransactionsTable({
       {groupedData.map(({ date, transactions: dateTransactions, dailyTotal, dailySplitTotal }) => (
         <DateGroup
           key={date}
-          date={date}
           transactions={dateTransactions}
           dailyTotal={dailyTotal}
           dailySplitTotal={dailySplitTotal}

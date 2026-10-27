@@ -9,7 +9,7 @@
  */
 
 import { Transaction } from '@/types/database';
-import { convertToEUR, batchConvertToEUR } from '@/utils/currency-conversion';
+import { batchConvertToEUR } from '@/utils/currency-conversion';
 
 // Alias for insertable Transaction shape (omit DB-managed fields)
 type InsertableTransaction = Omit<Transaction, 'id' | 'created_at' | 'updated_at'>;

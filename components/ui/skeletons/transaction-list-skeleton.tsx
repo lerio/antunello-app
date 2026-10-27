@@ -1,24 +1,23 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function TransactionListSkeleton({ count = 5 }: { count?: number }) {
+export function TransactionListSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="space-y-2">
+    <div className="overflow-hidden rounded-2xl border border-border bg-white dark:bg-gray-800">
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-gray-800 border rounded-lg p-4 flex items-center justify-between"
+          className={`flex min-h-16 items-center justify-between gap-3 p-4 ${
+            i > 0 ? "border-t border-border" : ""
+          }`}
         >
-          {/* Icon + Category */}
-          <div className="flex items-center gap-3 flex-1">
-            <Skeleton variant="circle" className="w-10 h-10 flex-shrink-0" />
-            <div className="space-y-2 flex-1">
+          <div className="flex flex-1 items-center gap-3">
+            <Skeleton variant="circle" className="h-10 w-10 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-3 w-24" />
             </div>
           </div>
-
-          {/* Amount */}
-          <div className="text-right space-y-2">
+          <div className="space-y-2 text-right">
             <Skeleton className="h-5 w-20" />
             <Skeleton className="h-3 w-16" />
           </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Search, Filter } from "lucide-react";
+import { ArrowUp, Search } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -55,7 +55,7 @@ export default function YearSummaryPage() {
   // (update banner rendered there); no page-level sync state is needed here.
 
   // Pull-to-refresh functionality
-  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+  const { pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: async () => {
       await mutate();
     },
@@ -88,10 +88,6 @@ export default function YearSummaryPage() {
 
   const handleSearchClick = useCallback(() => {
     router.push(`/protected/search?from_year=${currentYear}`);
-  }, [router, currentYear]);
-
-  const handleFilterClick = useCallback(() => {
-    router.push(`/protected/filter?from_year=${currentYear}`);
   }, [router, currentYear]);
 
   /* REMOVED: history.pushState manual handling */
@@ -138,13 +134,6 @@ export default function YearSummaryPage() {
           <TransactionViewTabs currentView="year" year={currentYear} />
 
           <div className="flex items-center gap-2">
-            <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onClick={handleFilterClick}
-              aria-label="Filter transactions"
-            >
-              <Filter size={20} />
-            </button>
             <button
               className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={handleSearchClick}

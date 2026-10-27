@@ -4,8 +4,7 @@ import { BudgetForm } from "@/components/features/budget-form"
 import { useBudgets } from "@/hooks/useBudgets"
 import { Loader2 } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Budget } from "@/types/database"
+import { useEffect } from "react"
 
 export default function EditBudgetPage() {
     const params = useParams()

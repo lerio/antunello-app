@@ -1,22 +1,5 @@
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { MonthOption } from "@/hooks/useAvailableMonths";
-
-function getMonthButtonVariant(
-  isSelected: boolean,
-  isToday: boolean,
-  isFuture: boolean,
-): string {
-  if (isSelected) {
-    return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md";
-  }
-  if (isToday) {
-    return "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50";
-  }
-  if (isFuture) {
-    return "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700";
-  }
-  return "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-sm";
-}
 
 interface HorizontalMonthSelectorProps {
   readonly months: ReadonlyArray<MonthOption>;
@@ -24,6 +7,9 @@ interface HorizontalMonthSelectorProps {
   readonly onMonthSelect: (year: number, month: number) => void;
   readonly className?: string;
 }
+
+const FADE_MASK =
+  "linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%)";
 
 export function HorizontalMonthSelector({
   months,
@@ -46,76 +32,74 @@ export function HorizontalMonthSelector({
       const elementLeft = selectedElement.offsetLeft;
       const elementWidth = selectedElement.clientWidth;
 
-      // Calculate scroll position to center the element
       const scrollLeft = elementLeft - containerWidth / 2 + elementWidth / 2;
 
       let behavior: ScrollBehavior = "smooth";
-
-      // Use instant scroll on initial mount or if the 'months' data itself has changed.
       if (isInitialMount.current || prevMonthsRef.current !== months) {
         behavior = "auto";
       }
 
-      container.scrollTo({
-        left: scrollLeft,
-        behavior,
-      });
+      container.scrollTo({ left: scrollLeft, behavior });
 
-      // Update refs for the next render cycle
       isInitialMount.current = false;
       prevMonthsRef.current = months;
     }
-  }, [selectedMonth.year, selectedMonth.month, months]); // Depend on specific properties and months array
+  }, [selectedMonth.year, selectedMonth.month, months]);
 
   return (
     <div className={`relative ${className}`}>
-      {/* Scrollable months container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto px-4 py-2[&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           touchAction: "pan-x",
           overscrollBehaviorY: "none",
+          maskImage: FADE_MASK,
+          WebkitMaskImage: FADE_MASK,
         }}
       >
-        {months.map((month) => {
+        {months.map((month, index) => {
+          const previous = months[index - 1];
+          const showYearMarker = previous !== undefined && previous.year !== month.year;
           const isSelected =
             month.year === selectedMonth.year &&
             month.month === selectedMonth.month;
+          // en-GB renders September as "Sept"; keep every chip three letters.
+          const label = month.date
+            .toLocaleDateString("en-GB", { month: "short" })
+            .slice(0, 3);
 
           return (
-            <button
-              key={`${month.year}-${month.month}`}
-              ref={isSelected ? selectedRef : undefined}
-              onClick={() => onMonthSelect(month.year, month.month)}
-              className={`
-                flex-shrink-0 px-5 py-1 rounded-lg font-medium text-sm transition-all duration-200
-                ${getMonthButtonVariant(
-                  isSelected,
-                  month.isToday,
-                  month.isFuture,
+            <Fragment key={`${month.year}-${month.month}`}>
+              {showYearMarker && (
+                <span className="flex h-9 flex-shrink-0 items-center px-1 text-xs font-semibold text-muted-foreground">
+                  {month.year}
+                </span>
+              )}
+              <button
+                ref={isSelected ? selectedRef : undefined}
+                onClick={() => onMonthSelect(month.year, month.month)}
+                aria-current={isSelected ? "true" : undefined}
+                aria-label={`${month.date.toLocaleDateString("en-GB", {
+                  month: "long",
+                  year: "numeric",
+                })}${isSelected ? ", selected" : ""}`}
+                className={`relative flex h-9 flex-shrink-0 snap-center items-center justify-center rounded-full px-3 text-sm font-medium transition-colors ${
+                  isSelected
+                    ? "bg-foreground text-background shadow-sm"
+                    : month.isFuture
+                      ? "text-muted-foreground hover:bg-accent"
+                      : "text-foreground hover:bg-accent"
+                }`}
+              >
+                {label}
+                {month.isToday && (
+                  <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-current opacity-60" />
                 )}
-              `}
-            >
-              <div className="text-center min-w-[70px]">
-                <div className="font-semibold whitespace-nowrap">
-                  {month.date.toLocaleDateString("en-US", { month: "long" })}
-                </div>
-                {month.year !== new Date().getFullYear() && (
-                  <div
-                    className={`text-xs mt-0.5 ${
-                      isSelected
-                        ? "text-white/80 dark:text-gray-900/80"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {month.year}
-                  </div>
-                )}
-              </div>
-            </button>
+              </button>
+            </Fragment>
           );
         })}
       </div>

@@ -3,8 +3,10 @@ import {
   ArrowRightLeft,
   BriefcaseBusiness,
   BriefcaseMedical,
+  CarFront,
   CreditCard,
   Flower,
+  Fuel,
   Gift,
   GraduationCap,
   House,
@@ -14,6 +16,7 @@ import {
   Receipt,
   Shield,
   ShoppingBag,
+  SquareParking,
   Star,
   TrainFront,
   Utensils,
@@ -43,3 +46,27 @@ export const CATEGORY_ICONS: Record<string, React.ComponentType> = {
   Transportation: TrainFront,
   Travel: Plane,
 };
+
+/**
+ * Transportation is too broad for one icon: a fuel receipt is not a train.
+ * The subcategory wins where it says something more specific.
+ */
+const SUBCATEGORY_ICONS: Record<string, React.ComponentType> = {
+  Fuel,
+  "Parking and Tolls": SquareParking,
+  "Public Transportation": TrainFront,
+  "Taxi and Car Sharing": CarFront,
+  "Vehicles and Maintenance": Wrench,
+};
+
+/** The icon for a transaction row, preferring its subcategory. */
+export function getTransactionIcon(
+  category: string,
+  subCategory?: string | null,
+): React.ComponentType {
+  return (
+    (subCategory ? SUBCATEGORY_ICONS[subCategory] : undefined) ||
+    CATEGORY_ICONS[category] ||
+    CATEGORY_ICONS.Services
+  );
+}

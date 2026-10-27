@@ -12,7 +12,7 @@ const NAV_ITEMS = [
     icon: Home,
   },
   {
-    label: "Transactions",
+    label: "Activity",
     href: "/protected/transactions",
     icon: Banknote,
   },
@@ -48,7 +48,7 @@ export function MobileNavigation() {
           if (item.label === "Home") {
             // Home is active if we are on /protected AND there are no specific date filters
             isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
-          } else if (item.label === "Transactions") {
+          } else if (item.label === "Activity") {
             isActive = pathname?.startsWith(item.href) ||
               pathname?.startsWith("/protected/year") ||
               pathname?.startsWith("/protected/search") ||
@@ -96,7 +96,7 @@ export function DesktopNavigation() {
 
         if (item.label === "Home") {
           isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
-        } else if (item.label === "Transactions") {
+        } else if (item.label === "Activity") {
           isActive = pathname?.startsWith(item.href) ||
             pathname?.startsWith("/protected/year") ||
             pathname?.startsWith("/protected/search") ||

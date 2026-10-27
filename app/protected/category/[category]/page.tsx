@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LucideProps } from "lucide-react";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { MAIN_CATEGORIES, getCategoryType } from "@/types/database";
+import { MAIN_CATEGORIES } from "@/types/database";
 import CategoryChart from "@/components/features/category-chart";
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import { useCategoryTransactions, type TimeRange } from "@/hooks/useCategoryTransactions";
@@ -23,7 +23,6 @@ export default function CategoryPage({
 
   // Validate category exists
   const isValidCategory = MAIN_CATEGORIES.includes(category);
-  const categoryType = getCategoryType(category);
 
   // Get icon component (cast to LucideProps type for proper prop support)
   const Icon = (CATEGORY_ICONS[category] || CATEGORY_ICONS["Services"]) as React.ComponentType<LucideProps>;
@@ -89,7 +88,7 @@ export default function CategoryPage({
         {/* Transactions List */}
         <div className="pb-8">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">
-            Transactions
+            Activity
           </h3>
           <TransactionsTable
             transactions={transactions}

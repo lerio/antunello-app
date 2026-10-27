@@ -18,7 +18,7 @@ export const maxDuration = 60; // Vercel Hobby max
  * @param request - The incoming POST request.
  * @returns A JSON response with the sync results per account.
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     try {
         const supabase = await createClient();
         const { userId, unauthorizedResponse } = await requireUserId(supabase);
