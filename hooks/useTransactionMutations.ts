@@ -83,7 +83,12 @@ export function useTransactionMutations() {
   const invalidateAfterMutation = (date: string) => {
     invalidateYearCache(date)
     mutate('fund-categories', undefined, true)
-    mutate('month-pace', undefined, true)
+    // The pace key now carries the month, so match the prefix.
+    mutate(
+      (key) => typeof key === 'string' && key.startsWith('month-pace'),
+      undefined,
+      true
+    )
     mutate('month-movers', undefined, true)
   }
 

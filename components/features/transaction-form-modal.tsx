@@ -30,9 +30,9 @@ import { ValidationTooltip } from "@/components/ui/validation-tooltip";
 import { CategorySelect } from "@/components/ui/category-select";
 import { TitleSuggestionInput } from "@/components/ui/title-suggestion-input";
 import { FundSelect } from "@/components/ui/fund-select";
-import { Switch } from "@/components/ui/switch";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { useFormFieldProtection } from "@/hooks/useFormFieldProtection";
+import { cn } from "@/lib/utils";
 import { getTypeButtonClass } from "@/utils/styling-utils";
 import {
   validateTransactionFields,
@@ -615,47 +615,47 @@ export default function TransactionFormModal({
                 </ValidationTooltip>
               </div>
 
-              {/* Hide Toggle with Switch and Label */}
-              <div className="flex items-end">
-                <div className="flex items-center gap-2 h-12">
-                  <label htmlFor="hide-from-totals" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <EyeOff size={16} aria-hidden="true" />
-                  </label>
-                  <Switch
-                    id="hide-from-totals"
-                    name="hide_from_totals"
-                    checked={hideFromTotals}
-                    onCheckedChange={(checked) =>
-                      !isMoneyTransferMode && updateHideFromTotals(checked)
-                    }
-                    disabled={disabled || isMoneyTransferMode}
-                    title={
-                      isMoneyTransferMode
-                        ? "Money transfers are automatically excluded from totals"
-                        : hideFromTotals
-                          ? "Hidden from monthly totals"
-                          : "Visible in monthly totals"
-                    }
-                    aria-label="Hide from monthly totals"
-                  />
-                </div>
-              </div>
-              <div className="flex items-end">
-                <div className="flex items-center gap-2 h-12">
-                  <label htmlFor="split-across-year" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <GitFork size={16} aria-hidden="true" />
-                  </label>
-                  <Switch
-                    id="split-across-year"
-                    name="split_across_year"
-                    checked={splitAcrossYear}
-                    onCheckedChange={updateSplitAcrossYear}
-                    disabled={disabled}
-                    title="Split this transaction across all months in the same year"
-                    aria-label="Split transaction throughout the year"
-                  />
-                </div>
-              </div>
+              {/* Hide and split, as icon buttons matching the type selector */}
+              <button
+                type="button"
+                onClick={() => !isMoneyTransferMode && updateHideFromTotals(!hideFromTotals)}
+                disabled={disabled || isMoneyTransferMode}
+                role="switch"
+                aria-checked={hideFromTotals}
+                aria-label="Hide from monthly totals"
+                title={
+                  isMoneyTransferMode
+                    ? "Money transfers are automatically excluded from totals"
+                    : hideFromTotals
+                      ? "Hidden from monthly totals"
+                      : "Visible in monthly totals"
+                }
+                className={cn(
+                  getTypeButtonClass(
+                    "transfer",
+                    hideFromTotals,
+                    disabled || isMoneyTransferMode
+                  ),
+                  "h-12 w-12 flex-none p-0"
+                )}
+              >
+                <EyeOff size={20} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSplitAcrossYear(!splitAcrossYear)}
+                disabled={disabled}
+                role="switch"
+                aria-checked={splitAcrossYear}
+                aria-label="Split transaction throughout the year"
+                title="Split this transaction across all months in the same year"
+                className={cn(
+                  getTypeButtonClass("transfer", splitAcrossYear, disabled),
+                  "h-12 w-12 flex-none p-0"
+                )}
+              >
+                <GitFork size={20} aria-hidden="true" />
+              </button>
             </div>
           </div>
 
@@ -732,7 +732,7 @@ export default function TransactionFormModal({
                       options={mainCategoryOptions}
                       value={mainCategory}
                       onChange={handleCategoryChange}
-                      placeholder="Main Category"
+                      placeholder="Category"
                       disabled={disabled}
                     />
                     {/* Hidden input for form submission */}

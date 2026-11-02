@@ -390,7 +390,7 @@ export default function TransactionFormHtmlDesign({
               className="block text-sm font-medium text-gray-700 mb-2"
               htmlFor="main-category"
             >
-              Main Category
+              Category
             </label>
             <div className="relative">
               <select

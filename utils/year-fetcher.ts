@@ -108,8 +108,13 @@ async function fetchYearTransactions(key: string): Promise<Transaction[]> {
 
   const allTransactions = [...yearTransactions, ...prevYearSplitSources]
 
+  // Same end-of-today rule as the month fetch: the home RPC counts by date,
+  // so a split slice dated later today must not be dropped from the year.
+  const endOfToday = new Date()
+  endOfToday.setHours(23, 59, 59, 999)
+
   return sortTransactionsByDateInPlace(
-    expandSplitTransactionsForYear(allTransactions, year)
+    expandSplitTransactionsForYear(allTransactions, year, endOfToday)
   )
 }
 

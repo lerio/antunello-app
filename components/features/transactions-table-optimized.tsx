@@ -264,7 +264,7 @@ const DateGroup = React.memo(
               </PrivacyBlur>
             </span>
             {dailySplitTotal !== 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 <GitFork size={12} aria-hidden />
                 <span>Split ·</span>
                 <PrivacyBlur blur={privacyMode}>

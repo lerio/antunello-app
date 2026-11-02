@@ -6,15 +6,15 @@ function getYearButtonVariant(
   isFuture: boolean,
 ): string {
   if (isSelected) {
-    return "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 scale-105 shadow-md";
+    return "bg-foreground text-background shadow-sm";
   }
   if (isToday) {
-    return "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50";
+    return "text-foreground";
   }
   if (isFuture) {
-    return "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700";
+    return "text-muted-foreground";
   }
-  return "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-sm";
+  return "text-foreground";
 }
 
 export interface YearOption {
@@ -77,7 +77,7 @@ export function HorizontalYearSelector({
       {/* Scrollable years container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto px-4 py-2 [&::-webkit-scrollbar]:hidden"
+        className="flex gap-1 overflow-x-auto px-4 py-2 [&::-webkit-scrollbar]:hidden"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -94,7 +94,7 @@ export function HorizontalYearSelector({
               ref={isSelected ? selectedRef : undefined}
               onClick={() => onYearSelect(yearOption.year)}
               className={`
-                flex-shrink-0 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200
+                flex-shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors
                 ${getYearButtonVariant(
                   isSelected,
                   yearOption.isToday,
@@ -102,9 +102,7 @@ export function HorizontalYearSelector({
                 )}
               `}
             >
-              <div className="text-center min-w-[60px]">
-                <div className="font-semibold">{yearOption.year}</div>
-              </div>
+              {yearOption.year}
             </button>
           );
         })}

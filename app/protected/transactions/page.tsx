@@ -31,6 +31,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   calculateExpectedSplitAmountEur,
   expandSplitTransactionsForMonth,
+  getTransactionDisplayAmount,
+  getTransactionDisplayEurAmount,
 } from "@/utils/split-transactions";
 import { createMonthKey } from "@/utils/transaction-fetcher";
 import { buildTrBonusRows } from "@/utils/tr-bonuses";
@@ -125,10 +127,13 @@ export default function ProtectedPage() {
     }
   }, [selectedYear, selectedMonth, isLoading, error, prefetchAdjacentMonths]);
 
-  const { data: splitSources = [] } = useSplitSourcesForYear(selectedYear);
+  const { data: splitSources = [], mutate: mutateSplitSources } =
+    useSplitSourcesForYear(selectedYear);
 
-  const expectedSplitAmountEur = useMemo(() => {
-    if (!splitSources.length) return 0;
+  const { expectedSplitAmountEur, totalSplitAmountEur } = useMemo(() => {
+    if (!splitSources.length) {
+      return { expectedSplitAmountEur: 0, totalSplitAmountEur: 0 };
+    }
 
     const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
     const allSplitForMonth = expandSplitTransactionsForMonth(
@@ -138,7 +143,20 @@ export default function ProtectedPage() {
       selectedMonth,
       monthEnd,
     );
-    return calculateExpectedSplitAmountEur(allSplitForMonth, transactions);
+    const totalSplitAmountEur = allSplitForMonth.reduce((total, tx) => {
+      const eurAmount =
+        getTransactionDisplayEurAmount(tx) ??
+        (tx.currency === "EUR" ? getTransactionDisplayAmount(tx) : 0);
+      return total + Math.abs(eurAmount);
+    }, 0);
+
+    return {
+      expectedSplitAmountEur: calculateExpectedSplitAmountEur(
+        allSplitForMonth,
+        transactions,
+      ),
+      totalSplitAmountEur,
+    };
   }, [splitSources, selectedYear, selectedMonth, transactions]);
 
   const { availableMonths, isLoading: monthsLoading } = useAvailableMonths();
@@ -163,7 +181,11 @@ export default function ProtectedPage() {
         currentDate.getFullYear(),
         currentDate.getMonth() + 1,
       );
-      await mutate();
+      // The month fetcher and the summary read split sources from their own
+      // cache. Without clearing them, a new split slice reached Home's SQL
+      // figures but not the activity list or its split badge.
+      transactionCache.deleteByPrefix("split-sources-");
+      await Promise.all([mutate(), mutateSplitSources()]);
     },
     disabled: hasOpenModal, // Disable when modals are open
   });
@@ -453,7 +475,7 @@ export default function ProtectedPage() {
         isRefreshing={isRefreshing}
       />
 
-      <div className="mx-auto max-w-3xl px-4 pb-40 sm:px-6 md:pb-8 lg:max-w-[1200px] lg:px-8">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
         <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
           Activity
         </h2>
@@ -560,9 +582,10 @@ export default function ProtectedPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-          {/* Summary first in the DOM so mobile reads it before the list. */}
-          <div className="lg:order-2 lg:col-span-5 lg:sticky lg:top-[68px] lg:-mt-6">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Summary above the list, at the list's width, so the page reads top
+              to bottom at every screen size. */}
+          <div>
             {error ? (
               <div className="rounded-2xl border border-border bg-white p-4 text-sm text-muted-foreground dark:bg-gray-800">
                 Couldn&apos;t load this month&apos;s summary.
@@ -574,11 +597,12 @@ export default function ProtectedPage() {
                 selectedYear={selectedYear}
                 selectedMonth={selectedMonth}
                 expectedSplitAmountEur={expectedSplitAmountEur}
+                totalSplitAmountEur={totalSplitAmountEur}
               />
             )}
           </div>
 
-          <div className="transactions-list lg:order-1 lg:col-span-7">
+          <div className="transactions-list">
             {error ? (
               <div className="rounded-2xl border border-border bg-white p-6 text-center dark:bg-gray-800">
                 <p className="text-sm text-muted-foreground">
@@ -638,7 +662,9 @@ export default function ProtectedPage() {
             onClick={handleAddTransaction}
             icon={Plus}
             label="Add transaction"
-            className="md:hidden"
+            // Always on mobile; on desktop it joins the scroll-to-top button
+            // once the page has scrolled past the header's Add button.
+            className={showScrollTop ? "" : "md:hidden"}
           />
         </>
       )}

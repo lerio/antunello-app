@@ -121,7 +121,7 @@ export default function AtAGlanceCard() {
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 tabular-nums">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold m-0">This month</h3>
+        <h3 className="text-lg font-semibold m-0">Spent this month</h3>
         <button
           onClick={() => setDetailOpen((open) => !open)}
           className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -182,7 +182,22 @@ export default function AtAGlanceCard() {
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">spent so far</p>
+          <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+            <div className="flex items-baseline justify-between gap-3">
+              <span>Normal expenses</span>
+              <span className="text-sm font-medium text-foreground">
+                <PrivacyBlur blur={privacyMode}>
+                  {eur(Math.max(0, pace.spentToDate - pace.splitSpentToDate))}
+                </PrivacyBlur>
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span>Split transactions</span>
+              <span className="text-sm font-medium text-foreground">
+                <PrivacyBlur blur={privacyMode}>{eur(pace.splitSpentToDate)}</PrivacyBlur>
+              </span>
+            </div>
+          </div>
 
           {hasPace && (
             <div className="relative mt-4 pb-6">

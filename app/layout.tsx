@@ -108,7 +108,7 @@ export default function RootLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-grow pb-20 md:pb-0">
+                <main className="flex-grow md:pb-0">
                   <Suspense
                     fallback={
                       <div className="min-h-[50vh] flex items-center justify-center">
@@ -122,7 +122,7 @@ export default function RootLayout({
                   </Suspense>
                 </main>
 
-                <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 mb-16 md:mb-0">
+                <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-6 mb-16 md:mb-0">
                   <p>
                     Made in 🇯🇵 🇪🇸 by{" "}
                     <a

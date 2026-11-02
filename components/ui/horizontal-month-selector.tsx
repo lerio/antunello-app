@@ -50,7 +50,7 @@ export function HorizontalMonthSelector({
     <div className={`relative ${className}`}>
       <div
         ref={scrollContainerRef}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-1 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -74,7 +74,7 @@ export function HorizontalMonthSelector({
           return (
             <Fragment key={`${month.year}-${month.month}`}>
               {showYearMarker && (
-                <span className="flex h-9 flex-shrink-0 items-center px-1 text-xs font-semibold text-muted-foreground">
+                <span className="flex h-8 flex-shrink-0 items-center px-1 text-xs font-semibold text-muted-foreground">
                   {month.year}
                 </span>
               )}
@@ -86,7 +86,7 @@ export function HorizontalMonthSelector({
                   month: "long",
                   year: "numeric",
                 })}${isSelected ? ", selected" : ""}`}
-                className={`relative flex h-9 flex-shrink-0 snap-center items-center justify-center rounded-full px-3 text-sm font-medium transition-colors ${
+                className={`relative flex flex-shrink-0 snap-center items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isSelected
                     ? "bg-foreground text-background shadow-sm"
                     : month.isFuture
@@ -94,7 +94,7 @@ export function HorizontalMonthSelector({
                       : "text-foreground hover:bg-accent"
                 }`}
               >
-                {label}
+                {label.toUpperCase()}
                 {month.isToday && (
                   <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-current opacity-60" />
                 )}

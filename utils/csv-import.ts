@@ -249,7 +249,7 @@ export function validateTransactionData(transaction: InsertableTransaction): str
   }
 
   if (!transaction.main_category || transaction.main_category.trim().length === 0) {
-    errors.push('Main category is required');
+    errors.push('Category is required');
   }
 
   if (!transaction.date || Number.isNaN(new Date(transaction.date).getTime())) {

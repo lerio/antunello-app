@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { LucideProps, ChevronDown, ChevronUp, GitFork } from "lucide-react";
+import { LucideProps, ChevronDown, ChevronUp } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
@@ -431,6 +431,7 @@ type TotalsTableProps = {
   readonly currentYear?: number;
   readonly previousYear?: number;
   readonly expectedSplitAmountEur?: number;
+  readonly totalSplitAmountEur?: number;
   readonly isIncomeExpanded: boolean;
   readonly isExpensesExpanded: boolean;
   readonly onToggleIncome: () => void;
@@ -449,6 +450,7 @@ function TotalsTable({
   currentYear,
   previousYear,
   expectedSplitAmountEur = 0,
+  totalSplitAmountEur = 0,
   isIncomeExpanded,
   isExpensesExpanded,
   onToggleIncome,
@@ -466,11 +468,9 @@ function TotalsTable({
   // Find the balance item to determine if it's gains or losses
   const balanceItem = totalsData.find((item) => item.isBalance);
   const balanceTotal = balanceItem?.total || 0;
-  const isGains = balanceTotal >= 0;
   const title = periodLabel ?? "Net";
-  const signedBalance = `${balanceTotal < 0 ? "−" : balanceTotal > 0 ? "+" : ""}${formatAmount(
-    Math.abs(balanceTotal),
-  )}`;
+  // The colour carries the sign; the figure itself is always the magnitude.
+  const signedBalance = formatAmount(Math.abs(balanceTotal));
   const balanceClass =
     balanceTotal < 0
       ? "text-negative"
@@ -492,51 +492,58 @@ function TotalsTable({
 
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
-      <button
-        type="button"
-        onClick={onToggleDetails}
-        aria-expanded={isDetailsExpanded}
-        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <span
-              className={`block truncate text-sm font-medium ${
-                periodLabel
-                  ? "text-muted-foreground"
-                  : isGains
-                    ? "text-positive"
-                    : "text-negative"
-              }`}
-            >
-              {title}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="m-0 truncate text-lg font-semibold">{title}</h3>
+          {subtitle && (
+            <span className="block text-xs text-muted-foreground">
+              {subtitle}
             </span>
-            {subtitle && (
-              <span className="text-xs text-muted-foreground">{subtitle}</span>
-            )}
-          </div>
-          {isDetailsExpanded ? (
-            <ChevronUp size={18} className="shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronDown size={18} className="shrink-0 text-muted-foreground" />
           )}
         </div>
+        <button
+          type="button"
+          onClick={onToggleDetails}
+          aria-expanded={isDetailsExpanded}
+          aria-label={isDetailsExpanded ? "Hide details" : "Show details"}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {isDetailsExpanded ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+      </div>
 
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <span className={`text-2xl font-semibold tabular-nums sm:text-3xl ${balanceClass}`}>
-            <PrivacyBlur blur={privacyMode}>{signedBalance}</PrivacyBlur>
-          </span>
-          {expectedSplitAmountEur > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              <GitFork size={12} />
-              <span>Split ·</span>
+      <div className="mt-1">
+        <span className={`text-3xl font-semibold tabular-nums ${balanceClass}`}>
+          <PrivacyBlur blur={privacyMode}>{signedBalance}</PrivacyBlur>
+        </span>
+      </div>
+
+      {totalSplitAmountEur > 0 && (
+        <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+          <div className="flex items-baseline justify-between gap-3">
+            <span>Total split</span>
+            <span className="text-sm font-medium text-foreground">
               <PrivacyBlur blur={privacyMode}>
-                {formatAmount(Math.abs(expectedSplitAmountEur))}
+                {formatAmount(Math.abs(totalSplitAmountEur))}
               </PrivacyBlur>
             </span>
+          </div>
+          {expectedSplitAmountEur > 0 && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span>Remaining</span>
+              <span className="text-sm font-medium text-foreground">
+                <PrivacyBlur blur={privacyMode}>
+                  {formatAmount(Math.abs(expectedSplitAmountEur))}
+                </PrivacyBlur>
+              </span>
+            </div>
           )}
         </div>
-      </button>
+      )}
       <div className="mt-3 overflow-hidden">
         <table className="w-full">
           {currentYear !== undefined && isDetailsExpanded && (
@@ -807,6 +814,7 @@ type TransactionSummaryProps = {
   readonly selectedMonth?: number;
   readonly selectedYear?: number;
   readonly expectedSplitAmountEur?: number;
+  readonly totalSplitAmountEur?: number;
 };
 
 export default function TransactionSummary({
@@ -816,6 +824,7 @@ export default function TransactionSummary({
   selectedMonth,
   selectedYear,
   expectedSplitAmountEur = 0,
+  totalSplitAmountEur = 0,
 }: TransactionSummaryProps) {
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
@@ -1012,7 +1021,7 @@ export default function TransactionSummary({
   const periodLabel =
     currentYear === undefined
       ? isCurrentMonthView
-        ? "Net so far this month"
+        ? "Net · This month"
         : `Net · ${new Date(
             comparisonYear ?? monthViewNow.getFullYear(),
             (comparisonMonth ?? monthViewNow.getMonth() + 1) - 1,
@@ -1028,6 +1037,7 @@ export default function TransactionSummary({
           currentYear={currentYear}
           previousYear={previousYear}
           expectedSplitAmountEur={expectedSplitAmountEur}
+          totalSplitAmountEur={totalSplitAmountEur}
           isIncomeExpanded={isIncomeExpanded}
           isExpensesExpanded={isExpensesExpanded}
           onToggleIncome={handleToggleIncome}

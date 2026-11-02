@@ -14,6 +14,8 @@ interface MonthPace {
   asOfDate: string;
   /** Expenses so far this month. */
   spentToDate: number;
+  /** The split-across-year share of those expenses. */
+  splitSpentToDate: number;
   /** Income minus expenses so far this month. Negative before payday. */
   netToDate: number;
   /** The previous month's net, measured to the same day of month. */
@@ -29,6 +31,8 @@ type MonthPaceRow = {
   month_start: string;
   as_of_date: string;
   spent_to_date: number;
+  // Absent until migration 025 has been applied.
+  split_spent_to_date?: number | null;
   net_to_date: number;
   prev_month_net_to_day: number | null;
   typical_spent_to_date: number | null;
@@ -58,19 +62,23 @@ function toNumberOrNull(value: number | string | null): number | null {
 export function useMonthPace() {
   const supabase = createClient();
 
+  // The RPC resolves the month from p_month and attributes transactions in
+  // p_tz, so both must be the *local* calendar date and zone — near midnight
+  // on the 1st, the UTC date is still the previous month. The cache key
+  // carries the month: with a fixed key, the persisted entry from the previous
+  // month was served as this month's figures until a revalidation completed.
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone });
+  const monthKey = today.slice(0, 7);
+
   const { data, error, isLoading, mutate } = useSWR<MonthPace | null>(
-    "month-pace",
+    `month-pace:${monthKey}`,
     async () => {
       // Local session read (no network round trip) — getUser() would re-hit auth.
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) return null;
 
-      // The RPC resolves the month from p_month and attributes transactions in
-      // p_tz, so both must be the *local* calendar date and zone — near
-      // midnight on the 1st, the UTC date is still the previous month.
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const today = new Date().toLocaleDateString("en-CA", { timeZone });
       const { data: rows, error: rpcError } = await supabase.rpc("get_month_pace", {
         p_user_id: userId,
         p_month: today,
@@ -86,6 +94,7 @@ export function useMonthPace() {
         monthStart: row.month_start,
         asOfDate: row.as_of_date,
         spentToDate: Number(row.spent_to_date) || 0,
+        splitSpentToDate: Number(row.split_spent_to_date) || 0,
         netToDate: Number(row.net_to_date) || 0,
         prevMonthNetToDay: toNumberOrNull(row.prev_month_net_to_day),
         typicalSpentToDate: toNumberOrNull(row.typical_spent_to_date),
