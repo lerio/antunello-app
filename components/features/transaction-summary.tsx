@@ -525,7 +525,7 @@ function TotalsTable({
       {totalSplitAmountEur > 0 && (
         <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
           <div className="flex items-baseline justify-between gap-3">
-            <span>Total split</span>
+            <span>Split transactions Total</span>
             <span className="text-sm font-medium text-foreground">
               <PrivacyBlur blur={privacyMode}>
                 {formatAmount(Math.abs(totalSplitAmountEur))}

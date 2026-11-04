@@ -92,12 +92,9 @@ export function HorizontalMonthSelector({
                     : month.isFuture
                       ? "text-muted-foreground hover:bg-accent"
                       : "text-foreground hover:bg-accent"
-                }`}
+                } ${month.isToday && !isSelected ? "ring-1 ring-foreground/40" : ""}`}
               >
                 {label.toUpperCase()}
-                {month.isToday && (
-                  <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-current opacity-60" />
-                )}
               </button>
             </Fragment>
           );

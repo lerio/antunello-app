@@ -9,7 +9,7 @@ function getYearButtonVariant(
     return "bg-foreground text-background shadow-sm";
   }
   if (isToday) {
-    return "text-foreground";
+    return "text-foreground ring-1 ring-foreground/40";
   }
   if (isFuture) {
     return "text-muted-foreground";

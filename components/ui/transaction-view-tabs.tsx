@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils";
 
 interface TransactionViewTabsProps {
   readonly currentView: "month" | "year";
-  readonly year: number;
-  readonly month?: number;
 }
 
 const OPTIONS = [
@@ -15,38 +13,25 @@ const OPTIONS = [
   { value: "year", label: "Year" },
 ] as const;
 
-export function TransactionViewTabs({
-  currentView,
-  year,
-  month,
-}: TransactionViewTabsProps) {
+/**
+ * The Month / Year switch.
+ *
+ * Tapping a tab always opens the current period, even when that tab is already
+ * selected: a month or year away from today is a detour, and this is the way
+ * back. The active tab replaces the history entry so the reset does not leave a
+ * duplicate behind; switching views pushes.
+ */
+export function TransactionViewTabs({ currentView }: TransactionViewTabsProps) {
   const router = useRouter();
 
-  const handleMonthView = () => {
-    const now = new Date();
-    const currentMonth = month ?? now.getMonth() + 1;
-    const isCurrentMonth =
-      currentMonth === now.getMonth() + 1 && year === now.getFullYear();
-
-    const newUrl = isCurrentMonth
-      ? "/protected/transactions"
-      : `/protected/transactions?year=${year}&month=${currentMonth
-          .toString()
-          .padStart(2, "0")}`;
-
-    router.push(newUrl);
-  };
-
-  const handleYearView = () => {
-    const now = new Date();
-    const isCurrentYear = year === now.getFullYear();
-
-    const newUrl = isCurrentYear
-      ? "/protected/year"
-      : `/protected/year?year=${year}`;
-
-    router.push(newUrl);
-  };
+  function open(view: "month" | "year") {
+    const href = view === "month" ? "/protected/transactions" : "/protected/year";
+    if (view === currentView) {
+      router.replace(href);
+    } else {
+      router.push(href);
+    }
+  }
 
   return (
     <div
@@ -62,9 +47,7 @@ export function TransactionViewTabs({
             type="button"
             role="tab"
             aria-selected={selected}
-            onClick={() =>
-              option.value === "month" ? handleMonthView() : handleYearView()
-            }
+            onClick={() => open(option.value)}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               selected

@@ -131,7 +131,7 @@ export default function YearSummaryPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between pt-4 pb-2">
-          <TransactionViewTabs currentView="year" year={currentYear} />
+          <TransactionViewTabs currentView="year" />
 
           <div className="flex items-center gap-2">
             <button

@@ -482,11 +482,7 @@ export default function ProtectedPage() {
 
         {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between pt-4 pb-2 md:pt-2">
-          <TransactionViewTabs
-            currentView="month"
-            year={currentDate.getFullYear()}
-            month={currentDate.getMonth() + 1}
-          />
+          <TransactionViewTabs currentView="month" />
 
           <div className="flex items-center gap-2">
             <button
