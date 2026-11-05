@@ -47,7 +47,7 @@ export function MobileNavigation() {
 
           if (item.label === "Home") {
             // Home is active if we are on /protected AND there are no specific date filters
-            isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
+            isActive = (pathname === "/protected" || pathname === "/protected/funds") && !searchParams.has("month") && !searchParams.has("year");
           } else if (item.label === "Activity") {
             isActive = pathname?.startsWith(item.href) ||
               pathname?.startsWith("/protected/year") ||
@@ -95,7 +95,7 @@ export function DesktopNavigation() {
         let isActive = false;
 
         if (item.label === "Home") {
-          isActive = pathname === "/protected" && !searchParams.has("month") && !searchParams.has("year");
+          isActive = (pathname === "/protected" || pathname === "/protected/funds") && !searchParams.has("month") && !searchParams.has("year");
         } else if (item.label === "Activity") {
           isActive = pathname?.startsWith(item.href) ||
             pathname?.startsWith("/protected/year") ||

@@ -405,7 +405,7 @@ Bank-imported transactions awaiting review:
 - Pull-to-refresh on mobile with resistance curve and 80px threshold
 - Search preserves referrer context for back-navigation
 - Budgets display progress in the primary colour, amber above 90% and red above 100%
-- Home's month baseline averages the last 3 complete months with the same 3 calendar months a year earlier; the intra-month shape is the median over the trailing 12 months, and month attribution follows the browser's timezone (passed to the RPC)
+- Home's month baseline averages the last 6 complete months with the same 6 calendar months a year earlier; the intra-month shape is the median over the trailing 12 months, and month attribution follows the browser's timezone (passed to the RPC)
 - Split read-only instances shown at 60% opacity with desaturation
 - Daily hidden transaction indicator (EyeOff icon with count)
 

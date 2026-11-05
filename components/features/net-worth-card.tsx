@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Area,
@@ -218,8 +219,14 @@ export default function NetWorthCard() {
         </div>
       )}
 
-      <p className="mt-1 text-xs text-muted-foreground">
-        as of {todayLabel()}
+      <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>as of {todayLabel()}</span>
+        <Link
+          href="/protected/funds"
+          className="font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground"
+        >
+          Check funds
+        </Link>
       </p>
 
       {chartOpen && (error ? (
