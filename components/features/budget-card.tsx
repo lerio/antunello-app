@@ -36,8 +36,8 @@ export function BudgetCard({ budget, spent, currency = "EUR" }: BudgetCardProps)
     const isOverBudget = remaining < 0
 
     return (
-        <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
-            <div className="flex flex-row items-center justify-between pb-2">
+        <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 tabular-nums">
+            <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold m-0">
                     {budget.category}
                 </h3>
@@ -49,9 +49,9 @@ export function BudgetCard({ budget, spent, currency = "EUR" }: BudgetCardProps)
                 </Link>
             </div>
 
-            <div>
+            <div className="mt-1">
                 <div className="flex justify-between items-end mb-2">
-                    <div className="text-2xl font-bold">
+                    <div className="text-3xl font-semibold">
                         {formatCurrency(budget.amount, currency)}
                     </div>
                     <div className={`text-sm font-medium ${isOverBudget ? 'text-red-500' : 'text-muted-foreground'}`}>

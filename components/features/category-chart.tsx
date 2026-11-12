@@ -198,7 +198,7 @@ function CategoryChartControls({
  */
 function EmptyState() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 text-center">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-6 text-center">
       <p className="text-gray-500 dark:text-gray-400 mb-2">
         No transaction data available for this category
       </p>
@@ -277,7 +277,7 @@ export default function CategoryChart({
   const xAxisInterval = getXAxisInterval();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
       <CategoryChartControls
         timeRange={timeRange}
         onTimeRangeChange={onTimeRangeChange}

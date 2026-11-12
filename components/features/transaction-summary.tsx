@@ -704,7 +704,7 @@ function CategoriesTable({
 }: CategoriesTableProps) {
   if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
-    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
       <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
         Category Breakdown (€)
       </h3>
@@ -1060,7 +1060,7 @@ export default function TransactionSummary({
       />
 
       {!hasData && currentYear !== undefined && (
-        <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-xl border shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
           <div className="text-center py-8 text-muted-foreground">
             No transactions this year
           </div>

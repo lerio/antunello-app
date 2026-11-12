@@ -68,7 +68,7 @@ export default function FundList() {
 
   return (
     <div className="space-y-4 tabular-nums">
-      <div className="rounded-2xl border bg-white p-4 shadow-sm dark:bg-gray-800 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Total
         </p>
@@ -82,7 +82,7 @@ export default function FundList() {
       {groups.map((group) => (
         <div
           key={group.name}
-          className="rounded-2xl border bg-white p-4 shadow-sm dark:bg-gray-800 sm:p-6"
+          className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6"
         >
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold">

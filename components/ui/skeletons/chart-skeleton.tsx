@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ChartSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border shadow-sm p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="flex justify-start items-center mb-4">
         <div className="flex gap-2">

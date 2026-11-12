@@ -63,7 +63,7 @@ export function SummarySkeleton({ collapsed = false, yearView = false }: Summary
 
   // Expanded state - full summary with rows
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border shadow-sm p-6 mb-8">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="flex justify-between items-center pb-4 border-b">
         <Skeleton className="h-6 w-20" />

@@ -251,7 +251,7 @@ export function FilterControls({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 space-y-4">
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 space-y-4">
       {/* First Row: Period, Type, Currency - responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
         {/* Period Filter */}

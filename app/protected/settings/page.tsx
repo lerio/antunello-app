@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
@@ -585,14 +579,9 @@ function SettingsContent() {
     <div className="py-2 sm:py-6">
       <div className="space-y-6">
         <div className="grid gap-6 w-full max-w-full">
-          <Card className="w-full max-w-full overflow-hidden">
-            <CardHeader>
-              <CardTitle>Bank Integrations</CardTitle>
-              <CardDescription>
-                Connect your bank accounts to automatically import transactions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-4 sm:p-6">
+          <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
+            <h3 className="text-lg font-semibold m-0">Bank Integrations</h3>
+            <div className="space-y-6 p-4 sm:p-6 mt-4">
               <div className="grid gap-4">
                 {banks.map((bank) => {
                   const connected = isConnected(bank.name);
@@ -920,17 +909,12 @@ function SettingsContent() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="w-full max-w-full overflow-hidden">
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>
-                Update your account information.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 sm:p-6">
+          <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
+            <h3 className="text-lg font-semibold m-0">Account</h3>
+            <div className="space-y-4 p-4 sm:p-6 mt-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <p className="font-medium">Password</p>
@@ -945,8 +929,8 @@ function SettingsContent() {
                   </Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

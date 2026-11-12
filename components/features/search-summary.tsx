@@ -77,33 +77,41 @@ function SummaryCard({
   expenseTotal,
 }: SummaryCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center">
-          <span className="text-lg font-medium text-gray-600 dark:text-gray-400">Balance</span>
-          <HiddenTransactionsTooltip
-            count={hiddenTransactionCount}
-            hiddenIncomeTotal={hiddenIncomeTotal}
-            hiddenExpenseTotal={hiddenExpenseTotal}
-          />
-        </div>
-        <span className={`text-lg font-bold ${balanceTotal >= 0 ? "text-green-500" : "text-red-500"}`}>
+    <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 tabular-nums">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold m-0">Balance</h3>
+        <HiddenTransactionsTooltip
+          count={hiddenTransactionCount}
+          hiddenIncomeTotal={hiddenIncomeTotal}
+          hiddenExpenseTotal={hiddenExpenseTotal}
+        />
+      </div>
+
+      <div className="mt-1">
+        <span className="text-3xl font-semibold">
           {formatCurrency(Math.abs(balanceTotal), "EUR")}
+        </span>
+        <span className={`ml-2 text-sm ${balanceTotal >= 0 ? "text-positive" : "text-negative"}`}>
+          {balanceTotal >= 0 ? "+" : ""}{formatCurrency(balanceTotal, "EUR")}
         </span>
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-3 divide-y divide-border border-t border-border">
         {incomeTotal > 0 && (
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-800 dark:text-gray-200">Income</span>
-            <span className="font-medium text-green-500">{formatCurrency(incomeTotal, "EUR")}</span>
+          <div className="flex items-baseline justify-between gap-3 py-2">
+            <span className="text-xs text-muted-foreground">Income</span>
+            <span className="shrink-0 text-sm font-medium text-positive">
+              +{formatCurrency(incomeTotal, "EUR")}
+            </span>
           </div>
         )}
 
         {expenseTotal > 0 && (
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-800 dark:text-gray-200">Expenses</span>
-            <span className="font-medium text-red-500">{formatCurrency(expenseTotal, "EUR")}</span>
+          <div className="flex items-baseline justify-between gap-3 py-2">
+            <span className="text-xs text-muted-foreground">Expenses</span>
+            <span className="shrink-0 text-sm font-medium text-negative">
+              -{formatCurrency(expenseTotal, "EUR")}
+            </span>
           </div>
         )}
       </div>
