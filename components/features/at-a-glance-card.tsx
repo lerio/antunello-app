@@ -80,12 +80,6 @@ export default function AtAGlanceCard() {
           ? "less"
           : "inline";
 
-  const paceClass =
-    mood === "more"
-      ? "text-negative"
-      : mood === "less"
-        ? "text-positive"
-        : "text-muted-foreground";
   const chipClass =
     mood === "more"
       ? "bg-negative/10 text-negative"
@@ -105,13 +99,15 @@ export default function AtAGlanceCard() {
   const spentWidth = pace ? Math.min(100, (pace.spentToDate / scale) * 100) : 0;
   const usualPosition = hasPace ? Math.min(100, (usual / scale) * 100) : 0;
 
-  // The biggest contributors to the gap, in the direction the month is running.
-  // The RPC returns deltas descending, so the coldest categories are at the end.
-  const culprits = useMemo(() => {
-    if (mood === "more") return movers.filter((m) => m.delta > 0).slice(0, 3);
-    if (mood === "less") return movers.filter((m) => m.delta < 0).slice(-3).reverse();
-    return [];
-  }, [mood, movers]);
+  // The five biggest movers either way, so the list never depends on the
+  // month's overall direction. The RPC returns signed deltas descending.
+  const culprits = useMemo(
+    () =>
+      [...movers]
+        .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+        .slice(0, 5),
+    [movers],
+  );
 
   const prevMonthDelta =
     pace && pace.prevMonthNetToDay !== null
@@ -248,7 +244,15 @@ export default function AtAGlanceCard() {
                           </span>
                         )}
                       </span>
-                      <span className={`shrink-0 text-sm font-medium ${paceClass}`}>
+                      <span
+                        className={`shrink-0 text-sm font-medium ${
+                          mover.delta > 0
+                            ? "text-negative"
+                            : mover.delta < 0
+                              ? "text-positive"
+                              : "text-muted-foreground"
+                        }`}
+                      >
                         <PrivacyBlur blur={privacyMode}>
                           {signedEur(mover.delta)}
                         </PrivacyBlur>

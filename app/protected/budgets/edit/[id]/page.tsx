@@ -27,7 +27,7 @@ export default function EditBudgetPage() {
 
     if (isLoading || !budget) {
         return (
-            <div className="container max-w-2xl py-6 lg:py-10 px-4 flex justify-center">
+            <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 flex justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         )
@@ -36,8 +36,12 @@ export default function EditBudgetPage() {
     const existingCategories = budgets.filter(b => b.id !== budgetId).map(b => b.category)
 
     return (
-        <div className="container max-w-2xl py-6 lg:py-10 px-4">
-            <div className="space-y-6">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
+            <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
+              Edit Budget
+            </h2>
+
+            <div className="space-y-6 py-2 sm:py-6">
                 <div>
                     <h3 className="text-lg font-medium">Edit Budget</h3>
                     <p className="text-sm text-muted-foreground">

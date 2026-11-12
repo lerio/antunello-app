@@ -188,7 +188,7 @@ const TransactionRow = React.memo(
             )}
           </div>
         </div>
-        <div className="flex-shrink-0 ml-4">
+        <div className="flex-shrink-0 ml-4 self-stretch">
           <p className={`text-right font-medium ${amountColor}`}>
             <PrivacyBlur blur={privacyMode}>{amountLabel}</PrivacyBlur>
           </p>

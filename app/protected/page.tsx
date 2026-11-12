@@ -10,19 +10,16 @@ import AtAGlanceCard from "@/components/features/at-a-glance-card";
 export default function HomePage() {
   return (
     <div>
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:max-w-[1200px] lg:px-8">
-        <div className="hidden md:flex items-center justify-between pt-4 pb-2">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Home
-          </h2>
-        </div>
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
+        <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
+          Home
+        </h2>
 
-        {/* 7/5 on desktop: net worth gets the wider column for its chart. */}
-        <div className="grid grid-cols-1 items-start gap-4 py-2 sm:py-6 lg:grid-cols-12 lg:gap-6">
-          <div className="lg:col-span-7">
+        <div className="grid grid-cols-1 gap-6 py-2 sm:py-6">
+          <div>
             <NetWorthCard />
           </div>
-          <div className="lg:col-span-5">
+          <div>
             <AtAGlanceCard />
           </div>
         </div>

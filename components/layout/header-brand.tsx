@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
 const MOBILE_TITLES: Record<string, string> = {
   "/protected": "Home",
   "/protected/transactions": "Activity",
+  "/protected/budgets": "Budgets",
+  "/protected/budgets/add": "Budgets",
+  "/protected/budgets/edit": "Budgets",
+  "/protected/settings": "Settings",
 };
 
 export function HeaderBrand() {

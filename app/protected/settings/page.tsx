@@ -582,17 +582,8 @@ function SettingsContent() {
   ];
 
   return (
-    <div className="container max-w-4xl py-6 lg:py-10 px-4">
+    <div className="py-2 sm:py-6">
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Manage your account settings and preferences.
-          </p>
-        </div>
-
-        <hr className="my-4 border-gray-200 dark:border-gray-700" />
-
         <div className="grid gap-6 w-full max-w-full">
           <Card className="w-full max-w-full overflow-hidden">
             <CardHeader>
@@ -964,8 +955,14 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div>Loading settings...</div>}>
-      <SettingsContent />
-    </Suspense>
+    <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
+      <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
+        Settings
+      </h2>
+
+      <Suspense fallback={<div>Loading settings...</div>}>
+        <SettingsContent />
+      </Suspense>
+    </div>
   );
 }

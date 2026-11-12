@@ -18,23 +18,11 @@ export default function BudgetsPage() {
 
   return (
     <div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header matching Home styling */}
-        <div className="flex items-center justify-between pt-4 pb-2">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Budgets
-            </h2>
-          </div>
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
+        <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
+          Budgets
+        </h2>
 
-          {/* Placeholder to match search button height if consistent with other pages, or just empty */}
-          <div
-            className="p-4.5 border border-transparent rounded-lg w-9 h-9"
-            aria-hidden="true"
-          ></div>
-        </div>
-
-        {/* Content */}
         <div className="py-2 sm:py-6">
           {isLoading ? (
             <div className="flex justify-center p-8">
@@ -59,7 +47,7 @@ export default function BudgetsPage() {
                       key={budget.id}
                       budget={budget}
                       spent={mapSpendingToBudget(budget.category)}
-                      currency="EUR" // Assuming EUR as base
+                      currency="EUR"
                     />
                   ))}
                 </div>
