@@ -631,58 +631,178 @@ function SettingsContent() {
                         </p>
                       </div>
                       {connected ? (
-                        <div className="flex items-center gap-2">
-                          {showSessionExpired &&
-                            (bank.name === "Trade Republic" ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                                onClick={() => {
+                        <>
+                          <div className="flex items-center gap-2">
+                            {showSessionExpired &&
+                              (bank.name === "Trade Republic" ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                  onClick={() => {
+                                    const trConfig = connectedAccounts?.find(
+                                      (a) => a.provider === "trade_republic",
+                                    );
+                                    handleReauth(trConfig?.account_id || "");
+                                  }}
+                                >
+                                  Re-authenticate
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                  onClick={() =>
+                                    handleConnect(bank.name, bank.country)
+                                  }
+                                >
+                                  Re-authenticate
+                                </Button>
+                              ))}
+                            <Button
+                              onClick={() => {
+                                if (bank.name === "Trade Republic") {
                                   const trConfig = connectedAccounts?.find(
                                     (a) => a.provider === "trade_republic",
                                   );
-                                  handleReauth(trConfig?.account_id || "");
-                                }}
-                              >
-                                Re-authenticate
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                                onClick={() =>
-                                  handleConnect(bank.name, bank.country)
+                                  handleDisconnect({
+                                    accountId: trConfig?.account_id,
+                                    label: "Trade Republic account",
+                                    provider: "trade_republic",
+                                  });
+                                } else {
+                                  handleDisconnect({
+                                    bankName: bank.name,
+                                    label: `all ${bank.name} accounts`,
+                                  });
                                 }
-                              >
-                                Re-authenticate
-                              </Button>
-                            ))}
-                          <Button
-                            onClick={() => {
+                              }}
+                              variant="destructive"
+                              size="sm"
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                          {/* Connected Account Details - inline per bank */}
+                          {connectedAccounts?.filter((acc) => {
+                              const settings = (acc.settings as any) || {};
                               if (bank.name === "Trade Republic") {
-                                const trConfig = connectedAccounts?.find(
-                                  (a) => a.provider === "trade_republic",
-                                );
-                                handleDisconnect({
-                                  accountId: trConfig?.account_id,
-                                  label: "Trade Republic account",
-                                  provider: "trade_republic",
-                                });
-                              } else {
-                                handleDisconnect({
-                                  bankName: bank.name,
-                                  label: `all ${bank.name} accounts`,
-                                });
+                                return acc.provider === "trade_republic";
                               }
-                            }}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Disconnect
-                          </Button>
-                        </div>
+                              if (
+                                bank.name === "Bunq" &&
+                                !settings.bank_name &&
+                                acc.provider === "enable_banking"
+                              )
+                                return true;
+                              return bankNamesMatch(settings.bank_name, bank.name);
+                            })
+                            .map((acc) => {
+                              const settings = (acc.settings as any) || {};
+                              const iban = settings.iban;
+                              const currency = settings.currency;
+                              const isSessionExpired =
+                                settings.auth_status === "session_expired";
+                              return (
+                                <div
+                                  key={acc.id}
+                                  className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200"
+                                >
+                                  <div className="p-3 bg-white/50 dark:bg-gray-900/50 rounded-lg space-y-4">
+                                    {/* Account info */}
+                                    <div className="flex items-start gap-3">
+                                      <CheckCircle2
+                                        className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isSessionExpired ? "text-amber-500" : "text-green-500"}`}
+                                      />
+                                      <div className="min-w-0 flex-1 space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {iban && (
+                                            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded truncate max-w-[180px] sm:max-w-none">
+                                              {iban}
+                                            </span>
+                                          )}
+                                          {currency && (
+                                            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                                              {currency}
+                                            </span>
+                                          )}
+                                          {isSessionExpired && (
+                                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                              Session expired
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-400 truncate font-mono">
+                                          {acc.account_id}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="space-y-3 pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                          <span className="text-xs text-gray-400 opacity-70 whitespace-nowrap">
+                                            Last sync:{" "}
+                                            {acc.last_sync_at
+                                              ? new Date(acc.last_sync_at).toLocaleDateString()
+                                              : "Never"}
+                                          </span>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                            onClick={() => handleFetch(acc.account_id)}
+                                            title="Fetch transactions now"
+                                          >
+                                            <RefreshCw className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {renderFundSelect(
+                                          "Link to Fund",
+                                          settings.fund_category_id || "",
+                                          (fundId) =>
+                                            handleMappingChange(
+                                              acc.account_id,
+                                              "fund_category_id",
+                                              fundId,
+                                            ),
+                                        )}
+
+                                        {acc.provider === "trade_republic" &&
+                                          renderFundSelect(
+                                            "Saveback / Round-up Fund",
+                                            settings.wealth_fund_category_id || "",
+                                            (fundId) =>
+                                              handleMappingChange(
+                                                acc.account_id,
+                                                "wealth_fund_category_id",
+                                                fundId,
+                                              ),
+                                          )}
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                          Bulk Fetch
+                                        </label>
+                                        <Switch
+                                          checked={!!settings.bulk_fetch_enabled}
+                                          onCheckedChange={(checked) =>
+                                            handleBulkFetchChange(acc.account_id, checked)
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </>
                       ) : (
                         <Button
                           onClick={() => handleConnect(bank.name, bank.country)}
@@ -785,128 +905,6 @@ function SettingsContent() {
                       </Button>
                     </div>
                   )}
-                </div>
-              )}
-
-              {connectedAccounts && connectedAccounts.length > 0 && (
-                <div className="space-y-3 pt-4 border-t">
-                  <h4 className="text-sm font-medium">
-                    Connected Account Details
-                  </h4>
-                  <div className="space-y-2">
-                    {connectedAccounts.map((acc) => {
-                      const settings = (acc.settings as any) || {};
-                      // If no bank name, assume bunq if provider is enable_banking (legacy fix)
-                      const bankName =
-                        settings.bank_name ||
-                        (acc.provider === "enable_banking"
-                          ? "Bunq"
-                          : acc.provider === "trade_republic"
-                            ? "Trade Republic"
-                            : "Unknown");
-                      const iban = settings.iban;
-                      // Shown because one IBAN can hold several accounts —
-                      // Revolut exposes a separate account per currency, all
-                      // sharing the IBAN, and the currency is the only thing
-                      // telling them apart in this list.
-                      const currency = settings.currency;
-                      const isSessionExpired =
-                        settings.auth_status === "session_expired";
-
-                      return (
-                        <div
-                          key={acc.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-4"
-                        >
-                          <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <CheckCircle2
-                              className={`h-4 w-4 flex-shrink-0 ${isSessionExpired ? "text-amber-500" : "text-green-500"}`}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium flex items-center gap-2 flex-wrap">
-                                {bankName}
-                                {iban && (
-                                  <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded truncate max-w-[150px] sm:max-w-none">
-                                    {iban}
-                                  </span>
-                                )}
-                                {currency && (
-                                  <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">
-                                    {currency}
-                                  </span>
-                                )}
-                                {isSessionExpired && (
-                                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                                    Session expired
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gray-400 truncate">
-                                ID: {acc.account_id}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 dark:border-gray-800">
-                            <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
-                              <span className="text-xs text-gray-400 opacity-70">
-                                Last sync:{" "}
-                                {acc.last_sync_at
-                                  ? new Date(
-                                      acc.last_sync_at,
-                                    ).toLocaleDateString()
-                                  : "Never"}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                                onClick={() => handleFetch(acc.account_id)}
-                                title="Fetch transactions now"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            {renderFundSelect(
-                              "Link to Fund",
-                              settings.fund_category_id || "",
-                              (fundId) =>
-                                handleMappingChange(
-                                  acc.account_id,
-                                  "fund_category_id",
-                                  fundId,
-                                ),
-                            )}
-
-                            {acc.provider === "trade_republic" &&
-                              renderFundSelect(
-                                "Saveback / Round-up Fund",
-                                settings.wealth_fund_category_id || "",
-                                (fundId) =>
-                                  handleMappingChange(
-                                    acc.account_id,
-                                    "wealth_fund_category_id",
-                                    fundId,
-                                  ),
-                              )}
-
-                            <div className="flex items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
-                              <label className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                Bulk Fetch
-                              </label>
-                              <Switch
-                                checked={!!settings.bulk_fetch_enabled}
-                                onCheckedChange={(checked) =>
-                                  handleBulkFetchChange(acc.account_id, checked)
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
             </div>
