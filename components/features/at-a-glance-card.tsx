@@ -42,17 +42,14 @@ function previousMonthRange(monthStart: string, asOfDate: string): string {
   return `${name} 1–${day}`;
 }
 
-/** The subcategory is the useful label; the category is its context. */
-function moverParts(mover: MonthMover): {
+/** Grouped by main category — no subcategory. */
+function moverParts(mover: { mainCategory: string; delta: number }): {
   title: string;
-  subtitle: string | null;
   Icon: ComponentType<LucideProps>;
 } {
   return {
-    title: mover.subCategory ?? mover.mainCategory,
-    subtitle: mover.subCategory ? mover.mainCategory : null,
-    Icon: (CATEGORY_ICONS[mover.mainCategory] ??
-      CATEGORY_ICONS.Services) as ComponentType<LucideProps>,
+    title: mover.mainCategory,
+    Icon: (CATEGORY_ICONS[mover.mainCategory] ?? CATEGORY_ICONS.Services) as ComponentType<LucideProps>,
   };
 }
 
@@ -99,15 +96,23 @@ export default function AtAGlanceCard() {
   const spentWidth = pace ? Math.min(100, (pace.spentToDate / scale) * 100) : 0;
   const usualPosition = hasPace ? Math.min(100, (usual / scale) * 100) : 0;
 
-  // The five biggest movers either way, so the list never depends on the
-  // month's overall direction. The RPC returns signed deltas descending.
-  const culprits = useMemo(
-    () =>
-      [...movers]
-        .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-        .slice(0, 5),
-    [movers],
-  );
+  // Group by main category, then pick the five biggest movers either way.
+  const culprits = useMemo(() => {
+    const byMain = new Map<string, { mainCategory: string; spentToDate: number; typicalToDate: number; delta: number }>();
+    for (const m of movers) {
+      const existing = byMain.get(m.mainCategory);
+      if (existing) {
+        existing.spentToDate += m.spentToDate;
+        existing.typicalToDate += m.typicalToDate;
+        existing.delta += m.delta;
+      } else {
+        byMain.set(m.mainCategory, { mainCategory: m.mainCategory, spentToDate: m.spentToDate, typicalToDate: m.typicalToDate, delta: m.delta });
+      }
+    }
+    return [...byMain.values()]
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+      .slice(0, 5);
+  }, [movers]);
 
   const prevMonthDelta =
     pace && pace.prevMonthNetToDay !== null
@@ -225,10 +230,10 @@ export default function AtAGlanceCard() {
               <p className="text-xs text-muted-foreground">vs usual</p>
               <ul className="mt-1 divide-y divide-border">
                 {culprits.map((mover) => {
-                  const { title, subtitle, Icon } = moverParts(mover);
+                  const { title, Icon } = moverParts(mover);
                   return (
                     <li
-                      key={`${mover.mainCategory}|${mover.subCategory ?? ""}`}
+                      key={mover.mainCategory}
                       className="flex items-center gap-3 py-2"
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -238,11 +243,6 @@ export default function AtAGlanceCard() {
                         <span className="block truncate text-sm font-medium text-foreground">
                           {title}
                         </span>
-                        {subtitle && (
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {subtitle}
-                          </span>
-                        )}
                       </span>
                       <span
                         className={`shrink-0 text-sm font-medium ${
