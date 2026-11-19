@@ -19,7 +19,7 @@ export default function AddBudgetPage() {
     const existingCategories = budgets.map(b => b.category)
 
     return (
-        <PageContainer title="Add Budget">
+        <PageContainer>
             <div className="space-y-4 sm:space-y-6">
                 <div>
                     <h3 className="text-lg font-medium">Add New Budget</h3>

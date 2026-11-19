@@ -133,7 +133,7 @@ export default function YearSummaryPage() {
         isRefreshing={isRefreshing}
       />
 
-      <PageContainer title="Activity">
+      <PageContainer>
         {/* View Tabs and Actions Row */}
         <div className="flex items-center justify-between">
           <TransactionViewTabs currentView="year" />

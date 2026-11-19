@@ -947,7 +947,7 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <PageContainer title="Settings">
+    <PageContainer>
       <Suspense fallback={<div>Loading settings...</div>}>
         <SettingsContent />
       </Suspense>

@@ -19,7 +19,7 @@ export default function BudgetsPage() {
   const isLoading = isBudgetsLoading || isProgressLoading
 
   return (
-    <PageContainer title="Budgets">
+    <PageContainer>
       {isLoading ? (
         <div className="flex justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

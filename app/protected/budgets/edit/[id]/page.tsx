@@ -37,7 +37,7 @@ export default function EditBudgetPage() {
     const existingCategories = budgets.filter(b => b.id !== budgetId).map(b => b.category)
 
     return (
-        <PageContainer title="Edit Budget">
+        <PageContainer>
             <div className="space-y-4 sm:space-y-6">
                 <div>
                     <h3 className="text-lg font-medium">Edit Budget</h3>

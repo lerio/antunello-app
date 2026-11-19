@@ -10,7 +10,7 @@ import { PageContainer, PageStack } from "@/components/layout/page-container";
  */
 export default function HomePage() {
   return (
-    <PageContainer title="Home">
+    <PageContainer>
       <PageStack>
         <NetWorthCard />
         <AtAGlanceCard />

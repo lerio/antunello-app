@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/page-container";
 
 export default function FundsPage() {
   return (
-    <PageContainer title="Funds">
+    <PageContainer>
       <FundList />
     </PageContainer>
   );

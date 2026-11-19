@@ -15,11 +15,9 @@ export const toolbarIconButtonClass =
  * header. Every screen renders inside this so edges and offsets line up.
  */
 export function PageContainer({
-  title,
   className,
   children,
 }: {
-  title?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -30,11 +28,6 @@ export function PageContainer({
         className
       )}
     >
-      {title && (
-        <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white sm:mb-6">
-          {title}
-        </h2>
-      )}
       {children}
     </div>
   );
