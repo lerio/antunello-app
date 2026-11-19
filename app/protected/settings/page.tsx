@@ -172,12 +172,12 @@ function SettingsContent() {
     value: string,
     onChange: (fundId: string) => void,
   ) => (
-    <div className="flex flex-col gap-1 w-full sm:w-auto sm:items-end">
+    <div className="flex flex-col gap-1 w-full">
       <label className="text-[10px] text-gray-500 uppercase font-semibold">
         {label}
       </label>
       <select
-        className={getSelectClass(isFundsLoading) + " w-full sm:w-auto"}
+        className={getSelectClass(isFundsLoading) + " w-full"}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={isFundsLoading}
@@ -581,7 +581,7 @@ function SettingsContent() {
         <div className="grid gap-6 w-full max-w-full">
           <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
             <h3 className="text-lg font-semibold m-0">Bank Integrations</h3>
-            <div className="space-y-6 p-4 sm:p-6 mt-4">
+            <div className="space-y-6 mt-4">
               <div className="grid gap-4">
                 {banks.map((bank) => {
                   const connected = isConnected(bank.name);
@@ -607,9 +607,10 @@ function SettingsContent() {
                   return (
                     <div
                       key={bank.name}
-                      className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                      className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50"
                     >
-                      <div className="space-y-1">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
+                      <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <bank.icon className="h-5 w-5 text-blue-500" />
                           <span className="font-semibold">{bank.name}</span>
@@ -631,8 +632,7 @@ function SettingsContent() {
                         </p>
                       </div>
                       {connected ? (
-                        <>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
                             {showSessionExpired &&
                               (bank.name === "Trade Republic" ? (
                                 <Button
@@ -684,7 +684,20 @@ function SettingsContent() {
                               Disconnect
                             </Button>
                           </div>
-                          {/* Connected Account Details - inline per bank */}
+                      ) : (
+                        <Button
+                          onClick={() => handleConnect(bank.name, bank.country)}
+                          variant="outline"
+                          size="sm"
+                          className="self-start sm:self-auto shrink-0"
+                        >
+                          Connect
+                        </Button>
+                      )}
+                      </div>
+                          {/* Connected Account Details - stacked below header */}
+                          {connected && (
+                          <div className="mt-4 space-y-3">
                           {connectedAccounts?.filter((acc) => {
                               const settings = (acc.settings as any) || {};
                               if (bank.name === "Trade Republic") {
@@ -707,9 +720,9 @@ function SettingsContent() {
                               return (
                                 <div
                                   key={acc.id}
-                                  className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200"
+                                  className="animate-in fade-in slide-in-from-top-2 duration-200"
                                 >
-                                  <div className="p-3 bg-white/50 dark:bg-gray-900/50 rounded-lg space-y-4">
+                                  <div className="p-3 sm:p-4 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
                                     {/* Account info */}
                                     <div className="flex items-start gap-3">
                                       <CheckCircle2
@@ -718,7 +731,7 @@ function SettingsContent() {
                                       <div className="min-w-0 flex-1 space-y-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                           {iban && (
-                                            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded truncate max-w-[180px] sm:max-w-none">
+                                            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded break-all">
                                               {iban}
                                             </span>
                                           )}
@@ -733,7 +746,7 @@ function SettingsContent() {
                                             </span>
                                           )}
                                         </div>
-                                        <p className="text-xs text-gray-400 truncate font-mono">
+                                        <p className="text-xs text-gray-400 break-all font-mono">
                                           {acc.account_id}
                                         </p>
                                       </div>
@@ -802,16 +815,8 @@ function SettingsContent() {
                                 </div>
                               );
                             })}
-                        </>
-                      ) : (
-                        <Button
-                          onClick={() => handleConnect(bank.name, bank.country)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Connect
-                        </Button>
-                      )}
+                          </div>
+                          )}
                     </div>
                   );
                 })}
