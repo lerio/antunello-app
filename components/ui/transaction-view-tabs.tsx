@@ -14,7 +14,8 @@ const OPTIONS = [
 ] as const;
 
 /**
- * The Month / Year switch.
+ * The Month / Year switch: two text titles, the selected one in the same style
+ * as a card title and the other muted.
  *
  * Tapping a tab always opens the current period, even when that tab is already
  * selected: a month or year away from today is a detour, and this is the way
@@ -37,7 +38,7 @@ export function TransactionViewTabs({ currentView }: TransactionViewTabsProps) {
     <div
       role="tablist"
       aria-label="Transaction view"
-      className="inline-flex items-center gap-1 rounded-lg bg-muted p-1"
+      className="inline-flex items-center gap-4"
     >
       {OPTIONS.map((option) => {
         const selected = option.value === currentView;
@@ -49,9 +50,9 @@ export function TransactionViewTabs({ currentView }: TransactionViewTabsProps) {
             aria-selected={selected}
             onClick={() => open(option.value)}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-md py-1 text-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               selected
-                ? "bg-foreground text-background shadow-sm"
+                ? "text-card-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
