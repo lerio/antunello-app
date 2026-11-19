@@ -1,5 +1,6 @@
 "use client";
 
+import { PageContainer } from "@/components/layout/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -576,12 +577,14 @@ function SettingsContent() {
   ];
 
   return (
-    <div className="py-2 sm:py-6">
-      <div className="space-y-6">
-        <div className="grid gap-6 w-full max-w-full">
+    <div>
+      <div>
+        <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-full">
           <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
-            <h3 className="text-lg font-semibold m-0">Bank Integrations</h3>
-            <div className="space-y-6 mt-4">
+            <div className="flex h-8 items-center justify-between">
+              <h3 className="text-lg font-semibold m-0">Bank Integrations</h3>
+            </div>
+            <div className="space-y-6 mt-3">
               <div className="grid gap-4">
                 {banks.map((bank) => {
                   const connected = isConnected(bank.name);
@@ -916,12 +919,14 @@ function SettingsContent() {
           </div>
 
           <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
-            <h3 className="text-lg font-semibold m-0">Account</h3>
-            <div className="space-y-4 p-4 sm:p-6 mt-4">
+            <div className="flex h-8 items-center justify-between">
+              <h3 className="text-lg font-semibold m-0">Account</h3>
+            </div>
+            <div className="space-y-4 mt-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <p className="font-medium">Password</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Change your password to keep your account secure.
                   </p>
                 </div>
@@ -942,14 +947,10 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
-      <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
-        Settings
-      </h2>
-
+    <PageContainer title="Settings">
       <Suspense fallback={<div>Loading settings...</div>}>
         <SettingsContent />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }

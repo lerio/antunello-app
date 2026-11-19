@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageContainer } from '@/components/layout/page-container';
 import { deleteAllUserTransactions, getUserTransactionCount, importTransactions } from '@/utils/supabase/database-utils';
 import { parseCSV, batchMapCSVToTransactions, ImportResult } from '@/utils/csv-import';
 import { retryMissingExchangeRates } from '@/utils/currency-conversion';
@@ -154,15 +155,15 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="w-full max-w-[800px] mx-auto px-3 sm:px-6 lg:px-8 min-w-0 py-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <PageContainer className="min-w-0">
+      <div className="space-y-4 sm:space-y-6">
         {/* Fund Categories Management Section */}
         <FundCategoriesManager />
 
         {/* Import CSV Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-green-600">📤 Import CSV Data</CardTitle>
+            <CardTitle>📤 Import CSV Data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -228,7 +229,7 @@ export default function AdminPage() {
         {/* Data Management Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-blue-600">📊 Data Management</CardTitle>
+            <CardTitle>📊 Data Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -259,7 +260,7 @@ export default function AdminPage() {
         {/* Exchange Rates Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-purple-600">💱 Currency Exchange Rates</CardTitle>
+            <CardTitle>💱 Currency Exchange Rates</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -312,6 +313,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

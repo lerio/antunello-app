@@ -3,6 +3,7 @@
 import { BudgetForm } from "@/components/features/budget-form"
 import { useBudgets } from "@/hooks/useBudgets"
 import { Loader2 } from "lucide-react"
+import { PageContainer } from "@/components/layout/page-container"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -27,21 +28,17 @@ export default function EditBudgetPage() {
 
     if (isLoading || !budget) {
         return (
-            <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 flex justify-center">
+            <PageContainer className="flex justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            </PageContainer>
         )
     }
 
     const existingCategories = budgets.filter(b => b.id !== budgetId).map(b => b.category)
 
     return (
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
-            <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
-              Edit Budget
-            </h2>
-
-            <div className="space-y-6 py-2 sm:py-6">
+        <PageContainer title="Edit Budget">
+            <div className="space-y-4 sm:space-y-6">
                 <div>
                     <h3 className="text-lg font-medium">Edit Budget</h3>
                     <p className="text-sm text-muted-foreground">
@@ -49,10 +46,10 @@ export default function EditBudgetPage() {
                     </p>
                 </div>
 
-                <hr className="my-4 border-gray-200 dark:border-gray-700" />
+                <hr className="border-gray-200 dark:border-gray-700" />
 
                 <BudgetForm mode="edit" initialData={budget} existingCategories={existingCategories} />
             </div>
-        </div>
+        </PageContainer>
     )
 }

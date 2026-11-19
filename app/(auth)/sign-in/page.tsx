@@ -3,6 +3,7 @@ import { FormMessage } from "@/components/ui/form-message"; // Updated import pa
 import { SubmitButton } from "@/components/ui/submit-button"; // Updated import path
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageContainer } from "@/components/layout/page-container";
 
 import type { Message } from "@/components/ui/form-message"; // Import the Message type
 
@@ -10,10 +11,10 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
   return (
     <div className="min-h-screen bg-background">
-      <div className="w-full max-w-[800px] mx-auto px-3 sm:px-6 lg:px-8 min-w-0 py-6">
+      <PageContainer className="min-w-0">
         <div className="max-w-md mx-auto">
           <form className="flex flex-col">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-left">
+            <h1 className="text-2xl font-bold tracking-tight text-left">
               Sign in
             </h1>
             <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
@@ -49,7 +50,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
             </div>
           </form>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 }

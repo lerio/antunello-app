@@ -195,7 +195,7 @@ export default function NetWorthCard() {
         <h3 className="text-lg font-semibold m-0">Net worth</h3>
         <button
           onClick={() => setChartPreference(!chartOpen)}
-          className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
           aria-label={chartOpen ? "Hide chart" : "Show chart"}
           aria-expanded={chartOpen}
         >

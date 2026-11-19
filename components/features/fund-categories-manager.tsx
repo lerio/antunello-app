@@ -107,7 +107,7 @@ export default function FundCategoriesManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-blue-600">💰 Fund Categories</CardTitle>
+        <CardTitle>💰 Fund Categories</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">

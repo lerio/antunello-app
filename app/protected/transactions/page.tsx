@@ -28,6 +28,13 @@ import { mutate as globalMutate } from "swr";
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import TransactionSummary from "@/components/features/transaction-summary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+import {
+  PageContainer,
+  PageStack,
+  stickyBarClass,
+  toolbarIconButtonClass,
+} from "@/components/layout/page-container";
 import {
   calculateExpectedSplitAmountEur,
   expandSplitTransactionsForMonth,
@@ -475,18 +482,14 @@ export default function ProtectedPage() {
         isRefreshing={isRefreshing}
       />
 
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 md:pb-8 lg:px-8">
-        <h2 className="hidden md:block pt-4 text-2xl font-bold text-gray-900 dark:text-white">
-          Activity
-        </h2>
-
+      <PageContainer title="Activity">
         {/* View Tabs and Actions Row */}
-        <div className="flex items-center justify-between pt-4 pb-2 md:pt-2">
+        <div className="flex items-center justify-between">
           <TransactionViewTabs currentView="month" />
 
           <div className="flex items-center gap-2">
             <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className={toolbarIconButtonClass}
               onClick={async () => {
                 const toastId = toast.loading("Fetching transactions...");
                 try {
@@ -543,7 +546,7 @@ export default function ProtectedPage() {
               <RefreshCw size={20} />
             </button>
             <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className={toolbarIconButtonClass}
               onClick={handleSearchClick}
               aria-label="Search transactions"
             >
@@ -561,7 +564,7 @@ export default function ProtectedPage() {
         </div>
 
         {/* Sticky Horizontal Month Selector */}
-        <div className="sticky top-0 z-50 bg-gray-50 py-2 dark:bg-gray-900">
+        <div className={stickyBarClass}>
           {monthsLoading ? (
             <div className="flex justify-center">
               <Skeleton className="h-12 w-80 rounded-lg" />
@@ -578,14 +581,14 @@ export default function ProtectedPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
+        <PageStack className="mt-2">
           {/* Summary above the list, at the list's width, so the page reads top
               to bottom at every screen size. */}
           <div>
             {error ? (
-              <div className="rounded-2xl border border-border bg-white p-4 text-sm text-muted-foreground dark:bg-gray-800">
+              <Card className="text-sm text-muted-foreground">
                 Couldn&apos;t load this month&apos;s summary.
-              </div>
+              </Card>
             ) : (
               <TransactionSummary
                 transactions={transactions}
@@ -600,7 +603,7 @@ export default function ProtectedPage() {
 
           <div className="transactions-list">
             {error ? (
-              <div className="rounded-2xl border border-border bg-white p-6 text-center dark:bg-gray-800">
+              <Card className="text-center">
                 <p className="text-sm text-muted-foreground">
                   Couldn&apos;t load this month&apos;s transactions.
                 </p>
@@ -610,7 +613,7 @@ export default function ProtectedPage() {
                 <Button onClick={() => mutate()} className="mt-3">
                   Retry
                 </Button>
-              </div>
+              </Card>
             ) : (
               <TransactionsTable
                 transactions={transactions}
@@ -625,8 +628,8 @@ export default function ProtectedPage() {
               />
             )}
           </div>
-        </div>
-      </div>
+        </PageStack>
+      </PageContainer>
 
       {/* Floating Buttons - Hidden when modals are open */}
       {!hasOpenModal && (

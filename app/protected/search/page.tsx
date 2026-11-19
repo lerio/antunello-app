@@ -18,6 +18,11 @@ import TransactionsTable from "@/components/features/transactions-table-optimize
 import SearchSummary from "@/components/features/search-summary";
 import { FilterControls } from "@/components/features/filter-controls";
 import { cn } from "@/lib/utils";
+import {
+  PageContainer,
+  PageStack,
+  stickyBarClass,
+} from "@/components/layout/page-container";
 
 const TransactionFormModal = dynamic(
   () => import("@/components/features/transaction-form-modal"),
@@ -283,13 +288,10 @@ export default function SearchPage() {
 
   return (
     <div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header spacing */}
-        <div className="pt-2"></div>
-
+      <PageContainer>
         {/* Sticky Search Row */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 pt-2 pb-2 -mx-6 px-6">
-          <div className="flex items-center w-full gap-2 pb-4">
+        <div className={stickyBarClass}>
+          <div className="flex items-center w-full gap-2">
             <button
               className="flex-shrink-0 px-2 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center font-medium text-sm"
               onClick={handleBackToTransactions}
@@ -335,7 +337,7 @@ export default function SearchPage() {
         </div>
 
         {showFilters && (
-          <div id="transaction-filters" className="mb-4">
+          <div id="transaction-filters" className="mt-2 mb-4 sm:mb-6">
             <FilterControls
               criteria={criteria}
               onCriteriaChange={handleCriteriaChange}
@@ -347,14 +349,14 @@ export default function SearchPage() {
 
         {/* Results */}
         {!enabled && (
-          <div className="mt-8 text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
+          <div className="mt-4 text-center py-8">
+            <p className="text-muted-foreground">
               Search transactions or adjust filters to see results.
             </p>
           </div>
         )}
         {enabled && isLoading && (
-          <div className="space-y-4 mt-8">
+          <div className="space-y-4 mt-4">
             {["s1", "s2", "s3", "s4", "s5"].map((key) => (
               <div key={key} className="animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
@@ -364,21 +366,21 @@ export default function SearchPage() {
           </div>
         )}
         {enabled && error && (
-          <div className="mt-8 text-center py-8">
+          <div className="mt-4 text-center py-8">
             <p className="text-red-600 dark:text-red-400">
               Error loading transactions: {error.message}
             </p>
           </div>
         )}
         {enabled && !isLoading && !error && results.length === 0 && (
-          <div className="mt-8 text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
+          <div className="mt-4 text-center py-8">
+            <p className="text-muted-foreground">
               No transactions found
             </p>
           </div>
         )}
         {enabled && !isLoading && !error && results.length > 0 && (
-          <div className="mt-2">
+          <PageStack className="mt-2">
             <SearchSummary transactions={results} />
             <div className="transactions-list">
               <TransactionsTable
@@ -389,9 +391,9 @@ export default function SearchPage() {
                 showYear={criteria.year === null}
               />
             </div>
-          </div>
+          </PageStack>
         )}
-      </div>
+      </PageContainer>
 
       {/* Floating Buttons - Hidden when modals are open */}
       {!hasOpenModal && (

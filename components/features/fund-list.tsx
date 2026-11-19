@@ -67,7 +67,7 @@ export default function FundList() {
   }
 
   return (
-    <div className="space-y-4 tabular-nums">
+    <div className="flex flex-col gap-4 sm:gap-6 tabular-nums">
       <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Total

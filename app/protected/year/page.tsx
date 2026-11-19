@@ -9,6 +9,11 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useYearPrefetch } from "@/hooks/useYearPrefetch";
 import { HorizontalYearSelector } from "@/components/ui/horizontal-year-selector";
 import { Button } from "@/components/ui/button";
+import {
+  PageContainer,
+  stickyBarClass,
+  toolbarIconButtonClass,
+} from "@/components/layout/page-container";
 import { FloatingButton } from "@/components/ui/floating-button";
 import { TransactionViewTabs } from "@/components/ui/transaction-view-tabs";
 import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
@@ -128,14 +133,14 @@ export default function YearSummaryPage() {
         isRefreshing={isRefreshing}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <PageContainer title="Activity">
         {/* View Tabs and Actions Row */}
-        <div className="flex items-center justify-between pt-4 pb-2">
+        <div className="flex items-center justify-between">
           <TransactionViewTabs currentView="year" />
 
           <div className="flex items-center gap-2">
             <button
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className={toolbarIconButtonClass}
               onClick={handleSearchClick}
               aria-label="Search transactions"
             >
@@ -145,7 +150,7 @@ export default function YearSummaryPage() {
         </div>
 
         {/* Sticky Horizontal Year Selector */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-50 py-2 -mx-6">
+        <div className={stickyBarClass}>
           {yearsLoading ? (
             <div className="flex justify-center">
               <Skeleton className="h-12 w-80 rounded-lg" />
@@ -160,12 +165,14 @@ export default function YearSummaryPage() {
         </div>
 
         {/* Year Summary - Using TransactionSummary component with yearly data */}
-        <TransactionSummary
-          transactions={transactions}
-          isLoading={isLoading}
-          currentYear={currentYear}
-        />
-      </div>
+        <div className="mt-2">
+          <TransactionSummary
+            transactions={transactions}
+            isLoading={isLoading}
+            currentYear={currentYear}
+          />
+        </div>
+      </PageContainer>
 
       {/* Floating Button - Scroll to Top */}
       {showScrollTop && (

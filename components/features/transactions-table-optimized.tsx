@@ -235,7 +235,7 @@ const DateGroup = React.memo(
     const hiddenCount = transactions.filter((t) => t.hide_from_totals).length;
 
     return (
-      <div className="mb-6">
+      <div className="mb-4 last:mb-0 sm:mb-6">
         {/* Sticky Date Header */}
         <div className="sticky top-[52px] z-[45] flex items-center justify-between gap-2 bg-gray-50/95 py-3 backdrop-blur-sm dark:bg-gray-900/95">
           <div className="flex items-center">
@@ -364,7 +364,7 @@ export default function TransactionsTable({
   }
 
   return (
-    <div className="space-y-3">
+    <div>
       {groupedData.map(({ date, transactions: dateTransactions, dailyTotal, dailySplitTotal }) => (
         <DateGroup
           key={date}

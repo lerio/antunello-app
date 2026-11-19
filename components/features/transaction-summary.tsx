@@ -506,7 +506,7 @@ function TotalsTable({
           onClick={onToggleDetails}
           aria-expanded={isDetailsExpanded}
           aria-label={isDetailsExpanded ? "Hide details" : "Show details"}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {isDetailsExpanded ? (
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -549,15 +549,15 @@ function TotalsTable({
           {currentYear !== undefined && isDetailsExpanded && (
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm"></th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm"></th>
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm">
                   Total
                 </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm">
                   Monthly
                 </th>
                 {previousYear !== undefined && (
-                  <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                  <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm">
                     vs {previousYear}
                   </th>
                 )}
@@ -705,19 +705,19 @@ function CategoriesTable({
   if (currentYear === undefined || categoriesData.length === 0) return null;
   return (
     <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6">
-      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+      <h3 className="text-lg font-semibold mb-3">
         Category Breakdown (€)
       </h3>
       <div className="overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm"></th>
-              <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+              <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm"></th>
+              <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm">
                 {currentYear ? "Monthly" : "Total"}
               </th>
               {currentYear !== undefined && previousYear !== undefined && (
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm sm:text-sm">
+                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-medium text-muted-foreground text-sm">
                   vs {previousYear}
                 </th>
               )}
@@ -1030,7 +1030,7 @@ export default function TransactionSummary({
       : undefined;
 
   return (
-    <div className="space-y-4 sm:space-y-6 py-2 sm:py-6">
+    <div className="space-y-4 sm:space-y-6">
       {shouldShowTotals && (
         <TotalsTable
           totalsData={totalsData}

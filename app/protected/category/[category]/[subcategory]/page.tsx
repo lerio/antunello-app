@@ -1,5 +1,6 @@
 "use client";
 
+import { PageContainer, PageStack } from "@/components/layout/page-container";
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -58,10 +59,10 @@ export default function SubCategoryPage({
   }
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <PageContainer>
+      <PageStack>
         {/* Header with subcategory info */}
-        <div className="flex items-center pt-4 pb-2 min-w-0">
+        <div className="flex items-center min-w-0">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             {/* Category icon and subcategory name */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -82,7 +83,7 @@ export default function SubCategoryPage({
         </div>
 
         {/* Category Chart with subcategory filter */}
-        <div className="py-2 sm:py-6">
+        <div>
           <CategoryChart
             category={category}
             subCategory={subCategory}
@@ -92,8 +93,8 @@ export default function SubCategoryPage({
         </div>
 
         {/* Transactions List */}
-        <div className="pb-8">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 px-1">
             Activity
           </h3>
           <TransactionsTable
@@ -102,7 +103,7 @@ export default function SubCategoryPage({
             showYear={timeRange !== '1m'}
           />
         </div>
-      </div>
-    </div>
+      </PageStack>
+    </PageContainer>
   );
 }

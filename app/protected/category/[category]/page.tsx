@@ -1,5 +1,6 @@
 "use client";
 
+import { PageContainer, PageStack } from "@/components/layout/page-container";
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LucideProps } from "lucide-react";
@@ -56,10 +57,10 @@ export default function CategoryPage({
   }
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <PageContainer>
+      <PageStack>
         {/* Header with category info */}
-        <div className="flex items-center pt-4 pb-2 min-w-0">
+        <div className="flex items-center min-w-0">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             {/* Category icon and name */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -77,7 +78,7 @@ export default function CategoryPage({
         </div>
 
         {/* Category Chart */}
-        <div className="py-2 sm:py-6">
+        <div>
           <CategoryChart
             category={category}
             timeRange={timeRange}
@@ -86,8 +87,8 @@ export default function CategoryPage({
         </div>
 
         {/* Transactions List */}
-        <div className="pb-8">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 px-1">
             Activity
           </h3>
           <TransactionsTable
@@ -97,7 +98,7 @@ export default function CategoryPage({
             showYear={timeRange !== '1m'}
           />
         </div>
-      </div>
-    </div>
+      </PageStack>
+    </PageContainer>
   );
 }

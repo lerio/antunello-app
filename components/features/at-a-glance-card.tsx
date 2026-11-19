@@ -125,7 +125,7 @@ export default function AtAGlanceCard() {
         <h3 className="text-lg font-semibold m-0">Spent this month</h3>
         <button
           onClick={() => setDetailOpen((open) => !open)}
-          className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
           aria-label={detailOpen ? "Hide details" : "Show details"}
           aria-expanded={detailOpen}
         >
