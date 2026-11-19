@@ -1,6 +1,6 @@
 /**
  * @file Update the settings for an existing integration config, such as the
- * fund-category mapping or the bulk-fetch toggle. Supports partial updates
+ * fund-category mapping. Supports partial updates
  * so that only the provided fields are changed.
  */
 
@@ -16,7 +16,6 @@ import { getErrorMessage, jsonError, requireUserId } from '@/app/api/_lib/route-
  * - `fund_category_id` (optional) – The linked fund category ID (or `null`).
  * - `wealth_fund_category_id` (optional) – Wealth fund for Trade Republic
  *   saveback/round-up bonus transactions (or `null`).
- * - `bulk_fetch_enabled` (optional) – Whether bulk fetching is enabled.
  *
  * @param request - The incoming POST request with a JSON body.
  * @returns A JSON response with the updated settings, or an error.
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
             return unauthorizedResponse!;
         }
 
-        const { account_id, fund_category_id, wealth_fund_category_id, bulk_fetch_enabled } = await request.json();
+        const { account_id, fund_category_id, wealth_fund_category_id } = await request.json();
 
         if (!account_id) {
             return NextResponse.json({ error: 'Missing account_id' }, { status: 400 });
@@ -52,10 +51,9 @@ export async function POST(request: NextRequest) {
         const updatedSettings = {
             ...currentSettings,
             // Only update fields if they are provided in the request
-            // This allows partial updates (only toggling bulk fetch OR changing mapping)
+            // This allows partial updates (only the fields being changed)
             ...(fund_category_id !== undefined ? { fund_category_id: fund_category_id || null } : {}),
             ...(wealth_fund_category_id !== undefined ? { wealth_fund_category_id: wealth_fund_category_id || null } : {}),
-            ...(bulk_fetch_enabled !== undefined ? { bulk_fetch_enabled } : {})
         };
 
         const { error: updateError } = await supabase

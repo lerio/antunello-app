@@ -3,13 +3,13 @@
 import { PageContainer } from "@/components/layout/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 import {
   Lock,
-  Building2,
-  CheckCircle2,
   RefreshCw,
+  ChevronDown,
+  Plug,
+  Unplug,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, Suspense, useState } from "react";
@@ -17,6 +17,7 @@ import { createClient } from "@/utils/supabase/client";
 import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { useFundCategories } from "@/hooks/useFundCategories";
+import { cn } from "@/lib/utils";
 import { getSelectClass } from "@/utils/styling-utils";
 
 function normalizeBankName(value: unknown) {
@@ -174,11 +175,12 @@ function SettingsContent() {
     onChange: (fundId: string) => void,
   ) => (
     <div className="flex flex-col gap-1 w-full">
-      <label className="text-[10px] text-gray-500 uppercase font-semibold">
+      <label className="text-xs text-muted-foreground font-medium">
         {label}
       </label>
+      <div className="relative">
       <select
-        className={getSelectClass(isFundsLoading) + " w-full"}
+        className={cn(getSelectClass(isFundsLoading), "w-full appearance-none pr-10")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={isFundsLoading}
@@ -192,30 +194,10 @@ function SettingsContent() {
             </option>
           ))}
       </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      </div>
     </div>
   );
-
-  const handleBulkFetchChange = async (accountId: string, enabled: boolean) => {
-    // Optimistic update could go here, but for now we rely on SWR revalidation
-    const toastId = toast.loading("Updating settings...");
-    try {
-      const res = await fetch("/api/enable-banking/update-mapping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account_id: accountId,
-          bulk_fetch_enabled: enabled,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update settings");
-
-      await mutate();
-      toast.success("Settings updated", { id: toastId });
-    } catch (e) {
-      toast.error("Error updating settings", { id: toastId });
-    }
-  };
 
   const handleFetch = async (accountId: string) => {
     const toastId = toast.loading("Fetching transactions...");
@@ -540,39 +522,26 @@ function SettingsContent() {
     {
       name: "Bunq",
       country: "NL",
-      icon: Building2,
-      description: "Connect your Bunq (NL) accounts.",
     },
     {
       name: "Revolut",
       country: "IT",
-      icon: Building2,
-      description: "Connect your Revolut (IT) accounts.",
     },
     {
       name: "DKB",
       country: "DE",
-      icon: Building2,
-      description: "Connect your DKB (DE) accounts.",
     },
     {
       name: "PayPal",
       country: "IT",
-      icon: Building2,
-      description: "Connect your PayPal (IT) account.",
     },
     {
       name: "Wise",
       country: "IT",
-      icon: Building2,
-      description: "Connect your Wise (IT) accounts.",
     },
     {
       name: "Trade Republic",
       country: "DE",
-      icon: Building2,
-      description:
-        "Connect your Trade Republic investment account. Uses phone + PIN + app verification.",
     },
   ];
 
@@ -580,12 +549,23 @@ function SettingsContent() {
     <div>
       <div>
         <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-full">
-          <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">
-            <div className="flex h-8 items-center justify-between">
-              <h3 className="text-lg font-semibold m-0">Bank Integrations</h3>
-            </div>
-            <div className="space-y-6 mt-3">
-              <div className="grid gap-4">
+          {/* Settings menu: same text-tab style as the Month/Year selector */}
+          <div
+            className="inline-flex items-center gap-4"
+            role="tablist"
+            aria-label="Settings sections"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              className="rounded-md py-1 text-lg font-semibold text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Banks
+            </button>
+          </div>
+          <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="grid gap-4 sm:gap-6">
                 {banks.map((bank) => {
                   const connected = isConnected(bank.name);
                   const showSessionExpired =
@@ -607,16 +587,26 @@ function SettingsContent() {
                         return s.auth_status === "session_expired";
                       return false;
                     });
+                  const bankAccounts =
+                    connectedAccounts?.filter((acc) => {
+                      const settings = (acc.settings as any) || {};
+                      if (bank.name === "Trade Republic") {
+                        return acc.provider === "trade_republic";
+                      }
+                      if (
+                        bank.name === "Bunq" &&
+                        !settings.bank_name &&
+                        acc.provider === "enable_banking"
+                      )
+                        return true;
+                      return bankNamesMatch(settings.bank_name, bank.name);
+                    }) ?? [];
                   return (
-                    <div
-                      key={bank.name}
-                      className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50"
-                    >
-                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <bank.icon className="h-5 w-5 text-blue-500" />
-                          <span className="font-semibold">{bank.name}</span>
+                    <Card key={bank.name}>
+                      <div className="flex min-h-8 items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="m-0 text-lg font-semibold">{bank.name}</h3>
                           {connected && (
                             <>
                               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -630,12 +620,9 @@ function SettingsContent() {
                             </>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500">
-                          {bank.description}
-                        </p>
                       </div>
                       {connected ? (
-                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <div className="flex shrink-0 items-center gap-2">
                             {showSessionExpired &&
                               (bank.name === "Trade Republic" ? (
                                 <Button
@@ -663,6 +650,21 @@ function SettingsContent() {
                                   Re-authenticate
                                 </Button>
                               ))}
+                            {bankAccounts.map((acc) => (
+                              <Button
+                                key={acc.id}
+                                variant="ghost"
+                                size="icon"
+                                title="Fetch transactions now"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                onClick={() => handleFetch(acc.account_id)}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                <span className="sr-only">
+                                  Fetch {bank.name} transactions now
+                                </span>
+                              </Button>
+                            ))}
                             <Button
                               onClick={() => {
                                 if (bank.name === "Trade Republic") {
@@ -681,102 +683,41 @@ function SettingsContent() {
                                   });
                                 }
                               }}
-                              variant="destructive"
-                              size="sm"
+                              variant="ghost"
+                              size="icon"
+                              title={`Disconnect ${bank.name}`}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             >
-                              Disconnect
+                              <Unplug className="h-4 w-4" />
+                              <span className="sr-only">Disconnect {bank.name}</span>
                             </Button>
                           </div>
                       ) : (
                         <Button
                           onClick={() => handleConnect(bank.name, bank.country)}
-                          variant="outline"
-                          size="sm"
-                          className="self-start sm:self-auto shrink-0"
+                          variant="ghost"
+                          size="icon"
+                          title={`Connect ${bank.name}`}
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
                         >
-                          Connect
+                          <Plug className="h-4 w-4" />
+                          <span className="sr-only">Connect {bank.name}</span>
                         </Button>
                       )}
                       </div>
                           {/* Connected Account Details - stacked below header */}
                           {connected && (
                           <div className="mt-4 space-y-3">
-                          {connectedAccounts?.filter((acc) => {
+                          {bankAccounts.map((acc) => {
                               const settings = (acc.settings as any) || {};
-                              if (bank.name === "Trade Republic") {
-                                return acc.provider === "trade_republic";
-                              }
-                              if (
-                                bank.name === "Bunq" &&
-                                !settings.bank_name &&
-                                acc.provider === "enable_banking"
-                              )
-                                return true;
-                              return bankNamesMatch(settings.bank_name, bank.name);
-                            })
-                            .map((acc) => {
-                              const settings = (acc.settings as any) || {};
-                              const iban = settings.iban;
-                              const currency = settings.currency;
-                              const isSessionExpired =
-                                settings.auth_status === "session_expired";
                               return (
                                 <div
                                   key={acc.id}
                                   className="animate-in fade-in slide-in-from-top-2 duration-200"
                                 >
-                                  <div className="p-3 sm:p-4 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
-                                    {/* Account info */}
-                                    <div className="flex items-start gap-3">
-                                      <CheckCircle2
-                                        className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isSessionExpired ? "text-amber-500" : "text-green-500"}`}
-                                      />
-                                      <div className="min-w-0 flex-1 space-y-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          {iban && (
-                                            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded break-all">
-                                              {iban}
-                                            </span>
-                                          )}
-                                          {currency && (
-                                            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                                              {currency}
-                                            </span>
-                                          )}
-                                          {isSessionExpired && (
-                                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                                              Session expired
-                                            </span>
-                                          )}
-                                        </div>
-                                        <p className="text-xs text-gray-400 break-all font-mono">
-                                          {acc.account_id}
-                                        </p>
-                                      </div>
-                                    </div>
-
+                                  <div className="space-y-4">
                                     {/* Actions */}
-                                    <div className="space-y-3 pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
-                                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
-                                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                                          <span className="text-xs text-gray-400 opacity-70 whitespace-nowrap">
-                                            Last sync:{" "}
-                                            {acc.last_sync_at
-                                              ? new Date(acc.last_sync_at).toLocaleDateString()
-                                              : "Never"}
-                                          </span>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                                            onClick={() => handleFetch(acc.account_id)}
-                                            title="Fetch transactions now"
-                                          >
-                                            <RefreshCw className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-
+                                    <div className="space-y-3">
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {renderFundSelect(
                                           "Link to Fund",
@@ -801,18 +742,6 @@ function SettingsContent() {
                                               ),
                                           )}
                                       </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <label className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                          Bulk Fetch
-                                        </label>
-                                        <Switch
-                                          checked={!!settings.bulk_fetch_enabled}
-                                          onCheckedChange={(checked) =>
-                                            handleBulkFetchChange(acc.account_id, checked)
-                                          }
-                                        />
-                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -820,7 +749,7 @@ function SettingsContent() {
                             })}
                           </div>
                           )}
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
@@ -915,7 +844,6 @@ function SettingsContent() {
                   )}
                 </div>
               )}
-            </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 text-card-foreground rounded-2xl border shadow-sm p-4 sm:p-6 overflow-hidden">

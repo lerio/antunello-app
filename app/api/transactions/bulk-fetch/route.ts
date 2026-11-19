@@ -1,6 +1,6 @@
 /**
  * @file API route that triggers a bulk fetch of bank transactions for all
- * integration configs that have `bulk_fetch_enabled` set to `true`. Runs
+ * connected integration configs that have a fund linked. Runs
  * per-account syncs in parallel and returns a summary of results.
  */
 
@@ -13,7 +13,7 @@ export const maxDuration = 60; // Vercel Hobby max
 
 /**
  * Trigger a bulk fetch of pending transactions from all linked banking
- * accounts that have the bulk-fetch toggle enabled.
+ * accounts that have a fund linked.
  *
  * @param request - The incoming POST request.
  * @returns A JSON response with the sync results per account.
@@ -40,16 +40,14 @@ export async function POST(_request: NextRequest) {
             return NextResponse.json({ message: 'No accounts connected', results: [] });
         }
 
-        // 2. Filter for accounts with bulk_fetch_enabled
+        // 2. Bulk fetch runs for every connected account that has a fund linked
         const enabledConfigs = configs.filter(config => {
             const settings = config.settings as any || {};
-            // Default to FALSE if not set? Or TRUE? User said "enable bulk fetch switch", implying it's off by default or opt-in.
-            // Let's assume false by default if undefined, or check the switch logic.
-            return !!settings.bulk_fetch_enabled;
+            return !!settings.fund_category_id;
         });
 
         if (enabledConfigs.length === 0) {
-            return NextResponse.json({ message: 'No accounts enabled for bulk fetch', results: [] });
+            return NextResponse.json({ message: 'No connected accounts with a linked fund', results: [] });
         }
 
         // 3. Trigger sync for each enabled account, dispatching by provider.
