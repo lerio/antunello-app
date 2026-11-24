@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
@@ -17,18 +18,36 @@ const MOBILE_TITLES: Record<string, string> = {
   "/protected/budgets/add": "Budgets",
   "/protected/budgets/edit": "Budgets",
   "/protected/settings": "Settings",
+  "/protected/funds": "Funds",
+};
+
+/** Child screens: a back link to the parent sits beside the mobile title. */
+const MOBILE_BACK: Record<string, { href: string; label: string }> = {
+  "/protected/funds": { href: "/protected", label: "Back to Home" },
 };
 
 export function HeaderBrand() {
   const pathname = usePathname();
   const title = MOBILE_TITLES[pathname];
+  const back = MOBILE_BACK[pathname];
 
   return (
     <>
       {title ? (
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 md:hidden">
-          {title}
-        </h1>
+        <div className="flex items-center gap-1 md:hidden">
+          {back ? (
+            <Link
+              href={back.href}
+              aria-label={back.label}
+              className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Link>
+          ) : null}
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {title}
+          </h1>
+        </div>
       ) : null}
       <Link
         href="/protected"

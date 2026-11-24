@@ -2,15 +2,38 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { PageStack } from "@/components/layout/page-container";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/utils/supabase/client";
 import { FundCategory, TOP_LEVEL_FUND_CATEGORIES } from "@/types/database";
 import { useFundCategories } from "@/hooks/useFundCategories";
-import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, ChevronDown } from "lucide-react";
 import { CURRENCIES } from "@/constants/app-constants";
 import { getSelectClass } from "@/utils/styling-utils";
+import { cn } from "@/lib/utils";
+
+const iconButtonClass = "h-8 w-8 text-muted-foreground";
+
+/** A native select with the caret drawn inset, matching the Settings selects. */
+function ChevronSelect({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"select">) {
+  return (
+    <div className="relative">
+      <select
+        {...props}
+        className={cn(getSelectClass(), "w-full appearance-none pr-10", className)}
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
 
 export default function FundCategoriesManager() {
   const { fundCategories, isLoading, mutate } = useFundCategories();
@@ -105,18 +128,10 @@ export default function FundCategoriesManager() {
 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>💰 Fund Categories</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Manage your fund categories for the balance overview. Each fund can have its own currency.
-        </p>
-
+    <PageStack>
         {/* Add New Fund Form */}
         {isAdding && (
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md space-y-3">
+          <Card className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="name">Name *</Label>
@@ -129,11 +144,11 @@ export default function FundCategoriesManager() {
               </div>
               <div>
                 <Label htmlFor="top_level_category">Top Level Category</Label>
-                <select
+                <ChevronSelect
                   id="top_level_category"
                   value={newFund.top_level_category || ""}
                   onChange={(e) => setNewFund({ ...newFund, top_level_category: e.target.value })}
-                  className={getSelectClass()}
+                  
                 >
                   <option value="">No Category</option>
                   {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
@@ -141,22 +156,22 @@ export default function FundCategoriesManager() {
                       {category}
                     </option>
                   ))}
-                </select>
+                </ChevronSelect>
               </div>
               <div>
                 <Label htmlFor="currency">Currency</Label>
-                <select
+                <ChevronSelect
                   id="currency"
                   value={newFund.currency}
                   onChange={(e) => setNewFund({ ...newFund, currency: e.target.value })}
-                  className={getSelectClass()}
+                  
                 >
                   {CURRENCIES.map((currency) => (
                     <option key={currency} value={currency}>
                       {currency}
                     </option>
                   ))}
-                </select>
+                </ChevronSelect>
               </div>
               <div>
                 <Label htmlFor="amount">Amount *</Label>
@@ -203,40 +218,102 @@ export default function FundCategoriesManager() {
                 Cancel
               </Button>
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Fund Categories List */}
-        <div className="space-y-2">
+        {/* Fund Categories List: one card per fund, like the bank cards */}
           {(() => {
             if (isLoading) {
               return (
-                <div className="space-y-2">
+                <>
                   {['s1','s2','s3'].map((k) => (
                     <div
                       key={k}
-                      className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                      className="h-24 rounded-2xl bg-gray-200 dark:bg-gray-700 animate-pulse"
                     />
                   ))}
-                </div>
+                </>
               );
             }
             if (fundCategories.length === 0) {
               return (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No fund categories configured yet.
-                </p>
+                <Card className="py-10 text-center">
+                  <p className="text-muted-foreground">
+                    No fund categories configured yet.
+                  </p>
+                </Card>
               );
             }
             return (
               fundCategories
                 .sort((a, b) => a.order_index - b.order_index)
                 .map((fund) => (
-                  <div
-                    key={fund.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                  >
-                    <div className="flex-1">
+                  <Card key={fund.id}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        {editingId !== fund.id && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-semibold m-0">{fund.name}</h3>
+                            {!fund.is_active && (
+                              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                      {editingId === fund.id ? (
+                        <>
+                          <Button
+                            onClick={() => handleUpdateFund(fund)}
+                            size="icon"
+                            variant="ghost"
+                            className={cn(iconButtonClass, "hover:text-primary")}
+                            title="Save"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span className="sr-only">Save</span>
+                          </Button>
+                          <Button
+                            onClick={() => setEditingId(null)}
+                            size="icon"
+                            variant="ghost"
+                            className={iconButtonClass}
+                            title="Cancel"
+                          >
+                            <X className="w-4 h-4" />
+                            <span className="sr-only">Cancel</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={() => setEditingId(fund.id)}
+                            size="icon"
+                            variant="ghost"
+                            className={cn(iconButtonClass, "hover:text-primary")}
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            <span className="sr-only">Edit {fund.name}</span>
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteFund(fund.id)}
+                            size="icon"
+                            variant="ghost"
+                            className={cn(iconButtonClass, "hover:text-destructive")}
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="sr-only">Delete {fund.name}</span>
+                          </Button>
+                        </>
+                      )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
                       {editingId === fund.id ? (
                         <div className="space-y-2">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -252,7 +329,7 @@ export default function FundCategoriesManager() {
                               }
                               placeholder="Name"
                             />
-                            <select
+                            <ChevronSelect
                               value={fund.top_level_category || ""}
                               onChange={(e) =>
                                 mutate(
@@ -262,7 +339,7 @@ export default function FundCategoriesManager() {
                                   false
                                 )
                               }
-                              className={getSelectClass()}
+                              
                             >
                               <option value="">No Category</option>
                               {TOP_LEVEL_FUND_CATEGORIES.map((category) => (
@@ -270,8 +347,8 @@ export default function FundCategoriesManager() {
                                   {category}
                                 </option>
                               ))}
-                            </select>
-                            <select
+                            </ChevronSelect>
+                            <ChevronSelect
                               value={fund.currency}
                               onChange={(e) =>
                                 mutate(
@@ -281,14 +358,14 @@ export default function FundCategoriesManager() {
                                   false
                                 )
                               }
-                              className={getSelectClass()}
+                              
                             >
                               {CURRENCIES.map((currency) => (
                                 <option key={currency} value={currency}>
                                   {currency}
                                 </option>
                               ))}
-                            </select>
+                            </ChevronSelect>
                             <Input
                               type="number"
                               step="0.01"
@@ -338,17 +415,7 @@ export default function FundCategoriesManager() {
                           </div>
                         </div>
                       ) : (
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {fund.name}
-                            </span>
-                            {!fund.is_active && (
-                              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
-                                Inactive
-                              </span>
-                            )}
-                          </div>
+                        <div className="space-y-1">
                           {fund.description && (
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               {fund.description}
@@ -366,61 +433,24 @@ export default function FundCategoriesManager() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      {editingId === fund.id ? (
-                        <>
-                          <Button
-                            onClick={() => handleUpdateFund(fund)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => setEditingId(null)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={() => setEditingId(fund.id)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteFund(fund.id)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  </Card>
                 ))
             );
           })()}
-        </div>
 
         {/* Add New Button */}
         {!isAdding && (
-          <Button
-            onClick={() => setIsAdding(true)}
-            variant="outline"
-            className="w-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Fund Category
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setIsAdding(true)}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Fund Category
+            </Button>
+          </div>
         )}
-      </CardContent>
-    </Card>
+    </PageStack>
   );
 }

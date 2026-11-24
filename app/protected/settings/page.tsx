@@ -18,6 +18,8 @@ import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { useFundCategories } from "@/hooks/useFundCategories";
 import { cn } from "@/lib/utils";
+import CategoriesManager from "@/components/features/categories-manager";
+import FundCategoriesManager from "@/components/features/fund-categories-manager";
 import { getSelectClass } from "@/utils/styling-utils";
 
 function normalizeBankName(value: unknown) {
@@ -31,7 +33,14 @@ function bankNamesMatch(storedBankName: unknown, bankName: string) {
   return stored === expected || stored.includes(expected);
 }
 
+const SETTINGS_TABS = [
+  { value: "integrations", label: "Integrations" },
+  { value: "funds", label: "Funds" },
+  { value: "categories", label: "Categories" },
+] as const;
+
 function SettingsContent() {
+  const [tab, setTab] = useState<(typeof SETTINGS_TABS)[number]["value"]>("integrations");
   const searchParams = useSearchParams();
   const router = useRouter();
   const { mutate: globalMutate } = useSWRConfig();
@@ -555,15 +564,31 @@ function SettingsContent() {
             role="tablist"
             aria-label="Settings sections"
           >
-            <button
-              type="button"
-              role="tab"
-              aria-selected="true"
-              className="rounded-md py-1 text-lg font-semibold text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Banks
-            </button>
+            {SETTINGS_TABS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.value}
+                onClick={() => setTab(t.value)}
+                className={cn(
+                  "rounded-md py-1 text-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  tab === t.value
+                    ? "text-card-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
+
+          {tab === "funds" && <FundCategoriesManager />}
+
+          {tab === "categories" && <CategoriesManager />}
+
+          {tab === "integrations" && (
+          <>
           <div className="flex flex-col gap-4 sm:gap-6">
               <div className="grid gap-4 sm:gap-6">
                 {banks.map((bank) => {
@@ -867,6 +892,8 @@ function SettingsContent() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

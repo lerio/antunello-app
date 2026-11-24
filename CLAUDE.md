@@ -155,8 +155,8 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
 - `/protected/budgets` — Budget list with progress bars
 - `/protected/budgets/add` — Add budget form
 - `/protected/budgets/edit/[id]` — Edit budget form
-- `/protected/settings` — User settings and password reset
-- `/protected/admin` — Admin dashboard (CSV import, fund categories management, data management)
+- `/protected/settings` — User settings: integrations, funds (fund categories management) and password reset
+- `/protected/admin` — Admin dashboard (CSV import, data management)
 - `/protected/reset-password` — Password reset functionality
 
 ### API Routes
@@ -227,7 +227,8 @@ Bank-imported transactions awaiting review:
 - `at-a-glance-card.tsx` — Home block: month-to-date spending vs a typical month at the same point, the categories driving the gap, previous-month and last-30-days comparisons
 - `net-worth-card.tsx` — Home block: fund total with the month's change, "as of" sync date, anchored trend (1M/1Y/5Y/All), expandable fund list
 - `category-chart.tsx` — Bar chart for category spending over time with transaction count summary (349 lines)
-- `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
+- `categories-manager.tsx` — Settings "Categories" tab: lists categories and subcategories with add/edit/delete controls (UI only; behaviour pending the transaction-migration design)
+- `fund-categories-manager.tsx` — Settings "Funds" tab: CRUD interface for fund categories with inline editing (426 lines)
 - `filter-controls.tsx` — Advanced filter panel: type/category/currency/fund/amount-range/period multi-select with chip badges (389 lines)
 - `search-summary.tsx` — Search results summary with income/expense/hidden breakdown (135 lines)
 - `budget-card.tsx` — Budget display card with progress bar and color-coded thresholds (primary colour, amber above 90%, red above 100%)

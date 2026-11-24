@@ -156,8 +156,8 @@ npm run update-pipe-titles:execute # Execute pipe-title updates in database
 - `/protected/budgets` — Budget list with progress bars
 - `/protected/budgets/add` — Add budget form
 - `/protected/budgets/edit/[id]` — Edit budget form
-- `/protected/settings` — User settings and password reset
-- `/protected/admin` — Admin dashboard (CSV import, fund categories management, data management)
+- `/protected/settings` — User settings: integrations, funds (fund categories management) and password reset
+- `/protected/admin` — Admin dashboard (CSV import, data management)
 - `/protected/reset-password` — Password reset functionality
 
 ### API Routes
@@ -230,7 +230,8 @@ Bank-imported transactions awaiting review:
 - `balance-chart.tsx` — Interactive balance line chart with previous-period overlay, time range selector (1M/1Y/5Y/All), responsive sizing (361 lines)
 - `category-chart.tsx` — Bar chart for category spending over time with transaction count summary (349 lines)
 - `overall-totals.tsx` — Global balance total display
-- `fund-categories-manager.tsx` — Admin CRUD interface for fund categories with inline editing (426 lines)
+- `categories-manager.tsx` — Settings "Categories" tab: lists categories and subcategories with add/edit/delete controls (UI only; behaviour pending the transaction-migration design)
+- `fund-categories-manager.tsx` — Settings "Funds" tab: CRUD interface for fund categories with inline editing (426 lines)
 - `filter-controls.tsx` — Advanced filter panel: type/category/currency/fund/amount-range/period multi-select with chip badges (389 lines)
 - `search-summary.tsx` — Search results summary with income/expense/hidden breakdown (135 lines)
 - `budget-card.tsx` — Budget display card with progress bar and color-coded thresholds (green/amber/red)

@@ -7,7 +7,6 @@ import { PageContainer } from '@/components/layout/page-container';
 import { deleteAllUserTransactions, getUserTransactionCount, importTransactions } from '@/utils/supabase/database-utils';
 import { parseCSV, batchMapCSVToTransactions, ImportResult } from '@/utils/csv-import';
 import { retryMissingExchangeRates } from '@/utils/currency-conversion';
-import FundCategoriesManager from '@/components/features/fund-categories-manager';
 
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -157,9 +156,6 @@ export default function AdminPage() {
   return (
     <PageContainer className="min-w-0">
       <div className="space-y-4 sm:space-y-6">
-        {/* Fund Categories Management Section */}
-        <FundCategoriesManager />
-
         {/* Import CSV Section */}
         <Card>
           <CardHeader>

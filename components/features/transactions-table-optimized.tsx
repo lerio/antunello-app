@@ -178,17 +178,9 @@ const TransactionRow = React.memo(
             >
               {subtitle}
             </p>
-            {(isSplit || transaction.split_remaining_count) && (
-              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium leading-none text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                <GitFork size={12} aria-hidden />
-                {transaction.split_remaining_count
-                  ? `Split · ${transaction.split_remaining_count} left`
-                  : "Split"}
-              </span>
-            )}
           </div>
         </div>
-        <div className="flex-shrink-0 ml-4 self-stretch">
+        <div className="ml-4 flex flex-shrink-0 flex-col items-end self-stretch">
           <p className={`text-right font-medium ${amountColor}`}>
             <PrivacyBlur blur={privacyMode}>{amountLabel}</PrivacyBlur>
           </p>
@@ -201,6 +193,14 @@ const TransactionRow = React.memo(
                 )}
               </PrivacyBlur>
             </p>
+          )}
+          {(isSplit || transaction.split_remaining_count) && (
+            <span className="my-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium leading-none text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+              <GitFork size={12} aria-hidden />
+              {transaction.split_remaining_count
+                ? `Split · ${transaction.split_remaining_count} left`
+                : "Split"}
+            </span>
           )}
         </div>
       </button>
