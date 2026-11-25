@@ -1,11 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import {
-  SUB_CATEGORIES,
-  Transaction,
-  CATEGORIES_WITH_TYPES,
-  getCategoryType,
-  TitleSuggestion,
-} from "@/types/database";
+import { Transaction, TitleSuggestion } from "@/types/database";
+import { useCategories } from "@/hooks/useCategories";
 import { createClient } from "@/utils/supabase/client";
 import { parseNumber } from "@/utils/number";
 import { parentTransactionId } from "@/utils/transaction-utils";
@@ -196,6 +191,12 @@ export default function TransactionFormModal({
   onClose,
 }: TransactionFormModalProps) {
   // Get fund categories for the Source dropdown
+  const {
+    categories,
+    subCategoriesFor,
+    isCategoryOfType,
+    isLoading: categoriesLoading,
+  } = useCategories();
   const { fundCategories, isLoading: fundCategoriesLoading } =
     useFundCategories();
 
@@ -235,11 +236,14 @@ export default function TransactionFormModal({
 
   // Reset main category when transaction type changes if current category is not valid for the new type
   useEffect(() => {
-    if (mainCategory && getCategoryType(mainCategory) !== transactionType) {
+    // Wait for custom categories: until they load, an income custom category
+    // would look like an expense and be cleared.
+    if (categoriesLoading) return;
+    if (mainCategory && !isCategoryOfType(mainCategory, transactionType)) {
       setMainCategory("");
       setSubCategory("");
     }
-  }, [transactionType, mainCategory]);
+  }, [transactionType, mainCategory, categoriesLoading, isCategoryOfType]);
 
   useEffect(() => {
     if (!amountInput) return;
@@ -424,12 +428,10 @@ export default function TransactionFormModal({
 
   const { currencySymbol, mainCategoryOptions, subCategoryOptions } = useMemo(
     () => ({
-      subCategories:
-        SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [],
       currencySymbol:
         CURRENCY_OPTIONS.find((c) => c.value === selectedCurrency)?.symbol ||
         "€",
-      mainCategoryOptions: CATEGORIES_WITH_TYPES.filter(
+      mainCategoryOptions: categories.filter(
         (cat) =>
           cat.type === transactionType && cat.category !== "Money Transfer"
       ).map((category) => ({
@@ -437,15 +439,13 @@ export default function TransactionFormModal({
         label: category.category,
         isMainCategory: true,
       })),
-      subCategoryOptions: (
-        SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || []
-      ).map((category) => ({
+      subCategoryOptions: subCategoriesFor(mainCategory, transactionType).map((category) => ({
         value: category,
         label: category,
         isMainCategory: false,
       })),
     }),
-    [mainCategory, selectedCurrency, transactionType]
+    [mainCategory, selectedCurrency, transactionType, categories, subCategoriesFor]
   );
 
   const handleSubmit = useCallback(

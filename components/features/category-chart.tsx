@@ -17,7 +17,7 @@ import {
 } from "@/hooks/useCategoryHistory";
 import { formatCurrency } from "@/utils/currency";
 import { ChartSkeleton } from "@/components/ui/skeletons";
-import { getCategoryType } from "@/types/database";
+import { useCategories } from "@/hooks/useCategories";
 
 /**
  * Custom tooltip props interface for recharts
@@ -236,7 +236,8 @@ export default function CategoryChart({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const categoryType = getCategoryType(category);
+  const { getType } = useCategories();
+  const categoryType = getType(category);
   const isMoneyTransfer = category === "Money Transfer";
 
   let totalColorClass = "text-red-600 dark:text-red-400"; // Default expense

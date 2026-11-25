@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CATEGORIES_WITH_TYPES, SUB_CATEGORIES } from "@/types/database"
+import { useCategories } from "@/hooks/useCategories"
 import { CURRENCY_OPTIONS } from "@/constants/app-constants"
 import { FilterCriteria } from "@/hooks/useFilteredTransactions"
 
@@ -101,6 +101,7 @@ export function FilterControls({
   availableCurrencies,
   availableFundSources,
 }: FilterControlsProps) {
+  const { categories, subCategories } = useCategories()
   const [showCategories, setShowCategories] = React.useState(false)
   const [showFunds, setShowFunds] = React.useState(false)
 
@@ -109,19 +110,20 @@ export function FilterControls({
     // If no types selected or "movement" is selected, show all categories
     const hasIncomeOrExpense = criteria.types.includes('income') || criteria.types.includes('expense')
     if (!hasIncomeOrExpense || criteria.types.length === 0) {
-      return CATEGORIES_WITH_TYPES
+      return categories
     }
     // Filter by selected types (income/expense)
-    return CATEGORIES_WITH_TYPES.filter(cat =>
+    return categories.filter(cat =>
       criteria.types.includes(cat.type)
     )
-  }, [criteria.types])
+  }, [criteria.types, categories])
 
   // Category options based on filtered categories
   const categoryOptions: ChipOption[] = React.useMemo(() =>
-    filteredCategories.map(cat => ({
-      value: cat.category,
-      label: cat.category,
+    // A name can exist as both an income and an expense category; one chip covers both.
+    [...new Set(filteredCategories.map(cat => cat.category))].map(name => ({
+      value: name,
+      label: name,
     })),
     [filteredCategories]
   )
@@ -132,17 +134,19 @@ export function FilterControls({
 
     if (criteria.mainCategories.length === 0) {
       // If no main category selected, show subcategories from filtered categories
-      return filteredCategories.flatMap(cat =>
+      const all = filteredCategories.flatMap(cat =>
         cat.subcategories.map(sub => ({ value: `${cat.category}::${sub}`, label: sub }))
       )
+      // Same-named categories of different types can repeat a subcategory.
+      return all.filter((option, i) => all.findIndex(o => o.value === option.value) === i)
     }
     // Show subcategories for selected main categories (that are still valid)
     return criteria.mainCategories
       .filter(main => validCategories.includes(main))
       .flatMap(main =>
-        (SUB_CATEGORIES[main] || []).map(sub => ({ value: `${main}::${sub}`, label: sub }))
+        (subCategories[main] || []).map(sub => ({ value: `${main}::${sub}`, label: sub }))
       )
-  }, [criteria.mainCategories, filteredCategories])
+  }, [criteria.mainCategories, filteredCategories, subCategories])
 
   // Currency options from available currencies
   const currencyOptions: ChipOption[] = availableCurrencies.map(c => ({
@@ -174,7 +178,7 @@ export function FilterControls({
     let validSubCategories = criteria.subCategories
 
     if (hasIncomeOrExpense && newTypes.length > 0) {
-      const allowedCategories = CATEGORIES_WITH_TYPES
+      const allowedCategories = categories
         .filter(cat => newTypes.includes(cat.type))
         .map(cat => cat.category)
 

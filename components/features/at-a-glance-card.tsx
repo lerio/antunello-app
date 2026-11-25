@@ -4,6 +4,7 @@ import { useMemo, useState, type ComponentType } from "react";
 import { ChevronDown, ChevronUp, type LucideProps } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import { CATEGORY_ICONS } from "@/utils/categories";
+import { useCustomCategories } from "@/hooks/useCategories";
 import { useMonthMovers, useMonthPace, MonthMover } from "@/hooks/useMonthPace";
 import { usePrivacyMode } from "@/hooks/usePrivacyMode";
 import { PrivacyBlur } from "@/components/ui/privacy-blur";
@@ -58,6 +59,7 @@ function moverParts(mover: { mainCategory: string; delta: number }): {
  * month at the same point, and the categories driving the gap.
  */
 export default function AtAGlanceCard() {
+  useCustomCategories(); // re-render when custom category icons arrive
   const { pace, isLoading, error, mutate } = useMonthPace();
   const { movers } = useMonthMovers();
   const { privacyMode } = usePrivacyMode();

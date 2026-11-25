@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LucideProps } from "lucide-react";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { MAIN_CATEGORIES, SUB_CATEGORIES } from "@/types/database";
+import { useCategories } from "@/hooks/useCategories";
 import CategoryChart from "@/components/features/category-chart";
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import { useCategoryTransactions, type TimeRange } from "@/hooks/useCategoryTransactions";
@@ -25,8 +25,9 @@ export default function SubCategoryPage({
   const subCategory = decodeURIComponent(resolvedParams.subcategory);
 
   // Validate category and subcategory exist
-  const isValidCategory = MAIN_CATEGORIES.includes(category);
-  const validSubCategories = SUB_CATEGORIES[category] || [];
+  const { mainCategories, subCategories, isLoading: categoriesLoading } = useCategories();
+  const isValidCategory = mainCategories.includes(category);
+  const validSubCategories = subCategories[category] || [];
   const isValidSubCategory = validSubCategories.includes(subCategory);
 
   // Get icon component (cast to LucideProps type for proper prop support)
@@ -35,7 +36,8 @@ export default function SubCategoryPage({
   // Fetch transactions for the list view
   const { transactions, isLoading } = useCategoryTransactions(timeRange, category, subCategory);
 
-  if (!isValidCategory || !isValidSubCategory) {
+  // While custom categories load, a custom category would look unknown.
+  if (!categoriesLoading && (!isValidCategory || !isValidSubCategory)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

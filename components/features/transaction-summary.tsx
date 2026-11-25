@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Transaction } from "@/types/database";
 import { CATEGORY_ICONS } from "@/utils/categories";
+import { useCustomCategories } from "@/hooks/useCategories";
 import { LucideProps, ChevronDown, ChevronUp } from "lucide-react";
 import { useYearTransactions } from "@/hooks/useYearTransactions";
 import { SummarySkeleton } from "@/components/ui/skeletons";
@@ -826,6 +827,7 @@ export default function TransactionSummary({
   expectedSplitAmountEur = 0,
   totalSplitAmountEur = 0,
 }: TransactionSummaryProps) {
+  useCustomCategories(); // re-render when custom category icons arrive
   // State for collapsible categories in monthly view
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(false);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);

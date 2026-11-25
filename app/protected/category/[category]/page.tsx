@@ -5,7 +5,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LucideProps } from "lucide-react";
 import { CATEGORY_ICONS } from "@/utils/categories";
-import { MAIN_CATEGORIES } from "@/types/database";
+import { useCategories } from "@/hooks/useCategories";
 import CategoryChart from "@/components/features/category-chart";
 import TransactionsTable from "@/components/features/transactions-table-optimized";
 import { useCategoryTransactions, type TimeRange } from "@/hooks/useCategoryTransactions";
@@ -23,7 +23,8 @@ export default function CategoryPage({
   const category = decodeURIComponent(resolvedParams.category);
 
   // Validate category exists
-  const isValidCategory = MAIN_CATEGORIES.includes(category);
+  const { mainCategories, isLoading: categoriesLoading } = useCategories();
+  const isValidCategory = mainCategories.includes(category);
 
   // Get icon component (cast to LucideProps type for proper prop support)
   const Icon = (CATEGORY_ICONS[category] || CATEGORY_ICONS["Services"]) as React.ComponentType<LucideProps>;
@@ -35,7 +36,8 @@ export default function CategoryPage({
     router.push(`/protected/category/${encodeURIComponent(cat)}/${encodeURIComponent(subCat)}`);
   };
 
-  if (!isValidCategory) {
+  // While custom categories load, a custom category would look unknown.
+  if (!categoriesLoading && !isValidCategory) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -1,11 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import {
-  MAIN_CATEGORIES,
-  SUB_CATEGORIES,
-  Transaction,
-  CATEGORIES_WITH_TYPES,
-  getCategoryType,
-} from "@/types/database";
+import { Transaction } from "@/types/database";
+import { useCategories } from "@/hooks/useCategories";
 import { createClient } from "@/utils/supabase/client";
 import { formatDateTimeLocal, parseDateTime } from "@/utils/date";
 import { parseNumber } from "@/utils/number";
@@ -40,9 +35,16 @@ export default function TransactionFormHtmlDesign({
   initialData,
   onBack,
 }: TransactionFormProps) {
+  const {
+    categories,
+    mainCategories,
+    subCategoriesFor,
+    isCategoryOfType,
+    isLoading: categoriesLoading,
+  } = useCategories();
   const [isLoading, setIsLoading] = useState(false);
   const [mainCategory, setMainCategory] = useState(
-    initialData?.main_category || MAIN_CATEGORIES[0]
+    initialData?.main_category || mainCategories[0]
   );
   const [transactionType, setTransactionType] = useState<"expense" | "income">(
     initialData?.type || "expense"
@@ -50,10 +52,11 @@ export default function TransactionFormHtmlDesign({
 
   // Reset main category when transaction type changes if current category is not valid for the new type
   useEffect(() => {
-    if (mainCategory && getCategoryType(mainCategory) !== transactionType) {
-      setMainCategory(MAIN_CATEGORIES[0]);
+    if (categoriesLoading) return;
+    if (mainCategory && !isCategoryOfType(mainCategory, transactionType)) {
+      setMainCategory(mainCategories[0]);
     }
-  }, [transactionType, mainCategory]);
+  }, [transactionType, mainCategory, categoriesLoading, isCategoryOfType, mainCategories]);
 
   const [selectedCurrency, setSelectedCurrency] = useState(
     initialData?.currency || "EUR"
@@ -133,14 +136,14 @@ export default function TransactionFormHtmlDesign({
   }, []);
 
   const subCategories = useMemo(() => {
-    return SUB_CATEGORIES[mainCategory as keyof typeof SUB_CATEGORIES] || [];
-  }, [mainCategory]);
+    return subCategoriesFor(mainCategory, transactionType);
+  }, [mainCategory, transactionType, subCategoriesFor]);
 
   const filteredMainCategories = useMemo(() => {
-    return CATEGORIES_WITH_TYPES.filter(
+    return categories.filter(
       (cat) => cat.type === transactionType
     ).map((cat) => cat.category);
-  }, [transactionType]);
+  }, [transactionType, categories]);
 
   const defaultDate = useMemo(() => {
     const date = initialData?.date || new Date().toISOString();

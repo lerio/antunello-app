@@ -7,6 +7,7 @@ import {
 } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 import { getTransactionIcon } from "@/utils/categories";
+import { useCustomCategories } from "@/hooks/useCategories";
 import { DailyHiddenIndicator } from "@/components/ui/daily-hidden-indicator";
 import { ArrowRightLeft, GitFork, LucideProps } from "lucide-react";
 import { TransactionListSkeleton } from "@/components/ui/skeletons";
@@ -43,6 +44,8 @@ const TransactionRow = React.memo(
     readonly onSubCategoryClick?: (category: string, subCategory: string) => void;
     readonly privacyMode: boolean;
   }) => {
+    // Re-renders this memoised row when custom category icons arrive.
+    useCustomCategories();
     const Icon: React.ComponentType<LucideProps> = getTransactionIcon(
       transaction.main_category,
       transaction.sub_category,

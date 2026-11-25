@@ -1,13 +1,13 @@
 import { Budget } from "@/types/database"
 import { formatCurrency } from "@/utils/currency"
 import { Edit2 } from "lucide-react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 interface BudgetCardProps {
     budget: Budget
     spent: number
     currency?: string
+    onEdit?: (budget: Budget) => void
 }
 
 // Simple Progress component matching the style we want
@@ -30,7 +30,7 @@ function SimpleProgress({ value, className }: { value: number, className?: strin
     )
 }
 
-export function BudgetCard({ budget, spent, currency = "EUR" }: BudgetCardProps) {
+export function BudgetCard({ budget, spent, currency = "EUR", onEdit }: BudgetCardProps) {
     const percentage = Math.round((spent / budget.amount) * 100)
     const remaining = budget.amount - spent
     const isOverBudget = remaining < 0
@@ -41,12 +41,15 @@ export function BudgetCard({ budget, spent, currency = "EUR" }: BudgetCardProps)
                 <h3 className="text-lg font-semibold m-0">
                     {budget.category}
                 </h3>
-                <Link href={`/protected/budgets/edit/${budget.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
-                        <Edit2 className="h-4 w-4" />
-                        <span className="sr-only">Edit Budget</span>
-                    </Button>
-                </Link>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                    onClick={() => onEdit?.(budget)}
+                >
+                    <Edit2 className="h-4 w-4" />
+                    <span className="sr-only">Edit Budget</span>
+                </Button>
             </div>
 
             <div className="mt-1">
