@@ -116,17 +116,27 @@ class SupabaseClient:
             return 0
 
         try:
+            # ON CONFLICT DO NOTHING: fetch_external_ids is capped at the
+            # PostgREST row limit (1000), so it can miss existing rows. Without
+            # this, one such row fails the whole batch.
             r = requests.post(
-                f"{self._url}/rest/v1/pending_transactions",
-                headers={**self._headers, "Prefer": "return=minimal"},
+                f"{self._url}/rest/v1/pending_transactions"
+                f"?on_conflict=user_id,external_id&select=id",
+                headers={
+                    **self._headers,
+                    "Prefer": "resolution=ignore-duplicates,return=representation",
+                },
                 json=rows,
                 timeout=30,
             )
             if r.ok:
+                inserted = len(r.json())
                 logger.info(
-                    "Inserted %d row(s) into pending_transactions", len(rows)
+                    "Inserted %d of %d row(s) into pending_transactions",
+                    inserted,
+                    len(rows),
                 )
-                return len(rows)
+                return inserted
 
             logger.error(
                 "Failed to insert pending_transactions: HTTP %d — %s",

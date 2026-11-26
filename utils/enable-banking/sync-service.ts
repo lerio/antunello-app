@@ -249,13 +249,24 @@ export async function syncAccount(
             });
         }
 
-        // 4. Insert into pending_transactions
+        // 4. Insert into pending_transactions.
+        // ON CONFLICT DO NOTHING on (user_id, external_id): the pre-check above
+        // is not authoritative — the select is capped at PostgREST's row limit
+        // (1000), the bank can repeat an id within one response, and parallel
+        // syncs of configs sharing an account race between read and insert.
+        let insertedCount = 0;
         if (newPendingTransactions.length > 0) {
-            const { error: insertError } = await supabase
+            const { data: inserted, error: insertError } = await supabase
                 .from('pending_transactions')
-                .insert(newPendingTransactions);
+                .upsert(newPendingTransactions, {
+                    onConflict: 'user_id,external_id',
+                    ignoreDuplicates: true,
+                })
+                .select('id');
 
             if (insertError) throw insertError;
+            insertedCount = inserted?.length ?? 0;
+            skippedKnown += newPendingTransactions.length - insertedCount;
         }
 
         // 5. Update last_sync_at
@@ -267,7 +278,7 @@ export async function syncAccount(
         return {
             account: config.account_id,
             fetched: fetchedTransactions.length,
-            new_pending: newPendingTransactions.length,
+            new_pending: insertedCount,
             window_from: fromDateStr,
             skipped: {
                 already_pending: skippedKnown,
@@ -277,7 +288,10 @@ export async function syncAccount(
         };
 
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        // Supabase errors are plain { code, message, ... } objects, not Error.
+        const message = error instanceof Error
+            ? error.message
+            : (error as { message?: string } | null)?.message || 'Unknown error';
         console.error(`Sync failed for config ${config.id}:`, error);
 
         if (message.includes('CLOSED_SESSION')) {
