@@ -10,6 +10,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { TradeRepublicClient } from './client';
 
+/** Days re-fetched before last_sync_at on every sync (matches Enable Banking). */
+const SYNC_OVERLAP_DAYS = 14;
+
 interface TRConfig {
   id: string;
   user_id: string;
@@ -31,8 +34,13 @@ export async function syncTradeRepublicAccount(
       return { account: config.account_id, error: 'Missing session. Re-authenticate.' };
     }
 
+    // Look back SYNC_OVERLAP_DAYS before last_sync_at: last_sync_at advances
+    // even when a sync imports nothing, so without the overlap whatever a
+    // failed run missed would never be fetched again. Re-fetched rows are
+    // dropped by the service's dedup.
     const lastDays = config.last_sync_at
       ? Math.max(1, Math.ceil((Date.now() - new Date(config.last_sync_at).getTime()) / 86400000))
+        + SYNC_OVERLAP_DAYS
       : 7;
 
     const result = await TradeRepublicClient.triggerSync({
